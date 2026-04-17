@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(COLLABORATOR)
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  leads         Lead[]
+  proposals     Proposal[]
+  projects      ProjectUser[]
+  activities    Activity[]
+}
+
+model Lead {
+  id            String    @id @default(cuid())
+  companyName   String
+  contactName   String
+  email         String
+  phone         String?
+  status        LeadStatus @default(NEW)
+  source        String    // LinkedIn, Web, Referido, etc.
+  estimatedValue Float    @default(0)
+  notes         String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  proposals     Proposal[]
+  activities    Activity[]
+}
+
+model Proposal {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  status        ProposalStatus @default(DRAFT)
+  amount        Float
+  leadId        String?
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  sentDate      DateTime?
+  acceptedDate  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  activities    Activity[]
+}
+
+model Project {
+  id            String    @id @default(cuid())
+  name          String
+  description   String
+  status        ProjectStatus @default(PLANNING)
+  priority      Priority  @default(MEDIUM)
+  progress      Int       @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  proposalId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  users         ProjectUser[]
+  milestones    Milestone[]
+  activities    Activity[]
+}
+
+model ProjectUser {
+  projectId    String
+  userId       String
+  role         ProjectRole @default(VIEWER)
+  assignedAt   DateTime    @default(now())
+
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+model Milestone {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  status        MilestoneStatus @default(PENDING)
+  dueDate       DateTime?
+  completedDate DateTime?
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Activity {
+  id            String    @id @default(cuid())
+  type          ActivityType
+  description   String
+  entityType    String    // lead, proposal, project
+  entityId      String
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+  leadId        String?
+  proposal      Proposal? @relation(fields: [proposalId], references: [id])
+  proposalId    String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  projectId     String?
+  createdAt     DateTime  @default(now())
+}
+
+enum Role {
+  ADMIN
+  PARTNER
+  COLLABORATOR
+}
+
+enum ProjectRole {
+  OWNER
+  PARTNER
+  VIEWER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum ActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  NOTE_ADDED
+  PROPOSAL_SENT
+  MILESTONE_COMPLETED
+}

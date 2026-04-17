@@ -1,36 +1,187 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ArchiTechIA - Portal Interno
 
-## Getting Started
+Portal de gestión interna para la startup ArchiTechIA, especializado en automatización IA y Agentic AI.
 
-First, run the development server:
+## 🚀 Características
 
+### Módulos Principales
+
+#### 1. **Dashboard**
+- KPIs en tiempo real (leads, propuestas, proyectos, actividades)
+- Desglose por estados con visualizaciones
+- Actividad reciente del equipo
+- Valor estimado total del pipeline
+
+#### 2. **Gestión de Leads**
+- Registro completo de prospectos
+- Seguimiento por etapas del pipeline:
+  - Nuevo → Contactado → Calificado → Propuesta Enviada → Negociación → Ganado/Perdido
+- Asignación de responsables
+- Valor estimado por oportunidad
+- Fuente de procedencia
+- Filtrado y búsqueda avanzada
+
+#### 3. **Propuestas Comerciales**
+- Creación y seguimiento de propuestas
+- Estados: Borrador → Enviado → En Revisión → Aceptado/Rechazado
+- Vinculación con leads
+- Montos y fechas de envío
+- Historial completo
+
+#### 4. **Proyectos**
+- Gestión de desarrollo de productos
+- Estados: Planificación → En Progreso → En Pausa → Completado → Cancelado
+- Prioridades: Baja → Media → Alta → Crítica
+- Barra de progreso visual
+- Hitos y milestones
+- Fechas de inicio y fin
+
+#### 5. **Trazabilidad y Control**
+- Timeline completo de actividades
+- Registro de todos los cambios
+- Filtros por tipo de entidad
+- Trazabilidad completa de acciones por usuario
+
+#### 6. **Equipo**
+- Gestión de socios y colaboradores
+- Roles: Administrador, Socio, Colaborador
+- Registro de nuevos miembros
+- Información de contacto
+
+## 🛠️ Tecnologías
+
+- **Frontend/Backend**: Next.js 14+ (App Router)
+- **Lenguaje**: TypeScript
+- **Base de Datos**: SQLite con Prisma ORM
+- **Estilos**: Tailwind CSS
+- **UI Components**: Componentes personalizados
+
+## 📋 Instalación y Uso
+
+### Requisitos Previos
+- Node.js 18+ 
+- npm o yarn
+
+### Instalación
+
+1. **Instalar dependencias**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd portal
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configurar base de datos**
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Cargar datos de prueba**
+```bash
+npx tsx prisma/seed.ts
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Iniciar servidor de desarrollo**
+```bash
+npm run dev
+```
 
-## Learn More
+El portal estará disponible en: **http://localhost:3000**
 
-To learn more about Next.js, take a look at the following resources:
+## 👥 Credenciales de Acceso
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+El sistema viene pre-configurado con los siguientes usuarios:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | admin@architechia.com | admin123 |
+| Socio 1 | maria@architechia.com | partner123 |
+| Socio 2 | carlos@architechia.com | partner123 |
+| Colaborador | ana@architechia.com | collab123 |
 
-## Deploy on Vercel
+## 📊 Estructura de la Base de Datos
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Modelos Principales
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **User**: Usuarios del sistema (socios, colaboradores, admin)
+- **Lead**: Prospectos y oportunidades comerciales
+- **Proposal**: Propuestas enviadas a clientes
+- **Project**: Proyectos en desarrollo
+- **Milestone**: Hitos dentro de proyectos
+- **Activity**: Registro de actividades y cambios
+
+### Pipeline de Ventas
+
+```
+Lead → Propuesta → Proyecto (si se acepta)
+```
+
+Cada entidad tiene su propio ciclo de vida y estados.
+
+## 🎨 Módulos y Rutas
+
+- `/` - Dashboard principal
+- `/leads` - Gestión de leads
+- `/proposals` - Propuestas comerciales
+- `/projects` - Proyectos en desarrollo
+- `/traceability` - Trazabilidad y control
+- `/team` - Gestión del equipo
+
+## 🔌 APIs REST
+
+El portal incluye APIs completas:
+
+- `GET/POST /api/leads` - Gestión de leads
+- `GET/POST /api/proposals` - Gestión de propuestas
+- `GET/POST /api/projects` - Gestión de proyectos
+- `GET/POST /api/activities` - Registro de actividades
+- `GET/POST /api/users` - Gestión de usuarios
+- `GET /api/dashboard` - Datos del dashboard
+
+## 🚀 Producción
+
+Para desplegar en producción:
+
+1. **Build**
+```bash
+npm run build
+```
+
+2. **Start**
+```bash
+npm start
+```
+
+3. **Base de datos**
+- Para producción, considerar PostgreSQL o MySQL
+- Configurar variable DATABASE_URL en .env
+
+## 📝 Datos de Prueba
+
+El seed incluye:
+- 4 usuarios (1 admin, 2 socios, 1 colaborador)
+- 4 leads en diferentes estados
+- 3 propuestas comerciales
+- 3 proyectos con diferentes prioridades
+- 4 hitos de proyecto
+- 8 actividades de ejemplo
+
+## 🔄 Próximos Pasos (Mejoras Futuras)
+
+- [ ] Autenticación con NextAuth.js
+- [ ] Sistema de notificaciones
+- [ ] Exportación a Excel/PDF
+- [ ] Gráficos avanzados con Recharts
+- [ ] Integración con email (envío de propuestas)
+- [ ] Chat interno entre equipo
+- [ ] Calendario de reuniones
+- [ ] Integración con CRM externo
+- [ ] Migración a PostgreSQL para producción
+
+## 📄 Licencia
+
+Propietario - ArchiTechIA 2026
+
+---
+
+**Desarrollado con ❤️ para ArchiTechIA**
