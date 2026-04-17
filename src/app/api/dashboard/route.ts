@@ -73,7 +73,7 @@ export async function GET() {
   });
 
   // Embudo de ventas (orden de etapas)
-  const etapasOrden = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL_SENT', 'NEGOTIATION', 'WON'];
+  const etapasOrden = ['NEW', 'CONTACTED', 'DIAGNOSIS', 'QUALIFIED', 'DEMO_VALIDATION', 'PROPOSAL_SENT', 'NEGOTIATION', 'WON'];
   const embudo = await Promise.all(
     etapasOrden.map(async (status) => ({
       status,

@@ -25,6 +25,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* El sidebar maneja sus propios colores via inline styles */
+aside nav a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
 /* ── Modo claro ── */
 [data-theme="light"] body,
 [data-theme="light"] .antialiased {
@@ -55,7 +62,16 @@ body {
 
 [data-theme="light"] .bg-gray-900\/80 { background-color: rgba(255,255,255,0.9) !important; }
 
+/* Scrollbar global — modo oscuro */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+
+/* Scrollbar sidebar más delgado */
+aside ::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #f97316, #ea580c); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #fb923c, #f97316); border-radius: 4px; }
+
 /* Scrollbar modo claro */
-[data-theme="light"] ::-webkit-scrollbar { width: 6px; }
 [data-theme="light"] ::-webkit-scrollbar-track { background: #f3f4f6; }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }

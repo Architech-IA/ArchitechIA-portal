@@ -43,8 +43,24 @@ export default function TopBar() {
   const [showSearch, setShowSearch] = useState(false);
   const [notifs, setNotifs]         = useState(MOCK_NOTIFS);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [hora, setHora]             = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef  = useRef<HTMLDivElement>(null);
+
+  // Reloj UTC-5 (Colombia / Lima / Bogotá)
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const utcMinus5 = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+      const h = String(utcMinus5.getUTCHours()).padStart(2, '0');
+      const m = String(utcMinus5.getUTCMinutes()).padStart(2, '0');
+      const s = String(utcMinus5.getUTCSeconds()).padStart(2, '0');
+      setHora(`${h}:${m}:${s}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const unread = notifs.filter(n => !n.leida).length;
 
@@ -140,7 +156,7 @@ export default function TopBar() {
 
         {/* Panel notificaciones */}
         {showNotifs && (
-          <div className="absolute right-0 top-full mt-1 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+          <div className="absolute right-0 top-full mt-1 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50 mr-24">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
               <span className="text-sm font-semibold text-white">Notificaciones</span>
               {unread > 0 && (
@@ -163,6 +179,13 @@ export default function TopBar() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Reloj */}
+      <div className="select-none pl-3 border-l border-gray-700 flex items-center">
+        <span style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 600, color: '#e5e7eb', letterSpacing: '0.05em' }}>
+          {hora}
+        </span>
       </div>
     </div>
   );

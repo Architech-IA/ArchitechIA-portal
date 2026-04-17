@@ -3,6 +3,7 @@
 import TopBar from "@/components/TopBar";
 import SidebarUser from "@/components/SidebarUser";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: '/',             label: 'Dashboard',   icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -20,58 +21,142 @@ const navLinks = [
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Persist collapsed state
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved === 'true') setCollapsed(true);
+  }, []);
+
+  const toggle = () => {
+    setCollapsed(prev => {
+      localStorage.setItem('sidebar-collapsed', String(!prev));
+      return !prev;
+    });
+  };
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
-    <div className="flex h-screen bg-gray-950">
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col flex-shrink-0"
-        style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)', borderRight: '1px solid rgba(249,115,22,0.15)' }}>
+    <div className="flex h-screen" style={{ background: '#111111' }}>
 
-        {/* Logo */}
-        <div className="px-6 py-5 border-b border-gray-900">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent tracking-tight">
-            ArchiTechIA
-          </h1>
-          <p className="text-gray-600 text-xs mt-0.5 tracking-wide uppercase">Portal Interno</p>
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: collapsed ? '64px' : '256px',
+          minWidth: collapsed ? '64px' : '256px',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)',
+          borderRight: '1px solid rgba(249,115,22,0.15)',
+          transition: 'width 0.25s ease, min-width 0.25s ease',
+          overflow: 'hidden',
+        }}
+        className="flex flex-col flex-shrink-0"
+      >
+        {/* Logo + toggle */}
+        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
+          {!collapsed && (
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent tracking-tight whitespace-nowrap">
+                ArchiTechIA
+              </h1>
+              <p className="text-gray-600 text-xs mt-0.5 tracking-wide uppercase">Portal Interno</p>
+            </div>
+          )}
+          {collapsed && (
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mx-auto">
+              <span className="text-black font-bold text-sm">A</span>
+            </div>
+          )}
+          {!collapsed && (
+            <button
+              onClick={toggle}
+              title="Colapsar sidebar"
+              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors flex-shrink-0"
+              style={{ color: '#4b5563' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f97316')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
+          {/* Expand button when collapsed */}
+          {collapsed && (
+            <button
+              onClick={toggle}
+              title="Expandir sidebar"
+              className="w-full flex items-center justify-center py-2 mb-2 rounded-lg transition-colors"
+              style={{ color: '#4b5563' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f97316')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
           {navLinks.map(({ href, label, icon }) => {
             const active = isActive(href);
             return (
               <a
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20'
-                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/5 border border-transparent'
-                }`}
+                title={collapsed ? label : undefined}
+                className="flex items-center rounded-lg text-sm font-medium transition-all"
+                style={{
+                  gap:            collapsed ? '0' : '12px',
+                  padding:        collapsed ? '10px 0' : '10px 12px',
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  color:          active ? '#fb923c' : '#6b7280',
+                  background:     active ? 'rgba(249,115,22,0.12)' : 'transparent',
+                  border:         active ? '1px solid rgba(249,115,22,0.25)' : '1px solid transparent',
+                  textDecoration: 'none',
+                  whiteSpace:     'nowrap',
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.color = '#e5e7eb';
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.color = '#6b7280';
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                  }
+                }}
               >
                 <svg
-                  className={`w-4 h-4 flex-shrink-0 ${active ? 'text-orange-400' : 'text-gray-600'}`}
+                  style={{ color: active ? '#fb923c' : '#4b5563', flexShrink: 0 }}
+                  className="w-4 h-4"
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
                 </svg>
-                {label}
-                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />}
+                {!collapsed && label}
+                {!collapsed && active && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f97316' }} />
+                )}
               </a>
             );
           })}
         </nav>
 
-        <SidebarUser />
+        <SidebarUser collapsed={collapsed} />
       </aside>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" style={{ background: '#141414' }}>
           {children}
         </main>
       </div>
