@@ -183,3 +183,18 @@ enum ActivityType {
   PROPOSAL_SENT
   MILESTONE_COMPLETED
 }
+
+model RegistroFinanciero {
+  id          String   @id @default(cuid())
+  fecha       String
+  tipo        String
+  categoria   String
+  concepto    String
+  monto       Float
+  moneda      String   @default("USD")
+  proyecto    String
+  estado      String   @default("pagado")
+  responsable String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

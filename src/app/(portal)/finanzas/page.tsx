@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -36,48 +36,6 @@ const EMPTY_FORM = {
   responsable: SOCIOS[0],
 };
 
-// ── Datos iniciales ────────────────────────────────────────────────────────────
-const INITIAL_REGISTROS: Registro[] = [
-  // INGRESOS
-  { id:'1',  fecha:'2025-01-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago inicial – Agente Seguridad AI',       monto:8000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'2',  fecha:'2025-01-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría onboarding – Cliente D',        monto:4000,  moneda:'USD', proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'3',  fecha:'2025-02-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable fase 1 – Dashboard BI',          monto:6000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'4',  fecha:'2025-02-18', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago fase 2 – Automatización Procesos',     monto:8500,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'5',  fecha:'2025-02-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente A',               monto:4000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'6',  fecha:'2025-03-08', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable final – Dashboard BI',           monto:6000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'7',  fecha:'2025-03-20', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría estratégica – nuevo cliente',   monto:5000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'8',  fecha:'2025-03-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente B',               monto:4000,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'9',  fecha:'2025-04-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago hito – Agente Seguridad AI',           monto:7000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'10', fecha:'2025-04-12', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia anual – Cliente C',                monto:8000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'11', fecha:'2025-04-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Taller IA – empresa externa',               monto:7000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'12', fecha:'2025-05-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable n8n – Cliente D',                monto:5000,  moneda:'USD', proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'13', fecha:'2025-05-20', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Clientes A y C',          monto:8000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'14', fecha:'2025-05-30', tipo:'ingreso', categoria:'Consultoría',   concepto:'Diagnóstico de ciberseguridad',             monto:6500,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'15', fecha:'2025-06-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago final – Agente Seguridad AI',          monto:12000, moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'16', fecha:'2025-06-15', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia semestral – Cliente B',            monto:9000,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'17', fecha:'2025-06-28', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría expansión regional',            monto:6000,  moneda:'USD', proyecto:'Interno',                                  estado:'pendiente', responsable:'Admin ArchiTechIA' },
-  // GASTOS
-  { id:'18', fecha:'2025-01-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – instancias IA',       monto:1800,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'19', fecha:'2025-01-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'n8n, Zoho Mail, Slack suscripciones', monto:600,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'20', fecha:'2025-01-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos administrativos enero',        monto:900,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'21', fecha:'2025-01-28', tipo:'gasto', categoria:'Marketing',             concepto:'Publicidad LinkedIn',                 monto:500,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'22', fecha:'2025-02-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – almacenamiento',      monto:2000,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'23', fecha:'2025-02-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'GitHub, OpenRouter APIs',             monto:700,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'24', fecha:'2025-02-25', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios profesionales febrero',     monto:1200,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'25', fecha:'2025-02-28', tipo:'gasto', categoria:'Marketing',             concepto:'Diseño materiales de marca',          monto:800,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'26', fecha:'2025-03-10', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'GPU cloud – entrenamiento modelos',   monto:2200,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'27', fecha:'2025-03-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos varios marzo',                 monto:1100,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'28', fecha:'2025-04-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud factura abril',         monto:2400,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'29', fecha:'2025-04-18', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Renovación herramientas SaaS',        monto:900,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'30', fecha:'2025-04-25', tipo:'gasto', categoria:'Marketing',             concepto:'Evento networking LATAM',             monto:700,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'31', fecha:'2025-05-08', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Cloud compute – proyecto IA',         monto:2600,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'32', fecha:'2025-05-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios legales y contables',       monto:1400,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'33', fecha:'2025-05-28', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Licencias software desarrollo',       monto:800,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'34', fecha:'2025-06-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – escalado junio',      monto:3000,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'35', fecha:'2025-06-15', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos operativos junio',             monto:1600,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'36', fecha:'2025-06-25', tipo:'gasto', categoria:'Marketing',             concepto:'Campaña redes sociales Q2',          monto:900,   moneda:'COP', proyecto:'Interno',    estado:'pendiente', responsable:'Santiago Ortega' },
-];
-
 const ESTADO_COLORS: Record<string, string> = {
   pagado:    'bg-green-900/30 text-green-400',
   pendiente: 'bg-yellow-900/30 text-yellow-400',
@@ -89,7 +47,8 @@ export default function FinanzasPage() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
 
-  const [registros, setRegistros]   = useState<Registro[]>(INITIAL_REGISTROS);
+  const [registros, setRegistros]   = useState<Registro[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [tab, setTab]               = useState<'resumen' | 'registros'>('resumen');
   const [mesActivo, setMesActivo]   = useState(5);
   const [showModal, setShowModal]   = useState(false);
@@ -98,6 +57,16 @@ export default function FinanzasPage() {
   const [formData, setFormData]     = useState(EMPTY_FORM);
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'ingreso' | 'gasto'>('todos');
   const [filtroBusq, setFiltroBusq] = useState('');
+
+  const fetchRegistros = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/finanzas');
+    const data = await res.json();
+    setRegistros(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchRegistros(); }, [fetchRegistros]);
 
   // ── Cálculos derivados ──────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -171,32 +140,38 @@ export default function FinanzasPage() {
     setShowModal(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: Registro = {
-      id: editReg ? editReg.id : Date.now().toString(),
+    const body = {
       fecha: formData.fecha, tipo: formData.tipo, categoria: formData.categoria,
       concepto: formData.concepto, monto: parseFloat(formData.monto.replace(/[^0-9.]/g, '')) || 0,
-      moneda: formData.moneda,
-      proyecto: formData.proyecto, estado: formData.estado, responsable: formData.responsable,
+      moneda: formData.moneda, proyecto: formData.proyecto, estado: formData.estado, responsable: formData.responsable,
     };
     if (editReg) {
-      setRegistros(prev => prev.map(r => r.id === editReg.id ? data : r));
+      await fetch(`/api/finanzas/${editReg.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     } else {
-      setRegistros(prev => [data, ...prev]);
+      await fetch('/api/finanzas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     }
     setShowModal(false);
+    fetchRegistros();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirmDel) return;
-    setRegistros(prev => prev.filter(r => r.id !== confirmDel.id));
+    await fetch(`/api/finanzas/${confirmDel.id}`, { method: 'DELETE' });
     setConfirmDel(null);
+    fetchRegistros();
   };
 
   const categoriasForForm = formData.tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO;
 
   // ── Render ───────────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-8">
       {/* Header */}
