@@ -2,149 +2,120 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const [leads, proposals, projects, activities] = await Promise.all([
-    prisma.lead.count(),
-    prisma.proposal.count(),
-    prisma.project.count(),
-    prisma.activity.count(),
-  ]);
-
-  const [leadsByStatus, proposalsByStatus, projectsByStatus] = await Promise.all([
-    prisma.lead.groupBy({ by: ['status'], _count: true }),
-    prisma.proposal.groupBy({ by: ['status'], _count: true }),
-    prisma.project.groupBy({ by: ['status'], _count: true }),
-  ]);
-
-  const totalValue = await prisma.lead.aggregate({
-    _sum: { estimatedValue: true },
-  });
-
-  // Tasa de conversión
-  const leadsGanados = await prisma.lead.count({ where: { status: 'WON' } });
-  const conversionRate = leads > 0 ? Math.round((leadsGanados / leads) * 100) : 0;
-
-  // Leads sin actividad en más de 7 días
-  const hace7dias = new Date();
-  hace7dias.setDate(hace7dias.getDate() - 7);
-  const leadsInactivos = await prisma.lead.findMany({
-    where: {
-      status: { notIn: ['WON', 'LOST'] },
-      updatedAt: { lt: hace7dias },
-    },
-    select: { id: true, companyName: true, status: true, updatedAt: true },
-    take: 5,
-  });
-
-  // Propuestas sin respuesta en más de 5 días
-  const hace5dias = new Date();
-  hace5dias.setDate(hace5dias.getDate() - 5);
-  const propuestasSinRespuesta = await prisma.proposal.findMany({
-    where: {
-      status: 'SENT',
-      sentDate: { lt: hace5dias },
-    },
-    select: { id: true, title: true, amount: true, sentDate: true },
-    take: 5,
-  });
-
-  // Proyectos con fecha límite próxima (7 días)
-  const en7dias = new Date();
-  en7dias.setDate(en7dias.getDate() + 7);
-  const proximosDeadlines = await prisma.project.findMany({
-    where: {
-      status: { notIn: ['COMPLETED', 'CANCELLED'] },
-      endDate: { lte: en7dias, gte: new Date() },
-    },
-    select: { id: true, name: true, endDate: true, progress: true, priority: true },
-    orderBy: { endDate: 'asc' },
-    take: 5,
-  });
-
-  // Top socios por leads
-  const topSocios = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      _count: { select: { leads: true, proposals: true, projects: true } },
-    },
-    orderBy: { leads: { _count: 'desc' } },
-    take: 4,
-  });
-
-  // Embudo de ventas (orden de etapas)
-  const etapasOrden = ['NEW', 'CONTACTED', 'DIAGNOSIS', 'QUALIFIED', 'DEMO_VALIDATION', 'PROPOSAL_SENT', 'NEGOTIATION', 'WON'];
-  const embudo = await Promise.all(
-    etapasOrden.map(async (status) => ({
-      status,
-      count: await prisma.lead.count({ where: { status: status as never } }),
-      valor: (await prisma.lead.aggregate({
-        where: { status: status as never },
-        _sum: { estimatedValue: true },
-      }))._sum.estimatedValue || 0,
-    }))
-  );
-
-  // Distribución por industria (simulada desde companyName — en producción vendría de un campo industry)
-  const industriaLeads = await prisma.lead.groupBy({
-    by: ['source'],
-    _count: true,
-  });
-
-  // Ingresos del mes actual desde RegistroFinanciero
   const hoy = new Date();
-  const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
-  const finMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-31`;
-  const registrosMes = await prisma.registroFinanciero.findMany({
-    where: { tipo: 'ingreso', estado: { not: 'cancelado' }, fecha: { gte: inicioMes, lte: finMes } },
-  });
-  const ingresosMes = registrosMes.reduce((sum, r) => sum + r.monto, 0);
-  const metaMensual = 30000;
+  const hace7dias  = new Date(hoy); hace7dias.setDate(hoy.getDate() - 7);
+  const hace5dias  = new Date(hoy); hace5dias.setDate(hoy.getDate() - 5);
+  const en7dias    = new Date(hoy); en7dias.setDate(hoy.getDate() + 7);
+  const hace6meses = new Date(hoy); hace6meses.setMonth(hoy.getMonth() - 6);
 
-  // Registros financieros pendientes
+  const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+  const finMes    = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-31`;
+
+  // Una sola ronda de queries en paralelo
+  const [allLeads, allProposals, allProjects, activityCount, topSocios, registros, recentActivities] =
+    await Promise.all([
+      prisma.lead.findMany({
+        select: { id: true, companyName: true, status: true, estimatedValue: true,
+                  updatedAt: true, source: true, createdAt: true },
+      }),
+      prisma.proposal.findMany({
+        select: { id: true, title: true, status: true, amount: true, sentDate: true, createdAt: true },
+      }),
+      prisma.project.findMany({
+        select: { id: true, name: true, status: true, priority: true,
+                  progress: true, endDate: true, createdAt: true },
+      }),
+      prisma.activity.count(),
+      prisma.user.findMany({
+        select: { id: true, name: true, role: true,
+          _count: { select: { leads: true, proposals: true, projects: true } } },
+        orderBy: { leads: { _count: 'desc' } },
+        take: 4,
+      }),
+      prisma.registroFinanciero.findMany({
+        where: { tipo: 'ingreso', estado: { not: 'cancelado' },
+          fecha: { gte: `${hace6meses.getFullYear()}-${String(hace6meses.getMonth() + 1).padStart(2, '0')}-01` } },
+        select: { id: true, concepto: true, monto: true, moneda: true, tipo: true, fecha: true, estado: true },
+      }),
+      prisma.activity.findMany({
+        take: 8, orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
+      }),
+    ]);
+
+  // ── Registros pendientes (del array ya cargado)
   const registrosPendientes = await prisma.registroFinanciero.findMany({
     where: { estado: 'pendiente' },
     select: { id: true, concepto: true, monto: true, moneda: true, tipo: true },
     take: 5,
   });
 
-  // Tendencias reales — últimos 6 meses
-  const tendencias = await Promise.all(
-    Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (5 - i));
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1;
-      const inicio = new Date(y, m - 1, 1);
-      const fin    = new Date(y, m, 0, 23, 59, 59);
-      return Promise.all([
-        prisma.lead.count({ where: { createdAt: { gte: inicio, lte: fin } } }),
-        prisma.project.count({ where: { createdAt: { gte: inicio, lte: fin } } }),
-        prisma.registroFinanciero.findMany({
-          where: { tipo: 'ingreso', estado: { not: 'cancelado' },
-            fecha: { gte: inicio.toISOString().split('T')[0], lte: fin.toISOString().split('T')[0] } },
-        }),
-      ]).then(([leads, proyectos, registros]) => ({
-        mes:       new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'short' }),
-        leads,
-        proyectos,
-        ingresos:  registros.reduce((a, r) => a + r.monto, 0),
-      }));
-    })
-  );
+  // ── Conteos y agrupaciones desde JS (sin más DB calls)
+  const leads      = allLeads.length;
+  const proposals  = allProposals.length;
+  const projects   = allProjects.length;
 
-  const recentActivities = await prisma.activity.findMany({
-    take: 8,
-    orderBy: { createdAt: 'desc' },
-    include: { user: { select: { name: true } } },
+  const totalEstimatedValue = allLeads.reduce((a, l) => a + l.estimatedValue, 0);
+  const leadsGanados        = allLeads.filter(l => l.status === 'WON').length;
+  const conversionRate      = leads > 0 ? Math.round((leadsGanados / leads) * 100) : 0;
+
+  const leadsByStatus    = groupCount(allLeads,    'status');
+  const proposalsByStatus = groupCount(allProposals, 'status');
+  const projectsByStatus  = groupCount(allProjects,  'status');
+
+  const industriaLeads = groupCount(allLeads, 'source');
+
+  // ── Alertas
+  const leadsInactivos = allLeads
+    .filter(l => !['WON', 'LOST'].includes(l.status) && l.updatedAt < hace7dias)
+    .slice(0, 5)
+    .map(l => ({ id: l.id, companyName: l.companyName, status: l.status, updatedAt: l.updatedAt }));
+
+  const propuestasSinRespuesta = allProposals
+    .filter(p => p.status === 'SENT' && p.sentDate && new Date(p.sentDate) < hace5dias)
+    .slice(0, 5)
+    .map(p => ({ id: p.id, title: p.title, amount: p.amount, sentDate: p.sentDate }));
+
+  const proximosDeadlines = allProjects
+    .filter(p => !['COMPLETED','CANCELLED'].includes(p.status) && p.endDate && new Date(p.endDate) >= hoy && new Date(p.endDate) <= en7dias)
+    .sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime())
+    .slice(0, 5)
+    .map(p => ({ id: p.id, name: p.name, endDate: p.endDate, progress: p.progress, priority: p.priority }));
+
+  // ── Embudo desde JS
+  const ETAPAS_EMBUDO = ['NEW','CONTACTED','DIAGNOSIS','QUALIFIED','DEMO_VALIDATION','PROPOSAL_SENT','NEGOTIATION','WON'];
+  const embudo = ETAPAS_EMBUDO.map(status => ({
+    status,
+    count: allLeads.filter(l => l.status === status).length,
+    valor: allLeads.filter(l => l.status === status).reduce((a, l) => a + l.estimatedValue, 0),
+  }));
+
+  // ── Ingresos del mes
+  const ingresosMes  = registros.filter(r => r.fecha >= inicioMes && r.fecha <= finMes).reduce((a, r) => a + r.monto, 0);
+  const metaMensual  = 30000;
+
+  // ── Tendencias últimos 6 meses desde JS
+  const tendencias = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(hoy);
+    d.setMonth(hoy.getMonth() - (5 - i));
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const ini = `${y}-${String(m).padStart(2, '0')}-01`;
+    const fin = `${y}-${String(m).padStart(2, '0')}-31`;
+    return {
+      mes:      new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'short' }),
+      leads:    allLeads.filter(l => l.createdAt >= new Date(ini) && l.createdAt <= new Date(fin + 'T23:59:59')).length,
+      proyectos: allProjects.filter(p => p.createdAt >= new Date(ini) && p.createdAt <= new Date(fin + 'T23:59:59')).length,
+      ingresos: registros.filter(r => r.fecha >= ini && r.fecha <= fin).reduce((a, r) => a + r.monto, 0),
+    };
   });
 
   return NextResponse.json({
-    counts: { leads, proposals, projects, activities },
+    counts: { leads, proposals, projects, activities: activityCount },
     leadsByStatus,
     proposalsByStatus,
     projectsByStatus,
-    totalEstimatedValue: totalValue._sum.estimatedValue || 0,
+    totalEstimatedValue,
     conversionRate,
     leadsGanados,
     leadsInactivos,
@@ -159,4 +130,13 @@ export async function GET() {
     recentActivities,
     tendencias,
   });
+}
+
+function groupCount<T extends Record<string, unknown>>(arr: T[], key: keyof T) {
+  const map: Record<string, number> = {};
+  for (const item of arr) {
+    const val = String(item[key]);
+    map[val] = (map[val] || 0) + 1;
+  }
+  return Object.entries(map).map(([status, _count]) => ({ status, _count }));
 }
