@@ -21,15 +21,26 @@ const navLinks = [
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed]   = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile]     = useState(false);
 
-  // Persist collapsed state
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
     if (saved === 'true') setCollapsed(true);
   }, []);
 
-  const toggle = () => {
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Cierra el drawer al navegar en móvil
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  const toggleCollapse = () => {
     setCollapsed(prev => {
       localStorage.setItem('sidebar-collapsed', String(!prev));
       return !prev;
@@ -39,41 +50,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
-  return (
-    <div className="flex h-screen" style={{ background: '#111111' }}>
-
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: collapsed ? '64px' : '256px',
-          minWidth: collapsed ? '64px' : '256px',
-          background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)',
-          borderRight: '1px solid rgba(249,115,22,0.15)',
-          transition: 'width 0.25s ease, min-width 0.25s ease',
-          overflow: 'hidden',
-        }}
-        className="flex flex-col flex-shrink-0"
-      >
+  const sidebarContent = (forceExpanded = false) => {
+    const isCollapsed = !forceExpanded && collapsed && !isMobile;
+    return (
+      <>
         {/* Logo + toggle */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
-          {!collapsed && (
+          {!isCollapsed ? (
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent tracking-tight whitespace-nowrap">
                 ArchiTechIA
               </h1>
               <p className="text-gray-600 text-xs mt-0.5 tracking-wide uppercase">Portal Interno</p>
             </div>
-          )}
-          {collapsed && (
+          ) : (
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mx-auto">
               <span className="text-black font-bold text-sm">A</span>
             </div>
           )}
-          {!collapsed && (
-            <button
-              onClick={toggle}
-              title="Colapsar sidebar"
-              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors flex-shrink-0"
+          {!isCollapsed && !isMobile && (
+            <button onClick={toggleCollapse} title="Colapsar sidebar"
+              className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 transition-colors"
               style={{ color: '#4b5563' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#f97316')}
               onMouseLeave={e => (e.currentTarget.style.color = '#4b5563')}
@@ -83,15 +80,22 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </svg>
             </button>
           )}
+          {isMobile && (
+            <button onClick={() => setMobileOpen(false)} title="Cerrar"
+              className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+              style={{ color: '#4b5563' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {/* Expand button when collapsed */}
-          {collapsed && (
-            <button
-              onClick={toggle}
-              title="Expandir sidebar"
+          {isCollapsed && (
+            <button onClick={toggleCollapse} title="Expandir sidebar"
               className="w-full flex items-center justify-center py-2 mb-2 rounded-lg transition-colors"
               style={{ color: '#4b5563' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#f97316')}
@@ -106,15 +110,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {navLinks.map(({ href, label, icon }) => {
             const active = isActive(href);
             return (
-              <a
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
+              <a key={href} href={href}
+                title={isCollapsed ? label : undefined}
                 className="flex items-center rounded-lg text-sm font-medium transition-all"
                 style={{
-                  gap:            collapsed ? '0' : '12px',
-                  padding:        collapsed ? '10px 0' : '10px 12px',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  gap:            isCollapsed ? '0' : '12px',
+                  padding:        isCollapsed ? '10px 0' : '10px 12px',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
                   color:          active ? '#fb923c' : '#6b7280',
                   background:     active ? 'rgba(249,115,22,0.12)' : 'transparent',
                   border:         active ? '1px solid rgba(249,115,22,0.25)' : '1px solid transparent',
@@ -134,15 +136,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   }
                 }}
               >
-                <svg
-                  style={{ color: active ? '#fb923c' : '#4b5563', flexShrink: 0 }}
-                  className="w-4 h-4"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
+                <svg style={{ color: active ? '#fb923c' : '#4b5563', flexShrink: 0 }}
+                  className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
                 </svg>
-                {!collapsed && label}
-                {!collapsed && active && (
+                {!isCollapsed && label}
+                {!isCollapsed && active && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f97316' }} />
                 )}
               </a>
@@ -150,12 +149,59 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           })}
         </nav>
 
-        <SidebarUser collapsed={collapsed} />
-      </aside>
+        <SidebarUser collapsed={isCollapsed} />
+      </>
+    );
+  };
+
+  return (
+    <div className="flex h-screen" style={{ background: '#111111' }}>
+
+      {/* ── DESKTOP sidebar ── */}
+      {!isMobile && (
+        <aside
+          style={{
+            width:     collapsed ? '64px' : '256px',
+            minWidth:  collapsed ? '64px' : '256px',
+            background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)',
+            borderRight: '1px solid rgba(249,115,22,0.15)',
+            transition: 'width 0.25s ease, min-width 0.25s ease',
+            overflow: 'hidden',
+          }}
+          className="flex flex-col flex-shrink-0"
+        >
+          {sidebarContent()}
+        </aside>
+      )}
+
+      {/* ── MOBILE drawer backdrop ── */}
+      {isMobile && mobileOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ── MOBILE drawer ── */}
+      {isMobile && (
+        <aside
+          className="fixed top-0 left-0 h-full z-50 flex flex-col"
+          style={{
+            width: '256px',
+            background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)',
+            borderRight: '1px solid rgba(249,115,22,0.15)',
+            transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.25s ease',
+          }}
+        >
+          {sidebarContent(true)}
+        </aside>
+      )}
 
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <TopBar />
+        <TopBar onMenuClick={() => setMobileOpen(true)} isMobile={isMobile} />
         <main className="flex-1 overflow-y-auto" style={{ background: '#141414' }}>
           {children}
         </main>

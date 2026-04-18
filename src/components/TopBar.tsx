@@ -35,7 +35,7 @@ const SEARCH_INDEX = [
   { label: 'n8n',                url: '/cuentas',      tipo: 'Cuenta'    },
 ];
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => void; isMobile?: boolean }) {
   const { theme, toggle } = useTheme();
   const router = useRouter();
 
@@ -87,7 +87,19 @@ export default function TopBar() {
   };
 
   return (
-    <div className="h-14 bg-gray-900/80 backdrop-blur border-b border-gray-800 flex items-center px-6 gap-4 print:hidden">
+    <div className="h-14 bg-gray-900/80 backdrop-blur border-b border-gray-800 flex items-center px-4 gap-3 print:hidden">
+      {/* Hamburger — solo móvil */}
+      {isMobile && (
+        <button
+          onClick={onMenuClick}
+          className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0 hover:border-orange-500/50 transition-colors"
+        >
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+
       {/* Búsqueda global */}
       <div className="flex-1 relative" ref={searchRef}>
         <div className="relative max-w-md">

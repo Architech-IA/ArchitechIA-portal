@@ -31,6 +31,21 @@ aside nav a {
   text-decoration: none;
 }
 
+/* Responsive — tablas con scroll horizontal en móvil */
+@media (max-width: 767px) {
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* Padding reducido en móvil */
+  .p-8 { padding: 1rem !important; }
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Búsqueda en topbar ocupa menos espacio */
+  .max-w-md { max-width: 160px; }
+
+  /* Ocultar texto del reloj en pantallas muy pequeñas */
+  .clock-text { display: none; }
+}
+
 
 /* ── Modo claro ── */
 [data-theme="light"] body,

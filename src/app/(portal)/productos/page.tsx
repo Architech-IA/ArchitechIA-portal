@@ -1,32 +1,38 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface Producto {
+  id: string;
+  nombre: string;
+  version: string;
+  estado: string;
+  descripcion: string;
+  tecnologias: string[];
+  caracteristicas: string[];
+  icono: string;
+  color: string;
+}
+
+const INITIAL_PRODUCTOS: Producto[] = [
+  {
+    id: '1',
+    nombre: 'Agente de Seguridad AI',
+    version: 'v0.3.0',
+    estado: 'En Desarrollo',
+    descripcion: 'Agente inteligente de ciberseguridad impulsado por IA que monitorea, detecta y responde a amenazas en tiempo real. Analiza patrones de comportamiento, identifica vulnerabilidades y genera reportes automatizados para proteger la infraestructura de los clientes.',
+    tecnologias: ['IA Generativa', 'Machine Learning', 'n8n', 'Cloud'],
+    caracteristicas: ['Monitoreo continuo 24/7', 'Detección de amenazas en tiempo real', 'Análisis de comportamiento anómalo', 'Respuesta automatizada a incidentes', 'Reportes y alertas inteligentes', 'Integración con infraestructura existente'],
+    icono: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+    color: 'from-orange-500 to-red-600',
+  },
+];
 
 const roadmap = [
-  {
-    fase: 'Investigación',
-    icono: '🔬',
-    estado: 'completado',
-    descripcion: 'Análisis de mercado, definición de arquitectura y pruebas de concepto con modelos de IA.',
-    items: ['Análisis de amenazas comunes', 'Selección de modelos LLM', 'Arquitectura base definida'],
-    fecha: 'Ene – Feb 2025',
-  },
-  {
-    fase: 'Beta',
-    icono: '⚙️',
-    estado: 'activo',
-    descripcion: 'Desarrollo del core del agente, integración con n8n y primeras pruebas con clientes piloto.',
-    items: ['Motor de detección v1', 'Dashboard de alertas', 'Integración n8n + Alibaba Cloud', 'Cliente piloto onboarding'],
-    fecha: 'Mar – Jun 2025',
-  },
-  {
-    fase: 'Lanzamiento',
-    icono: '🚀',
-    estado: 'pendiente',
-    descripcion: 'Versión estable lista para producción, documentación completa y estrategia comercial activa.',
-    items: ['Hardening de seguridad', 'Documentación técnica', 'Pricing y planes', 'Lanzamiento público'],
-    fecha: 'Jul – Sep 2025',
-  },
+  { fase: 'Investigación', icono: '🔬', estado: 'completado', descripcion: 'Análisis de mercado, definición de arquitectura y pruebas de concepto con modelos de IA.', items: ['Análisis de amenazas comunes', 'Selección de modelos LLM', 'Arquitectura base definida'], fecha: 'Ene – Feb 2025' },
+  { fase: 'Beta', icono: '⚙️', estado: 'activo', descripcion: 'Desarrollo del core del agente, integración con n8n y primeras pruebas con clientes piloto.', items: ['Motor de detección v1', 'Dashboard de alertas', 'Integración n8n + Alibaba Cloud', 'Cliente piloto onboarding'], fecha: 'Mar – Jun 2025' },
+  { fase: 'Lanzamiento', icono: '🚀', estado: 'pendiente', descripcion: 'Versión estable lista para producción, documentación completa y estrategia comercial activa.', items: ['Hardening de seguridad', 'Documentación técnica', 'Pricing y planes', 'Lanzamiento público'], fecha: 'Jul – Sep 2025' },
 ];
 
 const changelog = [
@@ -48,155 +54,346 @@ const ESTADO_STYLES: Record<string, { ring: string; dot: string; label: string }
   pendiente:  { ring: 'ring-gray-600',   dot: 'bg-gray-600',   label: 'Pendiente' },
 };
 
+const COLORES = [
+  { label: 'Naranja → Rojo',   value: 'from-orange-500 to-red-600' },
+  { label: 'Azul → Índigo',    value: 'from-blue-500 to-indigo-600' },
+  { label: 'Verde → Teal',     value: 'from-green-500 to-teal-600' },
+  { label: 'Violeta → Púrpura',value: 'from-violet-500 to-purple-600' },
+  { label: 'Cyan → Azul',      value: 'from-cyan-500 to-blue-600' },
+];
+
+const EMPTY_FORM = { nombre: '', version: 'v1.0.0', estado: 'En Desarrollo', descripcion: '', tecnologias: '', caracteristicas: '', color: 'from-orange-500 to-red-600' };
+
 export default function ProductosPage() {
-  const [tab, setTab] = useState<'info' | 'roadmap' | 'changelog'>('info');
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
 
-  return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Productos</h1>
-        <p className="text-gray-400 mt-1">Soluciones desarrolladas por ArchiTechIA</p>
-      </div>
+  const [productos, setProductos]   = useState<Producto[]>(INITIAL_PRODUCTOS);
+  const [selected, setSelected]     = useState<Producto | null>(null);
+  const [tab, setTab]               = useState<'info' | 'roadmap' | 'changelog'>('info');
+  const [showModal, setShowModal]   = useState(false);
+  const [formData, setFormData]     = useState(EMPTY_FORM);
 
-      {/* Producto card */}
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-8">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+  const openNew = () => { setFormData(EMPTY_FORM); setShowModal(true); };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nuevo: Producto = {
+      id: Date.now().toString(),
+      nombre: formData.nombre,
+      version: formData.version,
+      estado: formData.estado,
+      descripcion: formData.descripcion,
+      tecnologias: formData.tecnologias.split(',').map(t => t.trim()).filter(Boolean),
+      caracteristicas: formData.caracteristicas.split('\n').map(c => c.trim()).filter(Boolean),
+      icono: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+      color: formData.color,
+    };
+    setProductos(prev => [...prev, nuevo]);
+    setShowModal(false);
+  };
+
+  // Vista detalle de un producto
+  if (selected) {
+    return (
+      <div className="p-4 md:p-8">
+        <button
+          onClick={() => setSelected(null)}
+          className="flex items-center gap-2 text-gray-400 hover:text-orange-400 transition-colors mb-6 text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver a Productos
+        </button>
+
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
+          <div className={`bg-gradient-to-r ${selected.color} p-6 md:p-8`}>
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4 md:gap-5">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-8 h-8 md:w-9 md:h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={selected.icono} />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-white">{selected.nombre}</h2>
+                  <span className="text-sm text-white/70">{selected.version} · {selected.estado}</span>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">Agente de Seguridad AI</h2>
-                <span className="text-sm text-white/70">v0.3.0 · Beta</span>
-              </div>
+              <span className="px-3 py-1 bg-white/20 text-white text-sm font-medium rounded-full">{selected.estado}</span>
             </div>
-            <span className="px-3 py-1 bg-white/20 text-white text-sm font-medium rounded-full">En Desarrollo</span>
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-700">
-          {(['info', 'roadmap', 'changelog'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-6 py-3 text-sm font-medium capitalize transition-colors ${tab === t ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}
-            >
-              {t === 'info' ? 'Información' : t === 'roadmap' ? 'Roadmap' : 'Changelog'}
-            </button>
-          ))}
-        </div>
+          <div className="flex border-b border-gray-700 overflow-x-auto">
+            {(['info', 'roadmap', 'changelog'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${tab === t ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}>
+                {t === 'info' ? 'Información' : t === 'roadmap' ? 'Roadmap' : 'Changelog'}
+              </button>
+            ))}
+          </div>
 
-        {/* Tab: Info */}
-        {tab === 'info' && (
-          <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Descripción</h3>
-                <p className="text-gray-300 leading-relaxed">
-                  Agente inteligente de ciberseguridad impulsado por IA que monitorea, detecta y responde a amenazas en tiempo real. Analiza patrones de comportamiento, identifica vulnerabilidades y genera reportes automatizados para proteger la infraestructura de los clientes.
-                </p>
+          {tab === 'info' && (
+            <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Descripción</h3>
+                  <p className="text-gray-300 leading-relaxed">{selected.descripcion}</p>
+                </div>
+                {selected.caracteristicas.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Características</h3>
+                    <ul className="space-y-2">
+                      {selected.caracteristicas.map(c => (
+                        <li key={c} className="flex items-center gap-3 text-gray-300">
+                          <span className="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Características</h3>
-                <ul className="space-y-2">
-                  {['Monitoreo continuo 24/7', 'Detección de amenazas en tiempo real', 'Análisis de comportamiento anómalo', 'Respuesta automatizada a incidentes', 'Reportes y alertas inteligentes', 'Integración con infraestructura existente'].map((c) => (
-                    <li key={c} className="flex items-center gap-3 text-gray-300">
-                      <span className="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-3 h-3 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </span>
-                      {c}
-                    </li>
+                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Tecnologías</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selected.tecnologias.map(t => (
+                    <span key={t} className="px-3 py-1 bg-orange-900/30 text-orange-400 text-sm rounded-full border border-orange-800">{t}</span>
                   ))}
-                </ul>
+                </div>
               </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Tecnologías</h3>
-              <div className="flex flex-wrap gap-2">
-                {['IA Generativa', 'Machine Learning', 'n8n', 'Cloud'].map((t) => (
-                  <span key={t} className="px-3 py-1 bg-orange-900/30 text-orange-400 text-sm rounded-full border border-orange-800">{t}</span>
+          )}
+
+          {tab === 'roadmap' && (
+            <div className="p-6 md:p-8">
+              <div className="relative">
+                <div className="absolute top-8 left-8 right-8 h-0.5 bg-gray-700 hidden lg:block">
+                  <div className="h-full bg-gradient-to-r from-green-500 via-orange-500 to-gray-700 w-2/3" />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+                  {roadmap.map(fase => {
+                    const s = ESTADO_STYLES[fase.estado];
+                    return (
+                      <div key={fase.fase} className={`bg-gray-700/40 border border-gray-600 rounded-xl p-5 ring-1 ${s.ring}`}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-8 h-8 rounded-full ring-2 ${s.ring} flex items-center justify-center text-base`}>{fase.icono}</div>
+                          <div>
+                            <p className="font-semibold text-white">{fase.fase}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                              <span className="text-xs text-gray-400">{s.label} · {fase.fecha}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-3 leading-relaxed">{fase.descripcion}</p>
+                        <ul className="space-y-1.5">
+                          {fase.items.map(item => (
+                            <li key={item} className="flex items-center gap-2 text-sm text-gray-300">
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${fase.estado === 'completado' ? 'bg-green-400' : fase.estado === 'activo' ? 'bg-orange-400' : 'bg-gray-600'}`} />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'changelog' && (
+            <div className="p-6 md:p-8">
+              <div className="space-y-4">
+                {changelog.map(entry => (
+                  <div key={entry.version} className="flex gap-4 items-start">
+                    <div className="flex flex-col items-center flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
+                      <div className="w-0.5 h-full bg-gray-700 mt-1" />
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center gap-3 mb-1 flex-wrap">
+                        <span className="font-mono text-sm font-bold text-white">{entry.version}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${TIPO_BADGE[entry.tipo]}`}>
+                          {entry.tipo === 'feature' ? '✨ feature' : '🔧 fix'}
+                        </span>
+                        <span className="text-xs text-gray-500">{entry.fecha}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">{entry.descripcion}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Tab: Roadmap */}
-        {tab === 'roadmap' && (
-          <div className="p-8">
-            <div className="relative">
-              {/* Línea de progreso */}
-              <div className="absolute top-8 left-8 right-8 h-0.5 bg-gray-700 hidden lg:block">
-                <div className="h-full bg-gradient-to-r from-green-500 via-orange-500 to-gray-700 w-2/3 transition-all" />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
-                {roadmap.map((fase) => {
-                  const s = ESTADO_STYLES[fase.estado];
-                  return (
-                    <div key={fase.fase} className={`bg-gray-700/40 border border-gray-600 rounded-xl p-5 ring-1 ${s.ring}`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-8 h-8 rounded-full ring-2 ${s.ring} flex items-center justify-center text-base`}>
-                          {fase.icono}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-white">{fase.fase}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${s.dot}`}></span>
-                            <span className="text-xs text-gray-400">{s.label} · {fase.fecha}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-400 mb-3 leading-relaxed">{fase.descripcion}</p>
-                      <ul className="space-y-1.5">
-                        {fase.items.map((item) => (
-                          <li key={item} className="flex items-center gap-2 text-sm text-gray-300">
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${fase.estado === 'completado' ? 'bg-green-400' : fase.estado === 'activo' ? 'bg-orange-400' : 'bg-gray-600'}`} />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Changelog */}
-        {tab === 'changelog' && (
-          <div className="p-8">
-            <div className="space-y-4">
-              {changelog.map((entry) => (
-                <div key={entry.version} className="flex gap-4 items-start">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
-                    <div className="w-0.5 h-full bg-gray-700 mt-1" />
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-center gap-3 mb-1 flex-wrap">
-                      <span className="font-mono text-sm font-bold text-white">{entry.version}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${TIPO_BADGE[entry.tipo]}`}>
-                        {entry.tipo === 'feature' ? '✨ feature' : '🔧 fix'}
-                      </span>
-                      <span className="text-xs text-gray-500">{entry.fecha}</span>
-                    </div>
-                    <p className="text-gray-300 text-sm">{entry.descripcion}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+  // Vista lista de productos
+  return (
+    <div className="p-4 md:p-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Productos</h1>
+          <p className="text-gray-400 mt-1">Soluciones desarrolladas por ArchiTechIA</p>
+        </div>
+        {isAdmin && (
+          <button onClick={openNew} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium">
+            + Nuevo Producto
+          </button>
         )}
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {productos.map(p => (
+          <div
+            key={p.id}
+            onClick={() => { setSelected(p); setTab('info'); }}
+            className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden cursor-pointer hover:border-orange-500/40 transition-all hover:shadow-lg hover:shadow-orange-900/10 group"
+          >
+            <div className={`bg-gradient-to-r ${p.color} p-6`}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={p.icono} />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-bold text-white text-lg leading-tight">{p.nombre}</h2>
+                  <span className="text-white/70 text-sm">{p.version}</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">{p.estado}</span>
+                <span className="text-xs text-gray-500">{p.tecnologias.length} tecnologías</span>
+              </div>
+              <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">{p.descripcion}</p>
+              <div className="flex flex-wrap gap-1.5 mt-4">
+                {p.tecnologias.slice(0, 3).map(t => (
+                  <span key={t} className="px-2 py-0.5 bg-orange-900/20 text-orange-400 text-xs rounded-full border border-orange-900/40">{t}</span>
+                ))}
+                {p.tecnologias.length > 3 && (
+                  <span className="px-2 py-0.5 bg-gray-700 text-gray-400 text-xs rounded-full">+{p.tecnologias.length - 3}</span>
+                )}
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-700 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Ver detalles</span>
+                <svg className="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal nuevo producto — solo admin */}
+      {showModal && isAdmin && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Nuevo Producto</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-300">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Nombre</label>
+                  <input required type="text" value={formData.nombre}
+                    onChange={e => setFormData({...formData, nombre: e.target.value})}
+                    placeholder="Ej: Agente de Ventas AI"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Versión</label>
+                  <input required type="text" value={formData.version}
+                    onChange={e => setFormData({...formData, version: e.target.value})}
+                    placeholder="v1.0.0"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
+                <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                  <option>En Desarrollo</option>
+                  <option>Beta</option>
+                  <option>Estable</option>
+                  <option>Deprecado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
+                <textarea required value={formData.descripcion} rows={3}
+                  onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                  placeholder="Descripción del producto..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none resize-none" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Tecnologías <span className="text-gray-500 font-normal">(separadas por coma)</span>
+                </label>
+                <input type="text" value={formData.tecnologias}
+                  onChange={e => setFormData({...formData, tecnologias: e.target.value})}
+                  placeholder="IA Generativa, n8n, Cloud, Python"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Características <span className="text-gray-500 font-normal">(una por línea)</span>
+                </label>
+                <textarea value={formData.caracteristicas} rows={4}
+                  onChange={e => setFormData({...formData, caracteristicas: e.target.value})}
+                  placeholder={"Monitoreo 24/7\nDetección en tiempo real\nReportes automáticos"}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none resize-none" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Color de tarjeta</label>
+                <div className="flex gap-2 flex-wrap">
+                  {COLORES.map(c => (
+                    <button key={c.value} type="button"
+                      onClick={() => setFormData({...formData, color: c.value})}
+                      className={`w-8 h-8 rounded-lg bg-gradient-to-r ${c.value} border-2 transition-all ${formData.color === c.value ? 'border-white scale-110' : 'border-transparent'}`}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">
+                  Cancelar
+                </button>
+                <button type="submit"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium">
+                  Crear Producto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
