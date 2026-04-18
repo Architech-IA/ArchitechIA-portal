@@ -1,18 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 type Etapa = 'Nuevo' | 'Contactado' | 'Calificado' | 'Propuesta' | 'Negociación' | 'Ganado' | 'Perdido';
 
-interface Lead {
+interface DBLead {
   id: string;
-  empresa: string;
-  contacto: string;
-  valor: number;
-  etapa: Etapa;
-  prioridad: 'Alta' | 'Media' | 'Baja';
-  fecha: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  estimatedValue: number;
+  source: string;
+  notes: string | null;
+  user: { id: string; name: string; email: string };
 }
+
+const STATUS_TO_ETAPA: Record<string, Etapa> = {
+  NEW:             'Nuevo',
+  CONTACTED:       'Contactado',
+  DIAGNOSIS:       'Calificado',
+  QUALIFIED:       'Calificado',
+  DEMO_VALIDATION: 'Propuesta',
+  PROPOSAL_SENT:   'Propuesta',
+  NEGOTIATION:     'Negociación',
+  WON:             'Ganado',
+  LOST:            'Perdido',
+};
+
+const ETAPA_TO_STATUS: Record<Etapa, string> = {
+  Nuevo:       'NEW',
+  Contactado:  'CONTACTED',
+  Calificado:  'QUALIFIED',
+  Propuesta:   'PROPOSAL_SENT',
+  Negociación: 'NEGOTIATION',
+  Ganado:      'WON',
+  Perdido:     'LOST',
+};
 
 const ETAPAS: Etapa[] = ['Nuevo', 'Contactado', 'Calificado', 'Propuesta', 'Negociación', 'Ganado', 'Perdido'];
 
@@ -36,60 +62,94 @@ const ETAPA_HEADER: Record<Etapa, string> = {
   Perdido:     'bg-red-900/30 text-red-300',
 };
 
-const PRIORIDAD_COLORS: Record<string, string> = {
-  Alta:  'bg-red-900/30 text-red-400',
-  Media: 'bg-yellow-900/30 text-yellow-400',
-  Baja:  'bg-gray-700 text-gray-400',
-};
+function getPrioridad(valor: number): { label: string; cls: string } {
+  if (valor > 15000) return { label: 'Alta',  cls: 'bg-red-900/30 text-red-400' };
+  if (valor > 5000)  return { label: 'Media', cls: 'bg-yellow-900/30 text-yellow-400' };
+  return                     { label: 'Baja',  cls: 'bg-gray-700 text-gray-400' };
+}
 
-const initialLeads: Lead[] = [
-  { id: '1', empresa: 'TechCorp S.A.',      contacto: 'Carlos Méndez',   valor: 15000, etapa: 'Negociación', prioridad: 'Alta',  fecha: '2025-03-10' },
-  { id: '2', empresa: 'Grupo NX',           contacto: 'Ana Rodríguez',   valor: 8500,  etapa: 'Propuesta',   prioridad: 'Alta',  fecha: '2025-03-15' },
-  { id: '3', empresa: 'LogiTrack Perú',     contacto: 'Diego Paredes',   valor: 5000,  etapa: 'Calificado',  prioridad: 'Media', fecha: '2025-03-20' },
-  { id: '4', empresa: 'Retail Smart',       contacto: 'Luis Castillo',   valor: 12000, etapa: 'Contactado',  prioridad: 'Alta',  fecha: '2025-03-22' },
-  { id: '5', empresa: 'Edu Digital',        contacto: 'Sofía Lima',      valor: 4500,  etapa: 'Nuevo',       prioridad: 'Baja',  fecha: '2025-03-25' },
-  { id: '6', empresa: 'FinTech Now',        contacto: 'Marcos Herrera',  valor: 20000, etapa: 'Nuevo',       prioridad: 'Alta',  fecha: '2025-03-28' },
-  { id: '7', empresa: 'SaludTech LATAM',    contacto: 'Valeria Torres',  valor: 12000, etapa: 'Perdido',     prioridad: 'Media', fecha: '2025-02-14' },
-  { id: '8', empresa: 'AgroData',           contacto: 'Ramón Suárez',    valor: 7000,  etapa: 'Ganado',      prioridad: 'Media', fecha: '2025-02-28' },
-  { id: '9', empresa: 'CloudOps Mx',        contacto: 'Patricia Núñez',  valor: 9500,  etapa: 'Calificado',  prioridad: 'Alta',  fecha: '2025-04-01' },
-];
+const EMPTY_FORM = { companyName: '', contactName: '', email: '', estimatedValue: '', source: '', etapa: 'Nuevo' as Etapa };
 
 export default function PipelinePage() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const { data: session } = useSession();
+  const [leads, setLeads]       = useState<DBLead[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [dragging, setDragging] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ empresa: '', contacto: '', valor: '', etapa: 'Nuevo' as Etapa, prioridad: 'Media' as Lead['prioridad'] });
+  const [saving, setSaving]     = useState(false);
+  const [form, setForm]         = useState(EMPTY_FORM);
+  const [users, setUsers]       = useState<{ id: string; name: string }[]>([]);
 
-  const leadsEnEtapa = (etapa: Etapa) => leads.filter(l => l.etapa === etapa);
-  const valorEtapa   = (etapa: Etapa) => leadsEnEtapa(etapa).reduce((a, l) => a + l.valor, 0);
+  const fetchLeads = useCallback(() => {
+    Promise.all([
+      fetch('/api/leads').then(r => r.json()),
+      fetch('/api/users').then(r => r.json()),
+    ]).then(([l, u]) => { setLeads(l); setUsers(u); setLoading(false); });
+  }, []);
+
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  const leadsEnEtapa = (etapa: Etapa) =>
+    leads.filter(l => STATUS_TO_ETAPA[l.status] === etapa);
+
+  const valorEtapa = (etapa: Etapa) =>
+    leadsEnEtapa(etapa).reduce((a, l) => a + l.estimatedValue, 0);
 
   const handleDragStart = (id: string) => setDragging(id);
   const handleDragOver  = (e: React.DragEvent) => e.preventDefault();
 
-  const handleDrop = (etapa: Etapa) => {
+  const handleDrop = async (etapa: Etapa) => {
     if (!dragging) return;
-    setLeads(prev => prev.map(l => l.id === dragging ? { ...l, etapa } : l));
+    const newStatus = ETAPA_TO_STATUS[etapa];
+    const prevLeads = leads;
+    setLeads(prev => prev.map(l => l.id === dragging ? { ...l, status: newStatus } : l));
     setDragging(null);
+    try {
+      await fetch(`/api/pipeline/${dragging}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch {
+      setLeads(prevLeads);
+    }
   };
 
-  const handleAddLead = () => {
-    if (!form.empresa || !form.contacto || !form.valor) return;
-    const nuevo: Lead = {
-      id: Date.now().toString(),
-      empresa: form.empresa,
-      contacto: form.contacto,
-      valor: parseInt(form.valor),
-      etapa: form.etapa,
-      prioridad: form.prioridad,
-      fecha: new Date().toISOString().split('T')[0],
-    };
-    setLeads(prev => [...prev, nuevo]);
-    setForm({ empresa: '', contacto: '', valor: '', etapa: 'Nuevo', prioridad: 'Media' });
-    setShowModal(false);
+  const handleAddLead = async () => {
+    if (!form.companyName || !form.contactName || !form.email || !form.estimatedValue) return;
+    setSaving(true);
+    const userId = (session?.user as { id?: string })?.id || users[0]?.id || '';
+    const res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName:    form.companyName,
+        contactName:    form.contactName,
+        email:          form.email,
+        estimatedValue: form.estimatedValue,
+        source:         form.source || 'Pipeline',
+        status:         ETAPA_TO_STATUS[form.etapa],
+        userId,
+      }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      const newLead = await res.json();
+      setLeads(prev => [newLead, ...prev]);
+      setForm(EMPTY_FORM);
+      setShowModal(false);
+    }
   };
 
-  const totalPipeline = leads.filter(l => l.etapa !== 'Perdido').reduce((a, l) => a + l.valor, 0);
-  const totalGanado   = leads.filter(l => l.etapa === 'Ganado').reduce((a, l) => a + l.valor, 0);
+  const totalPipeline = leads.filter(l => l.status !== 'LOST').reduce((a, l) => a + l.estimatedValue, 0);
+  const totalGanado   = leads.filter(l => l.status === 'WON').reduce((a, l) => a + l.estimatedValue, 0);
+  const activos       = leads.filter(l => !['WON', 'LOST'].includes(l.status)).length;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+    </div>
+  );
 
   return (
     <div className="p-8">
@@ -118,7 +178,7 @@ export default function PipelinePage() {
         </div>
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
           <p className="text-xs text-gray-400 mb-1">Leads Activos</p>
-          <p className="text-xl font-bold text-orange-400">{leads.filter(l => !['Ganado','Perdido'].includes(l.etapa)).length}</p>
+          <p className="text-xl font-bold text-orange-400">{activos}</p>
         </div>
       </div>
 
@@ -131,36 +191,32 @@ export default function PipelinePage() {
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(etapa)}
           >
-            {/* Columna header */}
             <div className={`px-3 py-2 rounded-t-xl flex items-center justify-between ${ETAPA_HEADER[etapa]}`}>
               <span className="text-xs font-semibold">{etapa}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs opacity-70">{leadsEnEtapa(etapa).length}</span>
-              </div>
+              <span className="text-xs opacity-70">{leadsEnEtapa(etapa).length}</span>
             </div>
             <p className="px-3 py-1 text-xs text-gray-500 border-b border-gray-700/50">
               ${valorEtapa(etapa).toLocaleString()}
             </p>
-
-            {/* Tarjetas */}
             <div className="flex-1 p-2 space-y-2 min-h-24">
-              {leadsEnEtapa(etapa).map((lead) => (
-                <div
-                  key={lead.id}
-                  draggable
-                  onDragStart={() => handleDragStart(lead.id)}
-                  className={`bg-gray-800 border border-gray-700 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-orange-500/40 transition-colors ${dragging === lead.id ? 'opacity-50' : ''}`}
-                >
-                  <p className="text-xs font-semibold text-white leading-tight mb-1">{lead.empresa}</p>
-                  <p className="text-xs text-gray-500 mb-2">{lead.contacto}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-orange-400">${lead.valor.toLocaleString()}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${PRIORIDAD_COLORS[lead.prioridad]}`}>
-                      {lead.prioridad}
-                    </span>
+              {leadsEnEtapa(etapa).map((lead) => {
+                const p = getPrioridad(lead.estimatedValue);
+                return (
+                  <div
+                    key={lead.id}
+                    draggable
+                    onDragStart={() => handleDragStart(lead.id)}
+                    className={`bg-gray-800 border border-gray-700 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-orange-500/40 transition-colors ${dragging === lead.id ? 'opacity-50' : ''}`}
+                  >
+                    <p className="text-xs font-semibold text-white leading-tight mb-1">{lead.companyName}</p>
+                    <p className="text-xs text-gray-500 mb-2">{lead.contactName}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-orange-400">${lead.estimatedValue.toLocaleString()}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${p.cls}`}>{p.label}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
@@ -180,9 +236,11 @@ export default function PipelinePage() {
             </div>
             <div className="space-y-4">
               {[
-                { label: 'Empresa', key: 'empresa', type: 'text' },
-                { label: 'Contacto', key: 'contacto', type: 'text' },
-                { label: 'Valor estimado ($)', key: 'valor', type: 'number' },
+                { label: 'Empresa',          key: 'companyName',    type: 'text' },
+                { label: 'Contacto',         key: 'contactName',    type: 'text' },
+                { label: 'Email',            key: 'email',          type: 'email' },
+                { label: 'Valor estimado ($)', key: 'estimatedValue', type: 'number' },
+                { label: 'Fuente',           key: 'source',         type: 'text' },
               ].map(({ label, key, type }) => (
                 <div key={key}>
                   <label className="block text-sm text-gray-400 mb-1">{label}</label>
@@ -195,22 +253,21 @@ export default function PipelinePage() {
                 </div>
               ))}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Etapa</label>
-                <select value={form.etapa} onChange={(e) => setForm({ ...form, etapa: e.target.value as Etapa })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
+                <label className="block text-sm text-gray-400 mb-1">Etapa inicial</label>
+                <select
+                  value={form.etapa}
+                  onChange={(e) => setForm({ ...form, etapa: e.target.value as Etapa })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm"
+                >
                   {ETAPAS.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Prioridad</label>
-                <select value={form.prioridad} onChange={(e) => setForm({ ...form, prioridad: e.target.value as Lead['prioridad'] })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
-                  <option value="Alta">Alta</option>
-                  <option value="Media">Media</option>
-                  <option value="Baja">Baja</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm">Cancelar</button>
-                <button onClick={handleAddLead} className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium">Agregar</button>
+                <button onClick={handleAddLead} disabled={saving} className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2">
+                  {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  Agregar
+                </button>
               </div>
             </div>
           </div>

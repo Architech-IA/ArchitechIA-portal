@@ -169,10 +169,15 @@ export default function LeadsPage() {
     </div>
   );
 
+  const totalPipeline   = leads.filter(l => l.status !== 'LOST').reduce((a, l) => a + l.estimatedValue, 0);
+  const totalGanado     = leads.filter(l => l.status === 'WON').reduce((a, l) => a + l.estimatedValue, 0);
+  const leadsGanados    = leads.filter(l => l.status === 'WON').length;
+  const tasaConversion  = leads.length > 0 ? Math.round((leadsGanados / leads.length) * 100) : 0;
+
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white">Leads</h1>
           <p className="text-gray-400 mt-1">Gestión de prospectos y oportunidades</p>
@@ -182,8 +187,23 @@ export default function LeadsPage() {
         </button>
       </div>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Total Leads',      value: leads.length,                           color: 'text-white' },
+          { label: 'Pipeline activo',  value: `$${totalPipeline.toLocaleString()}`,   color: 'text-orange-400' },
+          { label: 'Valor ganado',     value: `$${totalGanado.toLocaleString()}`,     color: 'text-green-400' },
+          { label: 'Tasa conversión',  value: `${tasaConversion}%`,                   color: 'text-blue-400' },
+        ].map(k => (
+          <div key={k.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-xs text-gray-400 mb-1">{k.label}</p>
+            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Tabla */}
-      <div className="bg-gray-900 rounded-xl shadow border border-gray-800 mb-6">
+      <div className="bg-gray-900 rounded-xl shadow border border-gray-800">
         <div className="p-4 border-b border-gray-800">
           <input
             type="text"

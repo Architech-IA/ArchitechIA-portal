@@ -141,7 +141,6 @@ export default function TraceabilityPage() {
                       </span>
                     </div>
                     <p className="text-gray-300">{activity.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">ID: {activity.entityId}</p>
                   </div>
                 </div>
               </div>

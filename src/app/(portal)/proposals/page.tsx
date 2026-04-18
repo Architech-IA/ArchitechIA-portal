@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface Proposal {
   id: string;
@@ -15,85 +16,189 @@ interface Proposal {
   user: { id: string; name: string; email: string };
 }
 
+const STATUS_OPTIONS = [
+  { value: '',            label: 'Todos' },
+  { value: 'DRAFT',       label: 'Borrador' },
+  { value: 'SENT',        label: 'Enviado' },
+  { value: 'UNDER_REVIEW', label: 'En Revisión' },
+  { value: 'ACCEPTED',    label: 'Aceptado' },
+  { value: 'REJECTED',    label: 'Rechazado' },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT:        'bg-gray-800 text-gray-400',
+  SENT:         'bg-orange-500/20 text-orange-400',
+  UNDER_REVIEW: 'bg-yellow-500/20 text-yellow-400',
+  ACCEPTED:     'bg-green-500/20 text-green-400',
+  REJECTED:     'bg-red-500/20 text-red-400',
+};
+
+function translateStatus(status: string): string {
+  const t: Record<string, string> = {
+    DRAFT: 'Borrador', SENT: 'Enviado', UNDER_REVIEW: 'En Revisión',
+    ACCEPTED: 'Aceptado', REJECTED: 'Rechazado',
+  };
+  return t[status] || status;
+}
+
+const EMPTY_FORM = { title: '', description: '', status: 'DRAFT', amount: '', leadId: '', userId: '', sentDate: '' };
+
 export default function ProposalsPage() {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [filter, setFilter] = useState('');
-  const [leads, setLeads] = useState<{ id: string; companyName: string }[]>([]);
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    status: 'DRAFT',
-    amount: '',
-    leadId: '',
-    userId: '',
-    sentDate: '',
-  });
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+
+  const [proposals, setProposals]   = useState<Proposal[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [showModal, setShowModal]   = useState(false);
+  const [editProposal, setEditProposal] = useState<Proposal | null>(null);
+  const [confirmDel, setConfirmDel] = useState<Proposal | null>(null);
+  const [deleting, setDeleting]     = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [filter, setFilter]         = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [leads, setLeads]           = useState<{ id: string; companyName: string }[]>([]);
+  const [users, setUsers]           = useState<{ id: string; name: string }[]>([]);
+  const [formData, setFormData]     = useState(EMPTY_FORM);
+  const [formError, setFormError]   = useState('');
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/proposals').then(res => res.json()),
-      fetch('/api/leads').then(res => res.json()),
-      fetch('/api/users').then(res => res.json()),
-    ]).then(([proposalsData, leadsData, usersData]) => {
-      setProposals(proposalsData);
-      setLeads(leadsData);
-      setUsers(usersData);
-      setLoading(false);
-    });
+      fetch('/api/proposals').then(r => r.json()),
+      fetch('/api/leads').then(r => r.json()),
+      fetch('/api/users').then(r => r.json()),
+    ]).then(([p, l, u]) => { setProposals(p); setLeads(l); setUsers(u); setLoading(false); });
   }, []);
+
+  const openNew = () => {
+    setEditProposal(null);
+    setFormData(EMPTY_FORM);
+    setFormError('');
+    setShowModal(true);
+  };
+
+  const openEdit = (p: Proposal) => {
+    setEditProposal(p);
+    setFormError('');
+    setFormData({
+      title:       p.title,
+      description: p.description,
+      status:      p.status,
+      amount:      String(p.amount),
+      leadId:      p.lead?.id || '',
+      userId:      p.user.id,
+      sentDate:    p.sentDate ? p.sentDate.split('T')[0] : '',
+    });
+    setShowModal(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/proposals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
-    if (res.ok) {
-      const newProposal = await res.json();
-      setProposals([newProposal, ...proposals]);
-      setShowModal(false);
-      setFormData({ title: '', description: '', status: 'DRAFT', amount: '', leadId: '', userId: '', sentDate: '' });
+    setSaving(true);
+    setFormError('');
+    try {
+      const url    = editProposal ? `/api/proposals/${editProposal.id}` : '/api/proposals';
+      const method = editProposal ? 'PUT' : 'POST';
+      const res    = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setProposals(prev => editProposal
+          ? prev.map(p => p.id === saved.id ? saved : p)
+          : [saved, ...prev]);
+        setShowModal(false);
+      } else {
+        const d = await res.json();
+        setFormError(d.error || `Error ${res.status}`);
+      }
+    } catch {
+      setFormError('Error de conexión. Intenta de nuevo.');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const filteredProposals = proposals.filter(p =>
-    p.title.toLowerCase().includes(filter.toLowerCase()) ||
-    p.lead?.companyName.toLowerCase().includes(filter.toLowerCase())
-  );
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      DRAFT: 'bg-gray-800 text-gray-400',
-      SENT: 'bg-orange-500/20 text-orange-400',
-      UNDER_REVIEW: 'bg-yellow-500/20 text-yellow-400',
-      ACCEPTED: 'bg-green-500/20 text-green-400',
-      REJECTED: 'bg-red-500/20 text-red-400',
-    };
-    return colors[status] || 'bg-gray-800 text-gray-400';
+  const handleDelete = async () => {
+    if (!confirmDel) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/proposals/${confirmDel.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProposals(prev => prev.filter(p => p.id !== confirmDel.id));
+        setConfirmDel(null);
+      }
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
+  const filtered = proposals.filter(p => {
+    const matchSearch = p.title.toLowerCase().includes(filter.toLowerCase()) ||
+      p.lead?.companyName.toLowerCase().includes(filter.toLowerCase());
+    const matchStatus = !statusFilter || p.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const kpis = [
+    { label: 'Total',      value: proposals.length,                                             color: 'text-white' },
+    { label: 'En proceso', value: proposals.filter(p => ['SENT','UNDER_REVIEW'].includes(p.status)).length, color: 'text-orange-400' },
+    { label: 'Aceptadas',  value: proposals.filter(p => p.status === 'ACCEPTED').length,        color: 'text-green-400' },
+    { label: 'Valor total', value: `$${proposals.reduce((a, p) => a + p.amount, 0).toLocaleString()}`, color: 'text-blue-400' },
+  ];
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+    </div>
+  );
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white">Propuestas</h1>
           <p className="text-gray-400 mt-1">Gestión de propuestas comerciales</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+        <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
           + Nueva Propuesta
         </button>
       </div>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {kpis.map(k => (
+          <div key={k.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-xs text-gray-400 mb-1">{k.label}</p>
+            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="bg-gray-900 rounded-xl shadow border border-gray-800 mb-6">
-        <div className="p-4 border-b border-gray-800">
-          <input type="text" placeholder="Buscar por título o cliente..." value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gray-800 text-white" />
+        {/* Filtros */}
+        <div className="p-4 border-b border-gray-800 flex gap-3 flex-wrap items-center">
+          <input
+            type="text"
+            placeholder="Buscar por título o cliente..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="flex-1 min-w-48 px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white"
+          />
+          <div className="flex gap-2">
+            {STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setStatusFilter(opt.value)}
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${statusFilter === opt.value ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-800">
@@ -104,50 +209,83 @@ export default function ProposalsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Monto</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fecha Envío</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Responsable</th>
+                {isAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-gray-900 divide-y divide-gray-800">
-              {filteredProposals.map((proposal) => (
-                <tr key={proposal.id} className="hover:bg-gray-800/50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{proposal.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{proposal.lead?.companyName || 'N/A'}</td>
+              {filtered.map(p => (
+                <tr key={p.id} className="hover:bg-gray-800/50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{p.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.lead?.companyName || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(proposal.status)}`}>
-                      {translateStatus(proposal.status)}
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[p.status] || 'bg-gray-800 text-gray-400'}`}>
+                      {translateStatus(p.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">${proposal.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{proposal.sentDate ? new Date(proposal.sentDate).toLocaleDateString('es-ES') : '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{proposal.user.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">${p.amount.toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                    {p.sentDate ? new Date(p.sentDate).toLocaleDateString('es-ES') : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.user.name}</td>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => setConfirmDel(p)}
+                          className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={isAdmin ? 7 : 6} className="px-6 py-12 text-center text-gray-500">
+                    No hay propuestas que coincidan con los filtros.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Modal crear / editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-800">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Nueva Propuesta</h2>
+              <h2 className="text-2xl font-bold text-white">{editProposal ? 'Editar Propuesta' : 'Nueva Propuesta'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-300">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Título</label>
-                <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+                <input type="text" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
-                <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+                <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
-                  <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
                     <option value="DRAFT">Borrador</option>
                     <option value="SENT">Enviado</option>
                     <option value="UNDER_REVIEW">En Revisión</option>
@@ -157,45 +295,69 @@ export default function ProposalsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Monto</label>
-                  <input type="number" required value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+                  <input type="number" required value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Fecha Envío</label>
-                  <input type="date" value={formData.sentDate} onChange={(e) => setFormData({...formData, sentDate: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+                  <input type="date" value={formData.sentDate} onChange={e => setFormData({...formData, sentDate: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Lead Asociado</label>
-                  <select value={formData.leadId} onChange={(e) => setFormData({...formData, leadId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
-                    <option value="">Seleccionar...</option>
+                  <select value={formData.leadId} onChange={e => setFormData({...formData, leadId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                    <option value="">Ninguno</option>
                     {leads.map(l => <option key={l.id} value={l.id}>{l.companyName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Responsable</label>
-                  <select required value={formData.userId} onChange={(e) => setFormData({...formData, userId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                  <select required value={formData.userId} onChange={e => setFormData({...formData, userId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
                     <option value="">Seleccionar...</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4">
+              {formError && (
+                <div className="px-4 py-2 bg-red-900/30 border border-red-700/50 rounded-lg text-red-400 text-sm">{formError}</div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-gray-800/50 text-gray-300">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">Guardar</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-60 flex items-center gap-2">
+                  {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {editProposal ? 'Guardar Cambios' : 'Guardar'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Modal confirmar eliminación */}
+      {confirmDel && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-md border border-gray-800">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Eliminar propuesta</h3>
+                <p className="text-gray-400 text-sm">¿Seguro que deseas eliminar <span className="text-white font-medium">{confirmDel.title}</span>? Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmDel(null)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">Cancelar</button>
+              <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-60 flex items-center gap-2">
+                {deleting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
-
-function translateStatus(status: string): string {
-  const translations: Record<string, string> = {
-    DRAFT: 'Borrador', SENT: 'Enviado', UNDER_REVIEW: 'En Revisión',
-    ACCEPTED: 'Aceptado', REJECTED: 'Rechazado',
-  };
-  return translations[status] || status;
 }
