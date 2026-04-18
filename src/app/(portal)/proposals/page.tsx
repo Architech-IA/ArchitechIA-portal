@@ -158,6 +158,20 @@ export default function ProposalsPage() {
     setConvertForm({ name: '', userId: '' });
   };
 
+  const exportCSV = () => {
+    const headers = ['Título', 'Cliente', 'Estado', 'Monto', 'Fecha Envío', 'Responsable', 'Creado'];
+    const rows = proposals.map(p => [
+      p.title, p.lead?.companyName ?? '', p.status, p.amount,
+      p.sentDate ? new Date(p.sentDate).toLocaleDateString('es-ES') : '',
+      p.user.name, new Date(p.createdAt).toLocaleDateString('es-ES'),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'propuestas.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = proposals.filter(p => {
     const matchSearch = p.title.toLowerCase().includes(filter.toLowerCase()) ||
       p.lead?.companyName.toLowerCase().includes(filter.toLowerCase());
@@ -185,9 +199,15 @@ export default function ProposalsPage() {
           <h1 className="text-3xl font-bold text-white">Propuestas</h1>
           <p className="text-gray-400 mt-1">Gestión de propuestas comerciales</p>
         </div>
-        <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-          + Nueva Propuesta
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            CSV
+          </button>
+          <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+            + Nueva Propuesta
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}

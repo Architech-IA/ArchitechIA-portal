@@ -65,6 +65,11 @@ export default function LeadsPage() {
   const [formError, setFormError] = useState('');
   const [deleting, setDeleting]   = useState(false);
   const [delError, setDelError]   = useState('');
+  const [notesLead, setNotesLead]     = useState<Lead | null>(null);
+  const [notesList, setNotesList]     = useState<{ id: string; description: string; createdAt: string; user: { name: string } }[]>([]);
+  const [noteText, setNoteText]       = useState('');
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [addingNote, setAddingNote]   = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -158,6 +163,44 @@ export default function LeadsPage() {
     }
   };
 
+  const openNotes = async (lead: Lead) => {
+    setNotesLead(lead);
+    setNoteText('');
+    setNotesLoading(true);
+    const data = await fetch(`/api/leads/${lead.id}/notes`).then(r => r.json());
+    setNotesList(data);
+    setNotesLoading(false);
+  };
+
+  const addNote = async () => {
+    if (!notesLead || !noteText.trim()) return;
+    setAddingNote(true);
+    const res = await fetch(`/api/leads/${notesLead.id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: noteText }),
+    });
+    if (res.ok) {
+      const note = await res.json();
+      setNotesList(prev => [note, ...prev]);
+      setNoteText('');
+    }
+    setAddingNote(false);
+  };
+
+  const exportCSV = () => {
+    const headers = ['Empresa', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
+    const rows = filtered.map(l => [
+      l.companyName, l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
+      l.source, l.estimatedValue, l.user.name, new Date(l.createdAt).toLocaleDateString('es-ES'),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'leads.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = leads.filter(l =>
     l.companyName.toLowerCase().includes(filter.toLowerCase()) ||
     l.contactName.toLowerCase().includes(filter.toLowerCase())
@@ -182,9 +225,15 @@ export default function LeadsPage() {
           <h1 className="text-3xl font-bold text-white">Leads</h1>
           <p className="text-gray-400 mt-1">Gestión de prospectos y oportunidades</p>
         </div>
-        <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-          + Nuevo Lead
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            CSV
+          </button>
+          <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+            + Nuevo Lead
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -224,6 +273,7 @@ export default function LeadsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Valor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fuente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Responsable</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Notas</th>
                 {isAdmin && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
                 )}
@@ -243,6 +293,14 @@ export default function LeadsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => openNotes(lead)}
+                      className="px-3 py-1 text-xs bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 rounded-lg transition-colors"
+                    >
+                      Ver notas
+                    </button>
+                  </td>
                   {isAdmin && (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-2">
@@ -349,6 +407,51 @@ export default function LeadsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal notas */}
+      {notesLead && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Notas — {notesLead.companyName}</h2>
+              <button onClick={() => setNotesLead(null)} className="text-gray-400 hover:text-gray-300">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addNote()}
+                placeholder="Escribe una nota..."
+                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+              />
+              <button
+                onClick={addNote}
+                disabled={addingNote || !noteText.trim()}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 disabled:opacity-50"
+              >
+                {addingNote ? '...' : 'Agregar'}
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {notesLoading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500" /></div>}
+              {!notesLoading && notesList.length === 0 && (
+                <p className="text-center text-gray-500 text-sm py-4">Sin notas aún. Agrega la primera.</p>
+              )}
+              {notesList.map(n => (
+                <div key={n.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                  <p className="text-sm text-white">{n.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{n.user.name} · {new Date(n.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -84,6 +84,16 @@ export default function ClientesPage() {
     fetchClientes();
   };
 
+  const exportCSV = () => {
+    const headers = ['Nombre', 'Industria', 'Contacto', 'Email', 'País', 'Estado', 'Valor Total'];
+    const rows = clientes.map(c => [c.nombre, c.industria, c.contacto, c.email, c.pais, c.estado, c.valorTotal]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'clientes.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -95,6 +105,10 @@ export default function ClientesPage() {
         <div className="flex items-center gap-3">
           <input type="text" placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
             className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            CSV
+          </button>
           <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm whitespace-nowrap">
             + Nuevo Cliente
           </button>

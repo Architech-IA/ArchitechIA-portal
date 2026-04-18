@@ -4,17 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { useRouter } from 'next/navigation';
 
-const MOCK_NOTIFS = [
-  { id: '1', tipo: 'lead',      texto: 'Nuevo lead: FinTech Now ($20,000)',         tiempo: 'hace 5 min',  leida: false },
-  { id: '2', tipo: 'propuesta', texto: 'Propuesta aceptada por Grupo NX',            tiempo: 'hace 1 hora', leida: false },
-  { id: '3', tipo: 'proyecto',  texto: 'Proyecto "Agente AI" al 45% de progreso',    tiempo: 'hace 3 horas', leida: true  },
-  { id: '4', tipo: 'lead',      texto: 'Lead calificado: CloudOps Mx ($9,500)',      tiempo: 'ayer',         leida: true  },
-];
+interface Notif {
+  id: string;
+  tipo: 'lead' | 'propuesta' | 'proyecto' | 'finanza';
+  texto: string;
+  sub: string;
+  href: string;
+  leida: boolean;
+}
 
 const TIPO_ICON: Record<string, string> = {
   lead:      '👤',
   propuesta: '📄',
   proyecto:  '📁',
+  finanza:   '💰',
 };
 
 const SEARCH_INDEX = [
@@ -41,11 +44,19 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
 
   const [query, setQuery]           = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [notifs, setNotifs]         = useState(MOCK_NOTIFS);
+  const [notifs, setNotifs]         = useState<Notif[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [hora, setHora]             = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef  = useRef<HTMLDivElement>(null);
+
+  // Cargar notificaciones reales
+  useEffect(() => {
+    fetch('/api/notifications')
+      .then(r => r.json())
+      .then(d => setNotifs(d.notifs ?? []))
+      .catch(() => {});
+  }, []);
 
   // Reloj UTC-5 (Colombia / Lima / Bogotá)
   useEffect(() => {
@@ -178,15 +189,22 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
               )}
             </div>
             <div className="max-h-72 overflow-y-auto">
+              {notifs.length === 0 && (
+                <p className="text-center text-gray-500 text-sm py-6">Sin notificaciones pendientes</p>
+              )}
               {notifs.map((n) => (
-                <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-gray-700/50 ${!n.leida ? 'bg-orange-900/10' : ''}`}>
-                  <span className="text-lg flex-shrink-0 mt-0.5">{TIPO_ICON[n.tipo]}</span>
+                <button
+                  key={n.id}
+                  onClick={() => { router.push(n.href); setShowNotifs(false); }}
+                  className={`w-full flex gap-3 px-4 py-3 border-b border-gray-700/50 text-left hover:bg-gray-700/40 transition-colors ${!n.leida ? 'bg-orange-900/10' : ''}`}
+                >
+                  <span className="text-lg flex-shrink-0 mt-0.5">{TIPO_ICON[n.tipo] ?? '🔔'}</span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${!n.leida ? 'text-white font-medium' : 'text-gray-400'}`}>{n.texto}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{n.tiempo}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{n.sub}</p>
                   </div>
                   {!n.leida && <span className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1.5" />}
-                </div>
+                </button>
               ))}
             </div>
           </div>
