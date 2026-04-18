@@ -108,6 +108,31 @@ export async function GET() {
     take: 5,
   });
 
+  // Tendencias reales — últimos 6 meses
+  const tendencias = await Promise.all(
+    Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const inicio = new Date(y, m - 1, 1);
+      const fin    = new Date(y, m, 0, 23, 59, 59);
+      return Promise.all([
+        prisma.lead.count({ where: { createdAt: { gte: inicio, lte: fin } } }),
+        prisma.project.count({ where: { createdAt: { gte: inicio, lte: fin } } }),
+        prisma.registroFinanciero.findMany({
+          where: { tipo: 'ingreso', estado: { not: 'cancelado' },
+            fecha: { gte: inicio.toISOString().split('T')[0], lte: fin.toISOString().split('T')[0] } },
+        }),
+      ]).then(([leads, proyectos, registros]) => ({
+        mes:       new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'short' }),
+        leads,
+        proyectos,
+        ingresos:  registros.reduce((a, r) => a + r.monto, 0),
+      }));
+    })
+  );
+
   const recentActivities = await prisma.activity.findMany({
     take: 8,
     orderBy: { createdAt: 'desc' },
@@ -132,5 +157,6 @@ export async function GET() {
     ingresosMes,
     registrosPendientes,
     recentActivities,
+    tendencias,
   });
 }

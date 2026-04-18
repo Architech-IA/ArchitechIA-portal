@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logActivity } from '@/lib/activity';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -23,18 +24,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { title, description, status, amount, leadId, userId, sentDate } = body;
-  
+
   const proposal = await prisma.proposal.create({
-    data: {
-      title,
-      description,
-      status,
-      amount: parseFloat(amount) || 0,
-      leadId,
-      userId,
-      sentDate: sentDate ? new Date(sentDate) : null,
-    },
+    data: { title, description, status, amount: parseFloat(amount) || 0,
+      leadId, userId, sentDate: sentDate ? new Date(sentDate) : null },
     include: { lead: true, user: { select: { id: true, name: true, email: true } } },
   });
+
+  await logActivity({ type: 'CREATED', description: `creó la propuesta "${title}"`,
+    entityType: 'proposal', entityId: proposal.id, userId, proposalId: proposal.id,
+    leadId: leadId || null });
+
   return NextResponse.json(proposal);
 }

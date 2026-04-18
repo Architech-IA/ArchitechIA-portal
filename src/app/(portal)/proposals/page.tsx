@@ -60,6 +60,9 @@ export default function ProposalsPage() {
   const [users, setUsers]           = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData]     = useState(EMPTY_FORM);
   const [formError, setFormError]   = useState('');
+  const [convertModal, setConvertModal] = useState<Proposal | null>(null);
+  const [convertForm, setConvertForm]   = useState({ name: '', userId: '' });
+  const [converting, setConverting]     = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -132,6 +135,27 @@ export default function ProposalsPage() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleConvert = async () => {
+    if (!convertModal || !convertForm.name || !convertForm.userId) return;
+    setConverting(true);
+    await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:        convertForm.name,
+        description: convertModal.description || '',
+        status:      'PLANNING',
+        priority:    'MEDIUM',
+        progress:    '0',
+        userId:      convertForm.userId,
+        proposalId:  convertModal.id,
+      }),
+    });
+    setConverting(false);
+    setConvertModal(null);
+    setConvertForm({ name: '', userId: '' });
   };
 
   const filtered = proposals.filter(p => {
@@ -231,19 +255,12 @@ export default function ProposalsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.user.name}</td>
                   {isAdmin && (
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEdit(p)}
-                          className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => setConfirmDel(p)}
-                          className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
-                        >
-                          Eliminar
-                        </button>
+                      <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => openEdit(p)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors">Editar</button>
+                        {p.status === 'ACCEPTED' && (
+                          <button onClick={() => { setConvertModal(p); setConvertForm({ name: p.title, userId: '' }); }} className="px-3 py-1 text-xs bg-green-900/40 hover:bg-green-800/60 text-green-400 rounded-lg transition-colors">→ Proyecto</button>
+                        )}
+                        <button onClick={() => setConfirmDel(p)} className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors">Eliminar</button>
                       </div>
                     </td>
                   )}
@@ -329,6 +346,36 @@ export default function ProposalsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal convertir a proyecto */}
+      {convertModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-lg font-bold text-white mb-1">Crear Proyecto desde Propuesta</h2>
+            <p className="text-gray-400 text-sm mb-5">Propuesta: <span className="text-white">{convertModal.title}</span></p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Nombre del proyecto</label>
+                <input type="text" value={convertForm.name} onChange={e => setConvertForm({...convertForm, name: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Owner del proyecto</label>
+                <select value={convertForm.userId} onChange={e => setConvertForm({...convertForm, userId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white focus:ring-2 focus:ring-orange-500">
+                  <option value="">Seleccionar...</option>
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button onClick={() => setConvertModal(null)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">Cancelar</button>
+                <button onClick={handleConvert} disabled={converting || !convertForm.name || !convertForm.userId} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-60 flex items-center gap-2">
+                  {converting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  Crear Proyecto
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

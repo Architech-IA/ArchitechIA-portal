@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
+import { logActivity } from '@/lib/activity';
 
 const projectInclude = {
   users: { include: { user: { select: { id: true, name: true, email: true } } } },
@@ -16,6 +17,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   if (!(await isAdmin(request))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
@@ -23,19 +25,26 @@ export async function PUT(
   const body = await request.json();
   const { name, description, status, priority, progress, startDate, endDate } = body;
   try {
+    const prev = await prisma.project.findUnique({ where: { id }, select: { status: true } });
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        name,
-        description,
-        status,
-        priority,
+      data: { name, description, status, priority,
         progress: parseInt(progress) || 0,
         startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-      },
+        endDate:   endDate   ? new Date(endDate)   : null },
       include: projectInclude,
     });
+
+    const actorId = (token as { sub?: string })?.sub || 'unknown';
+    if (prev?.status !== status) {
+      await logActivity({ type: 'STATUS_CHANGED',
+        description: `cambió proyecto "${name}" a estado ${status}`,
+        entityType: 'project', entityId: id, userId: actorId, projectId: id });
+    } else {
+      await logActivity({ type: 'UPDATED', description: `actualizó el proyecto "${name}"`,
+        entityType: 'project', entityId: id, userId: actorId, projectId: id });
+    }
+
     return NextResponse.json(project);
   } catch (e) {
     console.error(e);
@@ -47,6 +56,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   if (!(await isAdmin(request))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }

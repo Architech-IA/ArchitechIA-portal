@@ -20,16 +20,8 @@ interface DashboardData {
   metaMensual: number;
   ingresosMes: number;
   recentActivities: { id: string; type: string; description: string; entityType: string; createdAt: string; user: { name: string } }[];
+  tendencias: { mes: string; leads: number; proyectos: number; ingresos: number }[];
 }
-
-const tendencias = [
-  { mes: 'Nov', leads: 3, ingresos: 8000,  proyectos: 1 },
-  { mes: 'Dic', leads: 5, ingresos: 12000, proyectos: 2 },
-  { mes: 'Ene', leads: 4, ingresos: 15000, proyectos: 2 },
-  { mes: 'Feb', leads: 7, ingresos: 18500, proyectos: 3 },
-  { mes: 'Mar', leads: 6, ingresos: 22000, proyectos: 3 },
-  { mes: 'Abr', leads: 9, ingresos: 27000, proyectos: 4 },
-];
 
 const ETAPA_LABELS: Record<string, string> = {
   NEW: 'Nuevo', CONTACTED: 'Contactado', QUALIFIED: 'Calificado',
@@ -59,9 +51,10 @@ export default function Home() {
     </div>
   );
 
-  const maxVal = Math.max(...tendencias.map(t =>
+  const tendencias = data?.tendencias ?? [];
+  const maxVal = tendencias.length > 0 ? Math.max(...tendencias.map(t =>
     chartTab === 'ingresos' ? t.ingresos : chartTab === 'leads' ? t.leads : t.proyectos
-  ));
+  )) : 1;
 
   const metaPct = data ? Math.min(Math.round((data.ingresosMes / data.metaMensual) * 100), 100) : 0;
   const maxEmbudo = data?.embudo[0]?.count || 1;

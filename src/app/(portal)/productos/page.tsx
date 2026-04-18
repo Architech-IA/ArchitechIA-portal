@@ -50,6 +50,13 @@ const COLORES = [
 
 const EMPTY_FORM = { nombre: '', version: 'v1.0.0', estado: 'En Desarrollo', descripcion: '', tecnologias: '', caracteristicas: '', color: 'from-orange-500 to-red-600' };
 
+function formFromProducto(p: Producto) {
+  return {
+    nombre: p.nombre, version: p.version, estado: p.estado, descripcion: p.descripcion,
+    tecnologias: p.tecnologias.join(', '), caracteristicas: p.caracteristicas.join('\n'), color: p.color,
+  };
+}
+
 export default function ProductosPage() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
@@ -59,6 +66,9 @@ export default function ProductosPage() {
   const [selected, setSelected]     = useState<Producto | null>(null);
   const [tab, setTab]               = useState<'info' | 'roadmap' | 'changelog'>('info');
   const [showModal, setShowModal]   = useState(false);
+  const [editProducto, setEditProducto] = useState<Producto | null>(null);
+  const [confirmDel, setConfirmDel] = useState<Producto | null>(null);
+  const [deleting, setDeleting]     = useState(false);
   const [formData, setFormData]     = useState(EMPTY_FORM);
 
   const fetchProductos = useCallback(async () => {
@@ -70,19 +80,35 @@ export default function ProductosPage() {
 
   useEffect(() => { fetchProductos(); }, [fetchProductos]);
 
-  const openNew = () => { setFormData(EMPTY_FORM); setShowModal(true); };
+  const openNew = () => { setEditProducto(null); setFormData(EMPTY_FORM); setShowModal(true); };
+  const openEdit = (p: Producto) => { setEditProducto(p); setFormData(formFromProducto(p)); setShowModal(true); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = {
       nombre: formData.nombre, version: formData.version, estado: formData.estado,
       descripcion: formData.descripcion, color: formData.color,
-      icono: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+      icono: editProducto?.icono || 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
       tecnologias: formData.tecnologias.split(',').map(t => t.trim()).filter(Boolean),
       caracteristicas: formData.caracteristicas.split('\n').map(c => c.trim()).filter(Boolean),
     };
-    await fetch('/api/productos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (editProducto) {
+      await fetch(`/api/productos/${editProducto.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    } else {
+      await fetch('/api/productos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    }
     setShowModal(false);
+    setEditProducto(null);
+    fetchProductos();
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDel) return;
+    setDeleting(true);
+    await fetch(`/api/productos/${confirmDel.id}`, { method: 'DELETE' });
+    setDeleting(false);
+    setConfirmDel(null);
+    if (selected?.id === confirmDel.id) setSelected(null);
     fetchProductos();
   };
 
@@ -101,7 +127,13 @@ export default function ProductosPage() {
         </button>
 
         <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
-          <div className={`bg-gradient-to-r ${selected.color} p-6 md:p-8`}>
+          <div className={`bg-gradient-to-r ${selected.color} p-6 md:p-8 relative`}>
+            {isAdmin && (
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button onClick={() => openEdit(selected)} className="px-3 py-1 text-xs bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">Editar</button>
+                <button onClick={() => setConfirmDel(selected)} className="px-3 py-1 text-xs bg-red-900/50 hover:bg-red-800/70 text-red-200 rounded-lg transition-colors">Eliminar</button>
+              </div>
+            )}
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4 md:gap-5">
                 <div className="w-14 h-14 md:w-16 md:h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -302,21 +334,46 @@ export default function ProductosPage() {
               </div>
               <div className="mt-4 pt-4 border-t border-gray-700 flex items-center justify-between">
                 <span className="text-xs text-gray-500">Ver detalles</span>
-                <svg className="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <>
+                      <button onClick={e => { e.stopPropagation(); openEdit(p); }} className="text-xs text-gray-400 hover:text-orange-400 transition-colors px-1">Editar</button>
+                      <button onClick={e => { e.stopPropagation(); setConfirmDel(p); }} className="text-xs text-gray-400 hover:text-red-400 transition-colors px-1">Eliminar</button>
+                    </>
+                  )}
+                  <svg className="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modal nuevo producto — solo admin */}
+      {/* Modal confirmar eliminación */}
+      {confirmDel && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm">
+            <h3 className="text-white font-semibold mb-2">Eliminar producto</h3>
+            <p className="text-gray-400 text-sm mb-6">¿Seguro que deseas eliminar <span className="text-white font-medium">{confirmDel.nombre}</span>? Esta acción no se puede deshacer.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmDel(null)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">Cancelar</button>
+              <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm disabled:opacity-60 flex items-center gap-2">
+                {deleting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal crear/editar producto — solo admin */}
       {showModal && isAdmin && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Nuevo Producto</h2>
+              <h2 className="text-xl font-bold text-white">{editProducto ? 'Editar Producto' : 'Nuevo Producto'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-300">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -401,7 +458,7 @@ export default function ProductosPage() {
                 </button>
                 <button type="submit"
                   className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium">
-                  Crear Producto
+                  {editProducto ? 'Guardar Cambios' : 'Crear Producto'}
                 </button>
               </div>
             </form>

@@ -73,6 +73,10 @@ export default function ProjectsPage() {
   const [saving, setSaving]           = useState(false);
   const [filter, setFilter]           = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [milestoneProject, setMilestoneProject] = useState<string | null>(null);
+  const [milestoneName, setMilestoneName]       = useState('');
+  const [milestoneDue, setMilestoneDue]         = useState('');
+  const [savingMilestone, setSavingMilestone]   = useState(false);
   const [users, setUsers]             = useState<{ id: string; name: string }[]>([]);
   const [formData, setFormData]       = useState(EMPTY_FORM);
   const [formError, setFormError]     = useState('');
@@ -134,6 +138,45 @@ export default function ProjectsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAddMilestone = async (projectId: string) => {
+    if (!milestoneName.trim()) return;
+    setSavingMilestone(true);
+    const res = await fetch('/api/milestones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: milestoneName, projectId, dueDate: milestoneDue || null }),
+    });
+    if (res.ok) {
+      const m = await res.json();
+      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, milestones: [...p.milestones, m] } : p));
+      setMilestoneName('');
+      setMilestoneDue('');
+      setMilestoneProject(null);
+    }
+    setSavingMilestone(false);
+  };
+
+  const handleToggleMilestone = async (projectId: string, milestoneId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+    const res = await fetch(`/api/milestones/${milestoneId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (res.ok) {
+      setProjects(prev => prev.map(p => p.id === projectId
+        ? { ...p, milestones: p.milestones.map(m => m.id === milestoneId ? { ...m, status: newStatus } : m) }
+        : p));
+    }
+  };
+
+  const handleDeleteMilestone = async (projectId: string, milestoneId: string) => {
+    await fetch(`/api/milestones/${milestoneId}`, { method: 'DELETE' });
+    setProjects(prev => prev.map(p => p.id === projectId
+      ? { ...p, milestones: p.milestones.filter(m => m.id !== milestoneId) }
+      : p));
   };
 
   const handleDelete = async () => {
@@ -296,19 +339,55 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            {project.milestones.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <p className="text-sm font-medium text-gray-300 mb-2">Hitos ({project.milestones.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {project.milestones.slice(0, 3).map(m => (
-                    <span key={m.id} className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">{m.name}</span>
-                  ))}
-                  {project.milestones.length > 3 && (
-                    <span className="px-2 py-1 text-xs bg-gray-800 text-gray-500 rounded">+{project.milestones.length - 3} más</span>
-                  )}
-                </div>
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-gray-300">Hitos ({project.milestones.length})</p>
+                <button
+                  onClick={() => setMilestoneProject(milestoneProject === project.id ? null : project.id)}
+                  className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                >
+                  + Agregar hito
+                </button>
               </div>
-            )}
+              {milestoneProject === project.id && (
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text" placeholder="Nombre del hito"
+                    value={milestoneName} onChange={e => setMilestoneName(e.target.value)}
+                    className="flex-1 px-3 py-1.5 text-xs bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                  />
+                  <input
+                    type="date" value={milestoneDue} onChange={e => setMilestoneDue(e.target.value)}
+                    className="px-3 py-1.5 text-xs bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                  />
+                  <button onClick={() => handleAddMilestone(project.id)} disabled={savingMilestone}
+                    className="px-3 py-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-lg disabled:opacity-60">
+                    {savingMilestone ? '...' : 'Guardar'}
+                  </button>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                {project.milestones.map(m => (
+                  <div key={m.id} className="flex items-center gap-2 group">
+                    <button
+                      onClick={() => handleToggleMilestone(project.id, m.id, m.status)}
+                      className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${m.status === 'COMPLETED' ? 'bg-green-600 border-green-600' : 'border-gray-600 hover:border-orange-500'}`}
+                    >
+                      {m.status === 'COMPLETED' && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className={`text-xs flex-1 ${m.status === 'COMPLETED' ? 'line-through text-gray-600' : 'text-gray-300'}`}>{m.name}</span>
+                    {m.dueDate && <span className="text-xs text-gray-600">{new Date(m.dueDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>}
+                    {isAdmin && (
+                      <button onClick={() => handleDeleteMilestone(project.id, m.id)} className="text-gray-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs">×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
 
