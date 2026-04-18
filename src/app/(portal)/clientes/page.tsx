@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface Cliente {
   id: string;
@@ -10,76 +11,42 @@ interface Cliente {
   email: string;
   pais: string;
   estado: 'Activo' | 'Inactivo';
-  proyectos: { nombre: string; estado: string; progreso: number }[];
-  propuestas: { titulo: string; monto: number; estado: string }[];
   valorTotal: number;
 }
-
-const INITIAL_CLIENTES: Cliente[] = [
-  {
-    id: '1', nombre: 'TechCorp S.A.', industria: 'Tecnología', contacto: 'Carlos Méndez',
-    email: 'cmendez@techcorp.com', pais: 'México', estado: 'Activo',
-    proyectos: [
-      { nombre: 'Agente de Seguridad AI', estado: 'En Progreso', progreso: 45 },
-      { nombre: 'Dashboard BI', estado: 'Completado', progreso: 100 },
-    ],
-    propuestas: [
-      { titulo: 'Implementación SOC AI', monto: 15000, estado: 'Aceptado' },
-      { titulo: 'Módulo de Reportes', monto: 5000, estado: 'Completado' },
-    ],
-    valorTotal: 20000,
-  },
-  {
-    id: '2', nombre: 'Grupo Financiero NX', industria: 'Finanzas', contacto: 'Ana Rodríguez',
-    email: 'arodriguez@gfnx.com', pais: 'Colombia', estado: 'Activo',
-    proyectos: [{ nombre: 'Automatización de Procesos', estado: 'Completado', progreso: 100 }],
-    propuestas: [
-      { titulo: 'Automatización con n8n', monto: 8500, estado: 'Aceptado' },
-      { titulo: 'Expansión de flujos', monto: 6000, estado: 'En Revisión' },
-    ],
-    valorTotal: 14500,
-  },
-  {
-    id: '3', nombre: 'LogiTrack Perú', industria: 'Logística', contacto: 'Diego Paredes',
-    email: 'dparedes@logitrack.pe', pais: 'Perú', estado: 'Activo',
-    proyectos: [{ nombre: 'Integración n8n – ERP', estado: 'En Progreso', progreso: 70 }],
-    propuestas: [{ titulo: 'Integración de sistemas', monto: 5000, estado: 'Aceptado' }],
-    valorTotal: 5000,
-  },
-  {
-    id: '4', nombre: 'SaludTech LATAM', industria: 'Salud', contacto: 'Valeria Torres',
-    email: 'vtorres@saludtech.lat', pais: 'Argentina', estado: 'Inactivo',
-    proyectos: [],
-    propuestas: [{ titulo: 'Portal de Pacientes AI', monto: 12000, estado: 'Rechazado' }],
-    valorTotal: 0,
-  },
-];
 
 const EMPTY_FORM = {
   nombre: '', industria: '', contacto: '', email: '', pais: '', estado: 'Activo' as 'Activo' | 'Inactivo', valorTotal: '',
 };
 
-const estadoProyectoColor: Record<string, string> = {
-  'En Progreso':   'bg-blue-900/30 text-blue-400',
-  'Completado':    'bg-green-900/30 text-green-400',
-  'Planificación': 'bg-yellow-900/30 text-yellow-400',
-};
-
-const estadoPropuestaColor: Record<string, string> = {
-  'Aceptado':   'bg-green-900/30 text-green-400',
-  'En Revisión':'bg-yellow-900/30 text-yellow-400',
-  'Rechazado':  'bg-red-900/30 text-red-400',
-  'Completado': 'bg-gray-700 text-gray-400',
-};
+const Skeleton = () => (
+  <div className="animate-pulse space-y-3">
+    {[...Array(4)].map((_, i) => (
+      <div key={i} className="h-16 bg-gray-700/50 rounded-lg" />
+    ))}
+  </div>
+);
 
 export default function ClientesPage() {
-  const [clientes, setClientes]     = useState<Cliente[]>(INITIAL_CLIENTES);
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+
+  const [clientes, setClientes]       = useState<Cliente[]>([]);
+  const [loading, setLoading]         = useState(true);
   const [seleccionado, setSeleccionado] = useState<Cliente | null>(null);
-  const [busqueda, setBusqueda]     = useState('');
-  const [showModal, setShowModal]   = useState(false);
+  const [busqueda, setBusqueda]       = useState('');
+  const [showModal, setShowModal]     = useState(false);
   const [editCliente, setEditCliente] = useState<Cliente | null>(null);
-  const [confirmDel, setConfirmDel] = useState<Cliente | null>(null);
-  const [formData, setFormData]     = useState(EMPTY_FORM);
+  const [confirmDel, setConfirmDel]   = useState<Cliente | null>(null);
+  const [formData, setFormData]       = useState(EMPTY_FORM);
+
+  const fetchClientes = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/clientes');
+    setClientes(await res.json());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchClientes(); }, [fetchClientes]);
 
   const filtrados = clientes.filter(c =>
     c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -87,53 +54,34 @@ export default function ClientesPage() {
     c.pais.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  const openNew = () => {
-    setEditCliente(null);
-    setFormData(EMPTY_FORM);
-    setShowModal(true);
-  };
+  const openNew = () => { setEditCliente(null); setFormData(EMPTY_FORM); setShowModal(true); };
 
   const openEdit = (c: Cliente, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditCliente(c);
-    setFormData({
-      nombre: c.nombre, industria: c.industria, contacto: c.contacto,
-      email: c.email, pais: c.pais, estado: c.estado, valorTotal: String(c.valorTotal),
-    });
+    setFormData({ nombre: c.nombre, industria: c.industria, contacto: c.contacto, email: c.email, pais: c.pais, estado: c.estado, valorTotal: String(c.valorTotal) });
     setShowModal(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const body = { ...formData, valorTotal: parseFloat(formData.valorTotal) || 0 };
     if (editCliente) {
-      setClientes(prev => prev.map(c =>
-        c.id === editCliente.id
-          ? { ...c, ...formData, valorTotal: parseFloat(formData.valorTotal) || 0 }
-          : c
-      ));
-      if (seleccionado?.id === editCliente.id) {
-        setSeleccionado(prev => prev ? { ...prev, ...formData, valorTotal: parseFloat(formData.valorTotal) || 0 } : null);
-      }
+      await fetch(`/api/clientes/${editCliente.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     } else {
-      const nuevo: Cliente = {
-        id: Date.now().toString(),
-        nombre: formData.nombre, industria: formData.industria,
-        contacto: formData.contacto, email: formData.email,
-        pais: formData.pais, estado: formData.estado,
-        valorTotal: parseFloat(formData.valorTotal) || 0,
-        proyectos: [], propuestas: [],
-      };
-      setClientes(prev => [nuevo, ...prev]);
+      await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     }
     setShowModal(false);
+    fetchClientes();
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirmDel) return;
-    setClientes(prev => prev.filter(c => c.id !== confirmDel.id));
+    await fetch(`/api/clientes/${confirmDel.id}`, { method: 'DELETE' });
     if (seleccionado?.id === confirmDel.id) setSeleccionado(null);
     setConfirmDel(null);
+    fetchClientes();
   };
 
   return (
@@ -145,13 +93,8 @@ export default function ClientesPage() {
           <p className="text-gray-400 mt-1">Directorio de clientes activos y su historial</p>
         </div>
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Buscar cliente..."
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm"
-          />
+          <input type="text" placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
           <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm whitespace-nowrap">
             + Nuevo Cliente
           </button>
@@ -176,67 +119,68 @@ export default function ClientesPage() {
 
       {/* Tabla */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-700 text-left">
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cliente</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Industria</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">País</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Proyectos</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-700">
-            {filtrados.map(c => (
-              <tr key={c.id} onClick={() => setSeleccionado(c)} className="hover:bg-gray-700/50 cursor-pointer transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {c.nombre.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{c.nombre}</p>
-                      <p className="text-xs text-gray-500">{c.contacto}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-300">{c.industria}</td>
-                <td className="px-6 py-4 text-sm text-gray-300">{c.pais}</td>
-                <td className="px-6 py-4 text-sm text-gray-300">{c.proyectos.length}</td>
-                <td className="px-6 py-4 text-sm font-semibold text-orange-400">${c.valorTotal.toLocaleString()}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${c.estado === 'Activo' ? 'bg-green-900/30 text-green-400' : 'bg-gray-700 text-gray-400'}`}>
-                    {c.estado}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={e => openEdit(c, e)}
-                      className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setConfirmDel(c); }}
-                      className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </td>
+        {loading ? (
+          <div className="p-6"><Skeleton /></div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-700 text-left">
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Industria</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">País</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-700">
+              {filtrados.map(c => (
+                <tr key={c.id} onClick={() => setSeleccionado(c)} className="hover:bg-gray-700/50 cursor-pointer transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {c.nombre.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{c.nombre}</p>
+                        <p className="text-xs text-gray-500">{c.contacto}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-300">{c.industria}</td>
+                  <td className="px-6 py-4 text-sm text-gray-300">{c.pais}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-orange-400">${c.valorTotal.toLocaleString()}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${c.estado === 'Activo' ? 'bg-green-900/30 text-green-400' : 'bg-gray-700 text-gray-400'}`}>
+                      {c.estado}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                      <button onClick={e => openEdit(c, e)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors">
+                        Editar
+                      </button>
+                      {isAdmin && (
+                        <button onClick={e => { e.stopPropagation(); setConfirmDel(c); }} className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors">
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtrados.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Sin clientes</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Modal detalle */}
       {seleccionado && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg">
             <div className="bg-gradient-to-r from-orange-500 to-orange-700 p-6 rounded-t-2xl">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
@@ -256,60 +200,17 @@ export default function ClientesPage() {
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-3 gap-3">
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-400">Proyectos</p>
-                  <p className="text-xl font-bold text-white">{seleccionado.proyectos.length}</p>
+                  <p className="text-xs text-gray-400">Estado</p>
+                  <p className={`text-lg font-bold ${seleccionado.estado === 'Activo' ? 'text-green-400' : 'text-gray-400'}`}>{seleccionado.estado}</p>
                 </div>
                 <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-400">Propuestas</p>
-                  <p className="text-xl font-bold text-white">{seleccionado.propuestas.length}</p>
-                </div>
-                <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-400">Valor</p>
+                  <p className="text-xs text-gray-400">Valor Total</p>
                   <p className="text-lg font-bold text-orange-400">${seleccionado.valorTotal.toLocaleString()}</p>
                 </div>
               </div>
-
-              {seleccionado.proyectos.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Proyectos</h3>
-                  <div className="space-y-2">
-                    {seleccionado.proyectos.map(p => (
-                      <div key={p.nombre} className="bg-gray-700/40 rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-medium text-white">{p.nombre}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${estadoProyectoColor[p.estado] ?? 'bg-gray-700 text-gray-400'}`}>{p.estado}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-600 rounded-full h-1.5">
-                            <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${p.progreso}%` }} />
-                          </div>
-                          <span className="text-xs text-gray-400">{p.progreso}%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {seleccionado.propuestas.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3">Propuestas</h3>
-                  <div className="space-y-2">
-                    {seleccionado.propuestas.map(p => (
-                      <div key={p.titulo} className="flex items-center justify-between bg-gray-700/40 rounded-lg p-3">
-                        <p className="text-sm text-white">{p.titulo}</p>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-orange-400">${p.monto.toLocaleString()}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${estadoPropuestaColor[p.estado] ?? 'bg-gray-700 text-gray-400'}`}>{p.estado}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -331,43 +232,43 @@ export default function ClientesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Nombre empresa</label>
-                  <input required type="text" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input required type="text" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Industria</label>
-                  <input required type="text" value={formData.industria} onChange={e => setFormData({...formData, industria: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input required type="text" value={formData.industria} onChange={e => setFormData({...formData, industria: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Contacto</label>
-                  <input required type="text" value={formData.contacto} onChange={e => setFormData({...formData, contacto: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input required type="text" value={formData.contacto} onChange={e => setFormData({...formData, contacto: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">País</label>
-                  <input required type="text" value={formData.pais} onChange={e => setFormData({...formData, pais: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input required type="text" value={formData.pais} onChange={e => setFormData({...formData, pais: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Valor Total ($)</label>
-                  <input type="number" value={formData.valorTotal} onChange={e => setFormData({...formData, valorTotal: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500" />
+                  <input type="number" value={formData.valorTotal} onChange={e => setFormData({...formData, valorTotal: e.target.value})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
-                <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value as 'Activo' | 'Inactivo'})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500">
+                <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value as 'Activo' | 'Inactivo'})} className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
                 </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg">{editCliente ? 'Guardar Cambios' : 'Crear Cliente'}</button>
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm">{editCliente ? 'Guardar Cambios' : 'Crear Cliente'}</button>
               </div>
             </form>
           </div>
@@ -386,12 +287,12 @@ export default function ClientesPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold">Eliminar cliente</h3>
-                <p className="text-gray-400 text-sm">¿Seguro que deseas eliminar <span className="text-white font-medium">{confirmDel.nombre}</span>? Esta acción no se puede deshacer.</p>
+                <p className="text-gray-400 text-sm">¿Seguro que deseas eliminar <span className="text-white font-medium">{confirmDel.nombre}</span>?</p>
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmDel(null)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800">Cancelar</button>
-              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">Eliminar</button>
+              <button onClick={() => setConfirmDel(null)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">Cancelar</button>
+              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">Eliminar</button>
             </div>
           </div>
         </div>

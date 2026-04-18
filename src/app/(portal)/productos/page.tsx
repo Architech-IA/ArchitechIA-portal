@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
 interface Producto {
@@ -14,20 +14,6 @@ interface Producto {
   icono: string;
   color: string;
 }
-
-const INITIAL_PRODUCTOS: Producto[] = [
-  {
-    id: '1',
-    nombre: 'Agente de Seguridad AI',
-    version: 'v0.3.0',
-    estado: 'En Desarrollo',
-    descripcion: 'Agente inteligente de ciberseguridad impulsado por IA que monitorea, detecta y responde a amenazas en tiempo real. Analiza patrones de comportamiento, identifica vulnerabilidades y genera reportes automatizados para proteger la infraestructura de los clientes.',
-    tecnologias: ['IA Generativa', 'Machine Learning', 'n8n', 'Cloud'],
-    caracteristicas: ['Monitoreo continuo 24/7', 'Detección de amenazas en tiempo real', 'Análisis de comportamiento anómalo', 'Respuesta automatizada a incidentes', 'Reportes y alertas inteligentes', 'Integración con infraestructura existente'],
-    icono: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-    color: 'from-orange-500 to-red-600',
-  },
-];
 
 const roadmap = [
   { fase: 'Investigación', icono: '🔬', estado: 'completado', descripcion: 'Análisis de mercado, definición de arquitectura y pruebas de concepto con modelos de IA.', items: ['Análisis de amenazas comunes', 'Selección de modelos LLM', 'Arquitectura base definida'], fecha: 'Ene – Feb 2025' },
@@ -68,29 +54,36 @@ export default function ProductosPage() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
 
-  const [productos, setProductos]   = useState<Producto[]>(INITIAL_PRODUCTOS);
+  const [productos, setProductos]   = useState<Producto[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [selected, setSelected]     = useState<Producto | null>(null);
   const [tab, setTab]               = useState<'info' | 'roadmap' | 'changelog'>('info');
   const [showModal, setShowModal]   = useState(false);
   const [formData, setFormData]     = useState(EMPTY_FORM);
 
+  const fetchProductos = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/productos');
+    setProductos(await res.json());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchProductos(); }, [fetchProductos]);
+
   const openNew = () => { setFormData(EMPTY_FORM); setShowModal(true); };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const nuevo: Producto = {
-      id: Date.now().toString(),
-      nombre: formData.nombre,
-      version: formData.version,
-      estado: formData.estado,
-      descripcion: formData.descripcion,
+    const body = {
+      nombre: formData.nombre, version: formData.version, estado: formData.estado,
+      descripcion: formData.descripcion, color: formData.color,
+      icono: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
       tecnologias: formData.tecnologias.split(',').map(t => t.trim()).filter(Boolean),
       caracteristicas: formData.caracteristicas.split('\n').map(c => c.trim()).filter(Boolean),
-      icono: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
-      color: formData.color,
     };
-    setProductos(prev => [...prev, nuevo]);
+    await fetch('/api/productos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     setShowModal(false);
+    fetchProductos();
   };
 
   // Vista detalle de un producto
@@ -238,6 +231,27 @@ export default function ProductosPage() {
   }
 
   // Vista lista de productos
+  if (loading) return (
+    <div className="p-4 md:p-8">
+      <div className="mb-8">
+        <div className="h-9 w-48 bg-gray-700 rounded animate-pulse mb-2" />
+        <div className="h-4 w-72 bg-gray-700/50 rounded animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden animate-pulse">
+            <div className="h-24 bg-gray-700" />
+            <div className="p-5 space-y-3">
+              <div className="h-4 bg-gray-700 rounded w-3/4" />
+              <div className="h-3 bg-gray-700/50 rounded w-full" />
+              <div className="h-3 bg-gray-700/50 rounded w-5/6" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">

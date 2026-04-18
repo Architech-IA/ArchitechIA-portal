@@ -91,9 +91,22 @@ export async function GET() {
     _count: true,
   });
 
-  // Meta mensual (simulada: $30,000)
+  // Ingresos del mes actual desde RegistroFinanciero
+  const hoy = new Date();
+  const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+  const finMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-31`;
+  const registrosMes = await prisma.registroFinanciero.findMany({
+    where: { tipo: 'ingreso', estado: { not: 'cancelado' }, fecha: { gte: inicioMes, lte: finMes } },
+  });
+  const ingresosMes = registrosMes.reduce((sum, r) => sum + r.monto, 0);
   const metaMensual = 30000;
-  const ingresosMes = 27000; // En producción vendría de la tabla de finanzas
+
+  // Registros financieros pendientes
+  const registrosPendientes = await prisma.registroFinanciero.findMany({
+    where: { estado: 'pendiente' },
+    select: { id: true, concepto: true, monto: true, moneda: true, tipo: true },
+    take: 5,
+  });
 
   const recentActivities = await prisma.activity.findMany({
     take: 8,
@@ -117,6 +130,7 @@ export async function GET() {
     industriaLeads,
     metaMensual,
     ingresosMes,
+    registrosPendientes,
     recentActivities,
   });
 }

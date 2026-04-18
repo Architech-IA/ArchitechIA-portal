@@ -57,6 +57,7 @@ export default function FinanzasPage() {
   const [formData, setFormData]     = useState(EMPTY_FORM);
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'ingreso' | 'gasto'>('todos');
   const [filtroBusq, setFiltroBusq] = useState('');
+  const [filtroAnio, setFiltroAnio] = useState(new Date().getFullYear());
 
   const fetchRegistros = useCallback(async () => {
     setLoading(true);
@@ -68,9 +69,20 @@ export default function FinanzasPage() {
 
   useEffect(() => { fetchRegistros(); }, [fetchRegistros]);
 
+  // ── Exportar CSV ────────────────────────────────────────────────────────────
+  const exportCSV = () => {
+    const headers = ['Fecha','Tipo','Categoría','Concepto','Proyecto','Monto','Moneda','Estado','Responsable'];
+    const rows = registrosFiltrados.map(r => [r.fecha, r.tipo, r.categoria, r.concepto, r.proyecto, r.monto, r.moneda, r.estado, r.responsable]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `finanzas_${filtroAnio}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // ── Cálculos derivados ──────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const solo2025 = registros.filter(r => r.fecha.startsWith('2025') && r.estado !== 'cancelado');
+    const solo2025 = registros.filter(r => r.fecha.startsWith(String(filtroAnio)) && r.estado !== 'cancelado');
 
     const totalIngresos = solo2025.filter(r => r.tipo === 'ingreso').reduce((s, r) => s + r.monto, 0);
     const totalGastos   = solo2025.filter(r => r.tipo === 'gasto').reduce((s, r) => s + r.monto, 0);
@@ -104,7 +116,7 @@ export default function FinanzasPage() {
     const proyectos = Object.entries(proyMap).map(([nombre, v]) => ({ nombre, ...v }));
 
     return { totalIngresos, totalGastos, utilidad, margen, ingPorMes, gastPorMes, categorias, proyectos };
-  }, [registros]);
+  }, [registros, filtroAnio]);
 
   const mesesConDatos = MESES_LABELS.map((label, i) => ({
     label, i,
@@ -185,14 +197,31 @@ export default function FinanzasPage() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-700 mb-6">
-        {(['resumen', 'registros'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-5 py-3 text-sm font-medium capitalize transition-colors ${tab === t ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}>
-            {t === 'resumen' ? 'Resumen' : `Registros (${registros.length})`}
-          </button>
-        ))}
+      {/* Tabs + filtro año */}
+      <div className="flex items-center justify-between border-b border-gray-700 mb-6">
+        <div className="flex">
+          {(['resumen', 'registros'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-5 py-3 text-sm font-medium capitalize transition-colors ${tab === t ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-white'}`}>
+              {t === 'resumen' ? 'Resumen' : `Registros (${registros.length})`}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pb-1">
+          <select value={filtroAnio} onChange={e => setFiltroAnio(Number(e.target.value))}
+            className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            {[2023, 2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          {tab === 'registros' && (
+            <button onClick={exportCSV}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 hover:border-orange-500 rounded-lg text-gray-300 hover:text-orange-400 text-sm transition-colors flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── TAB: RESUMEN ──────────────────────────────────────────────────────── */}
@@ -217,7 +246,7 @@ export default function FinanzasPage() {
 
           {/* Gráfica de barras */}
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-8">
-            <h2 className="text-lg font-semibold text-white mb-6">Flujo de Caja — 2025</h2>
+            <h2 className="text-lg font-semibold text-white mb-6">Flujo de Caja — {filtroAnio}</h2>
             <div className="flex items-end gap-2 md:gap-4 h-48">
               {MESES_LABELS.map((mes, i) => {
                 if (stats.ingPorMes[i] === 0 && stats.gastPorMes[i] === 0) return null;
@@ -384,7 +413,7 @@ export default function FinanzasPage() {
                     </tr>
                   ))}
                   {registrosFiltrados.length === 0 && (
-                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">Sin registros</td></tr>
+                    <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-500">Sin registros</td></tr>
                   )}
                 </tbody>
               </table>

@@ -13,6 +13,7 @@ interface DashboardData {
   leadsInactivos: { id: string; companyName: string; status: string; updatedAt: string }[];
   propuestasSinRespuesta: { id: string; title: string; amount: number; sentDate: string }[];
   proximosDeadlines: { id: string; name: string; endDate: string; progress: number; priority: string }[];
+  registrosPendientes: { id: string; concepto: string; monto: number; moneda: string; tipo: string }[];
   topSocios: { id: string; name: string; role: string; _count: { leads: number; proposals: number; projects: number } }[];
   embudo: { status: string; count: number; valor: number }[];
   industriaLeads: { source: string; _count: number }[];
@@ -64,7 +65,7 @@ export default function Home() {
 
   const metaPct = data ? Math.min(Math.round((data.ingresosMes / data.metaMensual) * 100), 100) : 0;
   const maxEmbudo = data?.embudo[0]?.count || 1;
-  const alertas = (data?.leadsInactivos.length ?? 0) + (data?.propuestasSinRespuesta.length ?? 0) + (data?.proximosDeadlines.length ?? 0);
+  const alertas = (data?.leadsInactivos.length ?? 0) + (data?.propuestasSinRespuesta.length ?? 0) + (data?.proximosDeadlines.length ?? 0) + (data?.registrosPendientes.length ?? 0);
 
   return (
     <div className="p-8 space-y-8">
@@ -268,6 +269,22 @@ export default function Home() {
                       <p className="text-xs text-gray-300 truncate flex-1">{p.name}</p>
                       <span className={`text-xs ml-2 flex-shrink-0 ${PRIORITY_COLORS[p.priority]}`}>
                         {new Date(p.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Registros financieros pendientes */}
+            {(data?.registrosPendientes.length ?? 0) > 0 && (
+              <div className="bg-purple-900/10 border border-purple-800/50 rounded-lg p-4">
+                <p className="text-xs font-semibold text-purple-400 mb-2">💰 Pagos pendientes en Finanzas</p>
+                <div className="space-y-1">
+                  {data?.registrosPendientes.map(r => (
+                    <div key={r.id} className="flex items-center justify-between">
+                      <p className="text-xs text-gray-300 truncate flex-1">{r.concepto}</p>
+                      <span className="text-xs ml-2 flex-shrink-0 text-purple-400">
+                        {r.moneda === 'EUR' ? '€' : '$'}{r.monto.toLocaleString()} {r.moneda}
                       </span>
                     </div>
                   ))}

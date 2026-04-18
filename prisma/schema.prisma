@@ -198,3 +198,30 @@ model RegistroFinanciero {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model Cliente {
+  id         String   @id @default(cuid())
+  nombre     String
+  industria  String
+  contacto   String
+  email      String
+  pais       String
+  estado     String   @default("Activo")
+  valorTotal Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Producto {
+  id              String   @id @default(cuid())
+  nombre          String
+  version         String
+  estado          String
+  descripcion     String
+  tecnologias     String
+  caracteristicas String
+  icono           String
+  color           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
