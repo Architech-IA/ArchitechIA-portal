@@ -11,6 +11,7 @@ interface Registro {
   categoria: string;
   concepto: string;
   monto: number;
+  moneda: 'COP' | 'USD' | 'EUR';
   proyecto: string;
   estado: 'pagado' | 'pendiente' | 'cancelado';
   responsable: string;
@@ -19,7 +20,9 @@ interface Registro {
 const CATEGORIAS_INGRESO = ['Proyecto', 'Servicio', 'Consultoría', 'Licencia', 'Otro ingreso'];
 const CATEGORIAS_GASTO   = ['Infraestructura Cloud', 'Herramientas y SaaS', 'Marketing', 'Operaciones', 'Nómina', 'Otros'];
 const PROYECTOS = ['Agente de Seguridad AI – Cliente A', 'Automatización de Procesos – Cliente B', 'Dashboard BI – Cliente C', 'Integración n8n – Cliente D', 'Interno', 'N/A'];
+const SOCIOS = ['Admin ArchiTechIA', 'Freddy Orozco', 'Santiago Ortega', 'Daniel Martínez'];
 const MESES_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONEDAS = ['COP', 'USD', 'EUR'];
 
 const EMPTY_FORM = {
   fecha: new Date().toISOString().split('T')[0],
@@ -27,51 +30,52 @@ const EMPTY_FORM = {
   categoria: 'Proyecto',
   concepto: '',
   monto: '',
+  moneda: 'USD' as 'COP' | 'USD' | 'EUR',
   proyecto: 'N/A',
   estado: 'pagado' as 'pagado' | 'pendiente' | 'cancelado',
-  responsable: '',
+  responsable: SOCIOS[0],
 };
 
 // ── Datos iniciales ────────────────────────────────────────────────────────────
 const INITIAL_REGISTROS: Registro[] = [
   // INGRESOS
-  { id:'1',  fecha:'2025-01-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago inicial – Agente Seguridad AI',       monto:8000,  proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'2',  fecha:'2025-01-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría onboarding – Cliente D',        monto:4000,  proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'3',  fecha:'2025-02-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable fase 1 – Dashboard BI',          monto:6000,  proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'4',  fecha:'2025-02-18', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago fase 2 – Automatización Procesos',     monto:8500,  proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'5',  fecha:'2025-02-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente A',               monto:4000,  proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'6',  fecha:'2025-03-08', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable final – Dashboard BI',           monto:6000,  proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'7',  fecha:'2025-03-20', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría estratégica – nuevo cliente',   monto:5000,  proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'8',  fecha:'2025-03-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente B',               monto:4000,  proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'9',  fecha:'2025-04-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago hito – Agente Seguridad AI',           monto:7000,  proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'10', fecha:'2025-04-12', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia anual – Cliente C',                monto:8000,  proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'11', fecha:'2025-04-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Taller IA – empresa externa',               monto:7000,  proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'12', fecha:'2025-05-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable n8n – Cliente D',                monto:5000,  proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'13', fecha:'2025-05-20', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Clientes A y C',          monto:8000,  proyecto:'Interno',                                  estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'14', fecha:'2025-05-30', tipo:'ingreso', categoria:'Consultoría',   concepto:'Diagnóstico de ciberseguridad',             monto:6500,  proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'15', fecha:'2025-06-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago final – Agente Seguridad AI',          monto:12000, proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'16', fecha:'2025-06-15', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia semestral – Cliente B',            monto:9000,  proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'17', fecha:'2025-06-28', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría expansión regional',            monto:6000,  proyecto:'Interno',                                  estado:'pendiente', responsable:'Admin ArchiTechIA' },
+  { id:'1',  fecha:'2025-01-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago inicial – Agente Seguridad AI',       monto:8000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'2',  fecha:'2025-01-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría onboarding – Cliente D',        monto:4000,  moneda:'USD', proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'3',  fecha:'2025-02-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable fase 1 – Dashboard BI',          monto:6000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
+  { id:'4',  fecha:'2025-02-18', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago fase 2 – Automatización Procesos',     monto:8500,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'5',  fecha:'2025-02-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente A',               monto:4000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Freddy Orozco' },
+  { id:'6',  fecha:'2025-03-08', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable final – Dashboard BI',           monto:6000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
+  { id:'7',  fecha:'2025-03-20', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría estratégica – nuevo cliente',   monto:5000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'8',  fecha:'2025-03-28', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Cliente B',               monto:4000,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'9',  fecha:'2025-04-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago hito – Agente Seguridad AI',           monto:7000,  moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'10', fecha:'2025-04-12', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia anual – Cliente C',                monto:8000,  moneda:'USD', proyecto:'Dashboard BI – Cliente C',                 estado:'pagado',    responsable:'Daniel Martínez' },
+  { id:'11', fecha:'2025-04-25', tipo:'ingreso', categoria:'Consultoría',   concepto:'Taller IA – empresa externa',               monto:7000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'12', fecha:'2025-05-10', tipo:'ingreso', categoria:'Proyecto',      concepto:'Entregable n8n – Cliente D',                monto:5000,  moneda:'USD', proyecto:'Integración n8n – Cliente D',              estado:'pagado',    responsable:'Freddy Orozco' },
+  { id:'13', fecha:'2025-05-20', tipo:'ingreso', categoria:'Servicio',      concepto:'Soporte mensual – Clientes A y C',          monto:8000,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'14', fecha:'2025-05-30', tipo:'ingreso', categoria:'Consultoría',   concepto:'Diagnóstico de ciberseguridad',             monto:6500,  moneda:'USD', proyecto:'Interno',                                  estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'15', fecha:'2025-06-05', tipo:'ingreso', categoria:'Proyecto',      concepto:'Pago final – Agente Seguridad AI',          monto:12000, moneda:'USD', proyecto:'Agente de Seguridad AI – Cliente A',       estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'16', fecha:'2025-06-15', tipo:'ingreso', categoria:'Licencia',      concepto:'Licencia semestral – Cliente B',            monto:9000,  moneda:'USD', proyecto:'Automatización de Procesos – Cliente B',   estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'17', fecha:'2025-06-28', tipo:'ingreso', categoria:'Consultoría',   concepto:'Consultoría expansión regional',            monto:6000,  moneda:'USD', proyecto:'Interno',                                  estado:'pendiente', responsable:'Admin ArchiTechIA' },
   // GASTOS
-  { id:'18', fecha:'2025-01-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – instancias IA',       monto:1800,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'19', fecha:'2025-01-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'n8n, Zoho Mail, Slack suscripciones', monto:600,   proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'20', fecha:'2025-01-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos administrativos enero',        monto:900,   proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'21', fecha:'2025-01-28', tipo:'gasto', categoria:'Marketing',             concepto:'Publicidad LinkedIn',                 monto:500,   proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'22', fecha:'2025-02-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – almacenamiento',      monto:2000,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'23', fecha:'2025-02-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'GitHub, OpenRouter APIs',             monto:700,   proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'24', fecha:'2025-02-25', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios profesionales febrero',     monto:1200,  proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'25', fecha:'2025-02-28', tipo:'gasto', categoria:'Marketing',             concepto:'Diseño materiales de marca',          monto:800,   proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'26', fecha:'2025-03-10', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'GPU cloud – entrenamiento modelos',   monto:2200,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'27', fecha:'2025-03-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos varios marzo',                 monto:1100,  proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'28', fecha:'2025-04-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud factura abril',         monto:2400,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'29', fecha:'2025-04-18', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Renovación herramientas SaaS',        monto:900,   proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'30', fecha:'2025-04-25', tipo:'gasto', categoria:'Marketing',             concepto:'Evento networking LATAM',             monto:700,   proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
-  { id:'31', fecha:'2025-05-08', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Cloud compute – proyecto IA',         monto:2600,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'32', fecha:'2025-05-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios legales y contables',       monto:1400,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'33', fecha:'2025-05-28', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Licencias software desarrollo',       monto:800,   proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
-  { id:'34', fecha:'2025-06-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – escalado junio',      monto:3000,  proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
-  { id:'35', fecha:'2025-06-15', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos operativos junio',             monto:1600,  proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
-  { id:'36', fecha:'2025-06-25', tipo:'gasto', categoria:'Marketing',             concepto:'Campaña redes sociales Q2',          monto:900,   proyecto:'Interno',    estado:'pendiente', responsable:'Santiago Ortega' },
+  { id:'18', fecha:'2025-01-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – instancias IA',       monto:1800,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'19', fecha:'2025-01-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'n8n, Zoho Mail, Slack suscripciones', monto:600,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'20', fecha:'2025-01-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos administrativos enero',        monto:900,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
+  { id:'21', fecha:'2025-01-28', tipo:'gasto', categoria:'Marketing',             concepto:'Publicidad LinkedIn',                 monto:500,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'22', fecha:'2025-02-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – almacenamiento',      monto:2000,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'23', fecha:'2025-02-15', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'GitHub, OpenRouter APIs',             monto:700,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'24', fecha:'2025-02-25', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios profesionales febrero',     monto:1200,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
+  { id:'25', fecha:'2025-02-28', tipo:'gasto', categoria:'Marketing',             concepto:'Diseño materiales de marca',          monto:800,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'26', fecha:'2025-03-10', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'GPU cloud – entrenamiento modelos',   monto:2200,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'27', fecha:'2025-03-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos varios marzo',                 monto:1100,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
+  { id:'28', fecha:'2025-04-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud factura abril',         monto:2400,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'29', fecha:'2025-04-18', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Renovación herramientas SaaS',        monto:900,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'30', fecha:'2025-04-25', tipo:'gasto', categoria:'Marketing',             concepto:'Evento networking LATAM',             monto:700,   moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Santiago Ortega' },
+  { id:'31', fecha:'2025-05-08', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Cloud compute – proyecto IA',         monto:2600,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'32', fecha:'2025-05-20', tipo:'gasto', categoria:'Operaciones',           concepto:'Servicios legales y contables',       monto:1400,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'33', fecha:'2025-05-28', tipo:'gasto', categoria:'Herramientas y SaaS',   concepto:'Licencias software desarrollo',       monto:800,   moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Daniel Martínez' },
+  { id:'34', fecha:'2025-06-05', tipo:'gasto', categoria:'Infraestructura Cloud', concepto:'Alibaba Cloud – escalado junio',      monto:3000,  moneda:'USD', proyecto:'Interno',    estado:'pagado',    responsable:'Admin ArchiTechIA' },
+  { id:'35', fecha:'2025-06-15', tipo:'gasto', categoria:'Operaciones',           concepto:'Gastos operativos junio',             monto:1600,  moneda:'COP', proyecto:'Interno',    estado:'pagado',    responsable:'Freddy Orozco' },
+  { id:'36', fecha:'2025-06-25', tipo:'gasto', categoria:'Marketing',             concepto:'Campaña redes sociales Q2',          monto:900,   moneda:'COP', proyecto:'Interno',    estado:'pendiente', responsable:'Santiago Ortega' },
 ];
 
 const ESTADO_COLORS: Record<string, string> = {
@@ -163,7 +167,7 @@ export default function FinanzasPage() {
 
   const openEdit = (r: Registro) => {
     setEditReg(r);
-    setFormData({ fecha: r.fecha, tipo: r.tipo, categoria: r.categoria, concepto: r.concepto, monto: String(r.monto), proyecto: r.proyecto, estado: r.estado, responsable: r.responsable });
+    setFormData({ fecha: r.fecha, tipo: r.tipo, categoria: r.categoria, concepto: r.concepto, monto: String(r.monto), moneda: r.moneda, proyecto: r.proyecto, estado: r.estado, responsable: r.responsable });
     setShowModal(true);
   };
 
@@ -172,7 +176,8 @@ export default function FinanzasPage() {
     const data: Registro = {
       id: editReg ? editReg.id : Date.now().toString(),
       fecha: formData.fecha, tipo: formData.tipo, categoria: formData.categoria,
-      concepto: formData.concepto, monto: parseFloat(formData.monto) || 0,
+      concepto: formData.concepto, monto: parseFloat(formData.monto.replace(/[^0-9.]/g, '')) || 0,
+      moneda: formData.moneda,
       proyecto: formData.proyecto, estado: formData.estado, responsable: formData.responsable,
     };
     if (editReg) {
@@ -356,6 +361,7 @@ export default function FinanzasPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoría</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Concepto</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Proyecto</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Moneda</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Monto</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Responsable</th>
@@ -374,8 +380,13 @@ export default function FinanzasPage() {
                       <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{r.categoria}</td>
                       <td className="px-4 py-3 text-white max-w-xs truncate">{r.concepto}</td>
                       <td className="px-4 py-3 text-gray-400 max-w-xs truncate whitespace-nowrap">{r.proyecto}</td>
+                      <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
+                          {r.moneda}
+                        </span>
+                      </td>
                       <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${r.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
-                        {r.tipo === 'ingreso' ? '+' : '-'}${r.monto.toLocaleString()}
+                        {r.tipo === 'ingreso' ? '+' : '-'}{r.moneda === 'COP' ? '$' : r.moneda === 'USD' ? '$' : '€'}{r.monto.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded-full text-xs ${ESTADO_COLORS[r.estado]}`}>{r.estado}</span>
@@ -428,8 +439,8 @@ export default function FinanzasPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
                   <select value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value as 'ingreso'|'gasto', categoria: e.target.value === 'ingreso' ? CATEGORIAS_INGRESO[0] : CATEGORIAS_GASTO[0]})}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
-                    <option value="ingreso">↑ Ingreso</option>
-                    <option value="gasto">↓ Gasto</option>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="gasto">Gasto</option>
                   </select>
                 </div>
               </div>
@@ -442,17 +453,50 @@ export default function FinanzasPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Monto ($)</label>
-                  <input required type="number" min="0" step="0.01" value={formData.monto} onChange={e => setFormData({...formData, monto: e.target.value})}
-                    placeholder="0.00"
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Concepto</label>
+                  <input required type="text" value={formData.concepto} onChange={e => setFormData({...formData, concepto: e.target.value})}
+                    placeholder="Descripción del movimiento"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Concepto</label>
-                <input required type="text" value={formData.concepto} onChange={e => setFormData({...formData, concepto: e.target.value})}
-                  placeholder="Descripción del movimiento"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Moneda</label>
+                  <select value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value as 'COP'|'USD'|'EUR'})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                    {MONEDAS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Monto</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-gray-400 text-sm select-none pointer-events-none">
+                      {formData.moneda === 'EUR' ? '€' : '$'}
+                    </span>
+                    <input
+                      required
+                      type="text"
+                      inputMode="decimal"
+                      value={formData.monto}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, '');
+                        setFormData({...formData, monto: raw});
+                      }}
+                      onBlur={() => {
+                        const num = parseFloat(formData.monto.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(num) && num > 0) {
+                          setFormData({...formData, monto: num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })});
+                        }
+                      }}
+                      onFocus={() => {
+                        const raw = formData.monto.replace(/[^0-9.]/g, '');
+                        setFormData({...formData, monto: raw});
+                      }}
+                      placeholder="0"
+                      className="w-full pl-8 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -474,9 +518,10 @@ export default function FinanzasPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Responsable</label>
-                <input type="text" value={formData.responsable} onChange={e => setFormData({...formData, responsable: e.target.value})}
-                  placeholder="Nombre del responsable"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none" />
+                <select value={formData.responsable} onChange={e => setFormData({...formData, responsable: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                  {SOCIOS.map(s => <option key={s}>{s}</option>)}
+                </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">Cancelar</button>
