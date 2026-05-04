@@ -22,6 +22,7 @@ model User {
   proposals     Proposal[]
   projects      ProjectUser[]
   activities    Activity[]
+  meetings      Meeting[]
 }
 
 model Lead {
@@ -239,4 +240,22 @@ model SessionLog {
   success   Boolean  @default(true)
   details   String?
   createdAt DateTime @default(now())
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String   @default("INTERNAL")
+  date        DateTime
+  endDate     DateTime?
+  location    String?
+  link        String?
+  attendees   String?
+  status      String   @default("SCHEDULED")
+  notes       String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

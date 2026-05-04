@@ -30,6 +30,7 @@ const SEARCH_INDEX = [
   { label: 'Productos',          url: '/productos',    tipo: 'Página'    },
   { label: 'Cuentas',            url: '/cuentas',      tipo: 'Página'    },
   { label: 'Finance',            url: '/finanzas',     tipo: 'Página'    },
+  { label: 'Calendar / Meetings', url: '/meetings',     tipo: 'Página'    },
   { label: 'Clientes',           url: '/clientes',     tipo: 'Página'    },
   { label: 'Pipeline de Ventas', url: '/leads',        tipo: 'Página'    },
   { label: 'Agente de Seguridad AI', url: '/productos', tipo: 'Producto' },
