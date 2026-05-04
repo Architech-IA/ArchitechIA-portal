@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { title, description, type, date, endDate, location, link, attendees, status, notes, userId } = body;
+  const { title, description, type, date, endDate, location, link, attendees, status, notes, actaFile, actaFileName, userId } = body;
 
   const meeting = await prisma.meeting.create({
     data: {
@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
       attendees: attendees || null,
       status: status || 'SCHEDULED',
       notes: notes || null,
+      actaFile: actaFile || null,
+      actaFileName: actaFileName || null,
       userId,
     },
     include: { user: { select: { id: true, name: true, email: true } } },

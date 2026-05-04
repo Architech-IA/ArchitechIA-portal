@@ -15,6 +15,8 @@ interface Meeting {
   attendees: string | null;
   status: string;
   notes: string | null;
+  actaFile: string | null;
+  actaFileName: string | null;
   userId: string;
   user: { id: string; name: string; email: string };
   createdAt: string;
@@ -69,6 +71,8 @@ export default function MeetingsPage() {
   const [filterType, setFilterType] = useState('');
   const [search, setSearch] = useState('');
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
+  const [actaFileBase64, setActaFileBase64] = useState('');
+  const [actaFileNameState, setActaFileNameState] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -82,6 +86,8 @@ export default function MeetingsPage() {
     setFormError('');
     setForm({ ...EMPTY_FORM, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
     setSelectedAttendees([]);
+    setActaFileBase64('');
+    setActaFileNameState('');
     setShowModal(true);
   };
 
@@ -97,6 +103,8 @@ export default function MeetingsPage() {
       userId: m.userId,
     });
     setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setActaFileBase64(m.actaFile || '');
+    setActaFileNameState(m.actaFileName || '');
     setShowModal(true);
   };
 
@@ -108,7 +116,8 @@ export default function MeetingsPage() {
       const url = editMeeting ? `/api/meetings/${editMeeting.id}` : '/api/meetings';
       const method = editMeeting ? 'PUT' : 'POST';
       const body = form.type === 'INTERNAL' ? { ...form, attendees: selectedAttendees.join(', ') } : form;
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const payload = { ...body, actaFile: actaFileBase64 || null, actaFileName: actaFileNameState || null };
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) {
         const saved = await res.json();
         setMeetings(prev => editMeeting ? prev.map(m => m.id === saved.id ? saved : m) : [saved, ...prev]);
@@ -131,6 +140,15 @@ export default function MeetingsPage() {
       setConfirmDel(null);
     } catch { /* ignore */ }
     setDeleting(false);
+  };
+
+  const handleActaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setActaFileNameState(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setActaFileBase64(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleStatusToggle = async (meeting: Meeting) => {
@@ -296,6 +314,11 @@ export default function MeetingsPage() {
                     {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
                     {m.attendees && <p>👥 {m.attendees}</p>}
                     {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
+                    {m.actaFile && (
+                      <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
+                        📎 Descargar {m.actaFileName || 'acta'}
+                      </a>
+                    )}
                   </div>
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => openEdit(m)} className="text-xs text-gray-400 hover:text-white">Editar</button>
@@ -355,6 +378,12 @@ export default function MeetingsPage() {
                 </div>
                 {m.notes && (
                   <p className="text-sm text-gray-500 mt-3 border-t border-gray-800 pt-3 italic">📝 {m.notes.slice(0, 200)}{m.notes.length > 200 ? '...' : ''}</p>
+                )}
+                {m.actaFile && (
+                  <a href={m.actaFile} download={m.actaFileName || 'acta'} className="inline-flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 mt-2">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Descargar {m.actaFileName || 'acta'}
+                  </a>
                 )}
               </div>
             ))}
@@ -426,7 +455,7 @@ export default function MeetingsPage() {
                 <label className="block text-sm text-gray-400 mb-1">Asistentes</label>
                 {form.type === 'INTERNAL' ? (
                   <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 space-y-2">
-                    {users.map(u => (
+                    {users.filter(u => u.name !== 'Admin ArchiTechIA').map(u => (
                       <label key={u.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
                         <input
                           type="checkbox"
@@ -457,6 +486,17 @@ export default function MeetingsPage() {
                 <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={4}
                   placeholder="Puntos tratados, acuerdos, tareas pendientes..."
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                <div className="mt-2 flex items-center gap-3">
+                  <label className="px-3 py-1.5 bg-gray-800 border border-gray-600 text-gray-400 rounded-lg cursor-pointer hover:border-gray-500 text-xs flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                    {actaFileNameState ? actaFileNameState : 'Adjuntar documento (PDF, DOCX, etc.)'}
+                    <input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onChange={handleActaUpload} className="hidden" />
+                  </label>
+                  {actaFileBase64 && (
+                    <button onClick={() => { setActaFileBase64(''); setActaFileNameState(''); }}
+                      className="text-xs text-red-400 hover:text-red-300 px-2 py-1">Quitar archivo</button>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Estado</label>

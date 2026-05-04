@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { title, description, type, date, endDate, location, link, attendees, status, notes } = body;
+  const { title, description, type, date, endDate, location, link, attendees, status, notes, actaFile, actaFileName } = body;
 
   try {
     const meeting = await prisma.meeting.update({
@@ -21,6 +21,8 @@ export async function PUT(
         attendees: attendees || null,
         status,
         notes: notes || null,
+        actaFile: actaFile !== undefined ? (actaFile || null) : undefined,
+        actaFileName: actaFileName !== undefined ? (actaFileName || null) : undefined,
       },
       include: { user: { select: { id: true, name: true, email: true } } },
     });

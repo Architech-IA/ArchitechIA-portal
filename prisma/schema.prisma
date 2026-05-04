@@ -254,6 +254,8 @@ model Meeting {
   attendees   String?
   status      String   @default("SCHEDULED")
   notes       String?
+  actaFile     String?
+  actaFileName String?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
