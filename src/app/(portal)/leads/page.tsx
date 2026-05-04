@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import PipelineView from '@/components/PipelineView';
 
@@ -50,13 +50,16 @@ function translateStatus(status: string) {
   return t[status] || status;
 }
 
+const PAGE_SIZES = [10, 20, 50];
+
+type SortKey = 'companyName' | 'contactName' | 'email' | 'status' | 'estimatedValue' | 'source' | 'user' | 'createdAt';
+
 export default function LeadsPage() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
 
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [filter, setFilter]       = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editLead, setEditLead]   = useState<Lead | null>(null);
   const [confirmDel, setConfirmDel] = useState<Lead | null>(null);
@@ -72,6 +75,31 @@ export default function LeadsPage() {
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
   const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline'>('lista');
+
+  // ── Filtros avanzados ──
+  const [showFilters, setShowFilters] = useState(false);
+  const [fStatus, setFStatus] = useState('');
+  const [fSource, setFSource] = useState('');
+  const [fValueMin, setFValueMin] = useState('');
+  const [fValueMax, setFValueMax] = useState('');
+  const [fUserId, setFUserId] = useState('');
+  const [fDateFrom, setFDateFrom] = useState('');
+  const [fDateTo, setFDateTo] = useState('');
+  const [search, setSearch] = useState('');
+
+  // ── Ordenamiento ──
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  // ── Paginación ──
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // ── Selección múltiple ──
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkUserId, setBulkUserId] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -153,6 +181,7 @@ export default function LeadsPage() {
       const res = await fetch(`/api/leads/${confirmDel.id}`, { method: 'DELETE' });
       if (res.ok) {
         setLeads(leads.filter(l => l.id !== confirmDel.id));
+        setSelected(prev => { const n = new Set(prev); n.delete(confirmDel.id); return n; });
         setConfirmDel(null);
       } else {
         const data = await res.json();
@@ -190,9 +219,164 @@ export default function LeadsPage() {
     setAddingNote(false);
   };
 
+  // ── Filtrado ──
+  const filtered = useMemo(() => {
+    return leads.filter(l => {
+      if (search) {
+        const q = search.toLowerCase();
+        if (!l.companyName.toLowerCase().includes(q) && !l.contactName.toLowerCase().includes(q) && !l.email.toLowerCase().includes(q))
+          return false;
+      }
+      if (fStatus && l.status !== fStatus) return false;
+      if (fSource && !l.source.toLowerCase().includes(fSource.toLowerCase())) return false;
+      if (fValueMin && l.estimatedValue < Number(fValueMin)) return false;
+      if (fValueMax && l.estimatedValue > Number(fValueMax)) return false;
+      if (fUserId && l.user.id !== fUserId) return false;
+      if (fDateFrom) {
+        const d = new Date(l.createdAt);
+        d.setHours(0,0,0,0);
+        if (d < new Date(fDateFrom + 'T00:00:00')) return false;
+      }
+      if (fDateTo) {
+        const d = new Date(l.createdAt);
+        d.setHours(0,0,0,0);
+        if (d > new Date(fDateTo + 'T23:59:59')) return false;
+      }
+      return true;
+    });
+  }, [leads, search, fStatus, fSource, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo]);
+
+  // ── Ordenamiento ──
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let aVal: string | number = '';
+      let bVal: string | number = '';
+      if (sortKey === 'user') {
+        aVal = a.user.name.toLowerCase();
+        bVal = b.user.name.toLowerCase();
+      } else if (sortKey === 'createdAt') {
+        aVal = new Date(a.createdAt).getTime();
+        bVal = new Date(b.createdAt).getTime();
+      } else if (sortKey === 'estimatedValue') {
+        aVal = a.estimatedValue;
+        bVal = b.estimatedValue;
+      } else {
+        aVal = (a[sortKey as keyof Lead] as string)?.toLowerCase?.() ?? '';
+        bVal = (b[sortKey as keyof Lead] as string)?.toLowerCase?.() ?? '';
+      }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  // ── Paginación ──
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Reset page when filters or pageSize change
+  const activeFilterCount = [fStatus, fSource, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo].filter(v => v).length;
+  useMemo(() => { setPage(1); }, [search, fStatus, fSource, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo, pageSize]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === paginated.length && paginated.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(paginated.map(l => l.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkStatusChange = async () => {
+    if (!bulkStatus || selected.size === 0) return;
+    setBulkSaving(true);
+    const ids = Array.from(selected);
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/pipeline/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: bulkStatus }),
+        })
+      ));
+      setLeads(prev => prev.map(l => selected.has(l.id) ? { ...l, status: bulkStatus } : l));
+      setSelected(new Set());
+      setBulkStatus('');
+    } catch { /* ignore */ }
+    setBulkSaving(false);
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkUserId || selected.size === 0) return;
+    setBulkSaving(true);
+    const ids = Array.from(selected);
+    const targetUser = users.find(u => u.id === bulkUserId);
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/leads/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: bulkUserId }),
+        })
+      ));
+      setLeads(prev => prev.map(l => {
+        if (selected.has(l.id) && targetUser) {
+          return { ...l, user: { ...l.user, id: targetUser.id, name: targetUser.name } };
+        }
+        return l;
+      }));
+      setSelected(new Set());
+      setBulkUserId('');
+    } catch { /* ignore */ }
+    setBulkSaving(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    setBulkSaving(true);
+    const ids = Array.from(selected);
+    try {
+      await Promise.all(ids.map(id => fetch(`/api/leads/${id}`, { method: 'DELETE' })));
+      setLeads(prev => prev.filter(l => !selected.has(l.id)));
+      setSelected(new Set());
+    } catch { /* ignore */ }
+    setBulkSaving(false);
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setFStatus('');
+    setFSource('');
+    setFValueMin('');
+    setFValueMax('');
+    setFUserId('');
+    setFDateFrom('');
+    setFDateTo('');
+  };
+
   const exportCSV = () => {
+    const data = selected.size > 0 ? leads.filter(l => selected.has(l.id)) : sorted;
     const headers = ['Empresa', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
-    const rows = filtered.map(l => [
+    const rows = data.map(l => [
       l.companyName, l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
       l.source, l.estimatedValue, l.user.name, new Date(l.createdAt).toLocaleDateString('es-ES'),
     ]);
@@ -203,10 +387,12 @@ export default function LeadsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const filtered = leads.filter(l =>
-    l.companyName.toLowerCase().includes(filter.toLowerCase()) ||
-    l.contactName.toLowerCase().includes(filter.toLowerCase())
-  );
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <span className="text-gray-600 ml-1">↕</span>;
+    return <span className="text-orange-400 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -231,7 +417,7 @@ export default function LeadsPage() {
           {activeTab === 'lista' && (
             <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              CSV
+              CSV {selected.size > 0 && `(${selected.size})`}
             </button>
           )}
           <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
@@ -281,79 +467,294 @@ export default function LeadsPage() {
             ))}
           </div>
 
-          {/* Tabla */}
-          <div className="bg-gray-900 rounded-xl shadow border border-gray-800">
-            <div className="p-4 border-b border-gray-800">
+          {/* Barra de búsqueda + toggle filtros */}
+          <div className="flex gap-3 mb-4">
+            <div className="flex-1 relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input
                 type="text"
-                placeholder="Buscar por empresa o contacto..."
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gray-800 text-white"
+                placeholder="Buscar por empresa, contacto o email..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gray-800 text-white text-sm"
               />
             </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors flex items-center gap-2 ${
+                showFilters || activeFilterCount > 0
+                  ? 'bg-orange-600/20 border-orange-500/50 text-orange-400'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              Filtros {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
+          </div>
+
+          {/* Panel de filtros */}
+          {showFilters && (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4 grid grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Estado</label>
+                <select value={fStatus} onChange={e => setFStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
+                  <option value="">Todos</option>
+                  <option value="NEW">Nuevo</option>
+                  <option value="CONTACTED">Contactado</option>
+                  <option value="DIAGNOSIS">Diagnóstico</option>
+                  <option value="QUALIFIED">Calificado</option>
+                  <option value="DEMO_VALIDATION">Demo / Validación</option>
+                  <option value="PROPOSAL_SENT">Propuesta Enviada</option>
+                  <option value="NEGOTIATION">Negociación</option>
+                  <option value="WON">Ganado</option>
+                  <option value="LOST">Perdido</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Fuente</label>
+                <input type="text" placeholder="LinkedIn, Web, Referido..." value={fSource} onChange={e => setFSource(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Valor mín.</label>
+                <input type="number" placeholder="$0" value={fValueMin} onChange={e => setFValueMin(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Valor máx.</label>
+                <input type="number" placeholder="$100,000" value={fValueMax} onChange={e => setFValueMax(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Responsable</label>
+                <select value={fUserId} onChange={e => setFUserId(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
+                  <option value="">Todos</option>
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Desde fecha</label>
+                <input type="date" value={fDateFrom} onChange={e => setFDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500 [color-scheme:dark]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Hasta fecha</label>
+                <input type="date" value={fDateTo} onChange={e => setFDateTo(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500 [color-scheme:dark]" />
+              </div>
+              <div className="flex items-end">
+                <button onClick={clearFilters} className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors">
+                  Limpiar filtros
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Active filter badges */}
+          {activeFilterCount > 0 && !showFilters && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {fStatus && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">{translateStatus(fStatus)} <button onClick={() => setFStatus('')} className="hover:text-white">×</button></span>}
+              {fSource && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">Fuente: {fSource} <button onClick={() => setFSource('')} className="hover:text-white">×</button></span>}
+              {fValueMin && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">≥ ${Number(fValueMin).toLocaleString()} <button onClick={() => setFValueMin('')} className="hover:text-white">×</button></span>}
+              {fValueMax && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">≤ ${Number(fValueMax).toLocaleString()} <button onClick={() => setFValueMax('')} className="hover:text-white">×</button></span>}
+              {fUserId && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">{users.find(u => u.id === fUserId)?.name} <button onClick={() => setFUserId('')} className="hover:text-white">×</button></span>}
+              {fDateFrom && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">Desde: {formatDate(fDateFrom)} <button onClick={() => setFDateFrom('')} className="hover:text-white">×</button></span>}
+              {fDateTo && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">Hasta: {formatDate(fDateTo)} <button onClick={() => setFDateTo('')} className="hover:text-white">×</button></span>}
+            </div>
+          )}
+
+          {/* Barra de acciones en lote */}
+          {selected.size > 0 && (
+            <div className="bg-orange-600/10 border border-orange-500/30 rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap">
+              <span className="text-sm text-orange-400 font-medium">{selected.size} seleccionado{selected.size > 1 ? 's' : ''}</span>
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
+                className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
+                <option value="">Cambiar estado...</option>
+                <option value="NEW">Nuevo</option>
+                <option value="CONTACTED">Contactado</option>
+                <option value="DIAGNOSIS">Diagnóstico</option>
+                <option value="QUALIFIED">Calificado</option>
+                <option value="DEMO_VALIDATION">Demo / Validación</option>
+                <option value="PROPOSAL_SENT">Propuesta Enviada</option>
+                <option value="NEGOTIATION">Negociación</option>
+                <option value="WON">Ganado</option>
+                <option value="LOST">Perdido</option>
+              </select>
+              <button onClick={handleBulkStatusChange} disabled={!bulkStatus || bulkSaving}
+                className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors">
+                {bulkSaving ? 'Aplicando...' : 'Aplicar'}
+              </button>
+              <div className="w-px h-6 bg-gray-700" />
+              <select value={bulkUserId} onChange={e => setBulkUserId(e.target.value)}
+                className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
+                <option value="">Asignar a...</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+              <button onClick={handleBulkAssign} disabled={!bulkUserId || bulkSaving}
+                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                {bulkSaving ? 'Asignando...' : 'Asignar'}
+              </button>
+              <div className="w-px h-6 bg-gray-700" />
+              <button onClick={handleBulkDelete}
+                className="px-3 py-1.5 bg-red-600/20 text-red-400 text-sm rounded-lg hover:bg-red-600/40 border border-red-500/30 transition-colors">
+                Eliminar {selected.size}
+              </button>
+              <button onClick={() => { setSelected(new Set()); setBulkStatus(''); setBulkUserId(''); }}
+                className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300">
+                Cancelar selección
+              </button>
+            </div>
+          )}
+
+          {/* Tabla */}
+          <div className="bg-gray-900 rounded-xl shadow border border-gray-800">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-800">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Empresa</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Contacto</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Estado</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fuente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Responsable</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Notas</th>
+                    <th className="px-4 py-3 w-10">
+                      <input type="checkbox"
+                        checked={paginated.length > 0 && selected.size === paginated.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
+                    </th>
+                    {([
+                      { key: 'companyName' as SortKey,     label: 'Empresa' },
+                      { key: 'contactName' as SortKey,     label: 'Contacto' },
+                      { key: 'email' as SortKey,            label: 'Email' },
+                      { key: 'status' as SortKey,           label: 'Estado' },
+                      { key: 'estimatedValue' as SortKey,   label: 'Valor' },
+                      { key: 'source' as SortKey,           label: 'Fuente' },
+                      { key: 'user' as SortKey,             label: 'Responsable' },
+                    ]).map(col => (
+                      <th key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer select-none hover:text-white transition-colors">
+                        {col.label}{sortIcon(col.key)}
+                      </th>
+                    ))}
                     {isAdmin && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
                     )}
                   </tr>
                 </thead>
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
-                  {filtered.map(lead => (
-                    <tr key={lead.id} className="hover:bg-gray-800/50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{lead.companyName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.contactName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[lead.status] || 'bg-gray-800 text-gray-400'}`}>
-                          {translateStatus(lead.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => openNotes(lead)}
-                          className="px-3 py-1 text-xs bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 rounded-lg transition-colors"
-                        >
-                          Ver notas
-                        </button>
-                      </td>
-                      {isAdmin && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => openEdit(lead)}
-                              className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => setConfirmDel(lead)}
-                              className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
-                            >
-                              Eliminar
-                            </button>
+                  {paginated.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 10 : 9} className="px-6 py-16 text-center">
+                        {leads.length === 0 ? (
+                          <div>
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            </div>
+                            <p className="text-gray-400 font-medium mb-1">No hay leads todavía</p>
+                            <p className="text-gray-500 text-sm mb-4">Crea tu primer lead para empezar a gestionar oportunidades.</p>
+                            <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors">+ Nuevo Lead</button>
                           </div>
-                        </td>
-                      )}
+                        ) : (
+                          <div>
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <p className="text-gray-400 font-medium mb-1">Sin resultados</p>
+                            <p className="text-gray-500 text-sm mb-4">Ningún lead coincide con los filtros aplicados.</p>
+                            <button onClick={clearFilters} className="px-4 py-2 bg-gray-700 text-gray-300 text-sm rounded-lg hover:bg-gray-600 transition-colors">Limpiar filtros</button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    paginated.map(lead => (
+                      <tr key={lead.id} className={`hover:bg-gray-800/50 ${selected.has(lead.id) ? 'bg-orange-600/5' : ''}`}>
+                        <td className="px-4 py-4">
+                          <input type="checkbox"
+                            checked={selected.has(lead.id)}
+                            onChange={() => toggleSelect(lead.id)}
+                            className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{lead.companyName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.contactName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[lead.status] || 'bg-gray-800 text-gray-400'}`}>
+                            {translateStatus(lead.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
+                        {isAdmin && (
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => openNotes(lead)}
+                                className="px-3 py-1 text-xs bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 rounded-lg transition-colors"
+                              >
+                                Notas
+                              </button>
+                              <button
+                                onClick={() => openEdit(lead)}
+                                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => setConfirmDel(lead)}
+                                className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
+
+            {/* Paginación */}
+            {sorted.length > 0 && (
+              <div className="px-6 py-3 border-t border-gray-800 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-3 text-gray-400">
+                  <span>{sorted.length} resultado{sorted.length !== 1 ? 's' : ''}</span>
+                  <span className="text-gray-600">|</span>
+                  <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:ring-2 focus:ring-orange-500">
+                    {PAGE_SIZES.map(s => <option key={s} value={s}>{s} / pág</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+                    className="px-2 py-1 rounded text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    ‹
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => {
+                    if (totalPages <= 7) return true;
+                    if (p === 1 || p === totalPages) return true;
+                    if (Math.abs(p - safePage) <= 1) return true;
+                    return false;
+                  }).map((p, i, arr) => (
+                    <span key={p}>
+                      {i > 0 && arr[i - 1] !== p - 1 && <span className="text-gray-600 px-1">…</span>}
+                      <button onClick={() => setPage(p)}
+                        className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                          p === safePage ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                        }`}>
+                        {p}
+                      </button>
+                    </span>
+                  ))}
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+                    className="px-2 py-1 rounded text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    ›
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       ) : (
