@@ -12,6 +12,7 @@ interface Lead {
   phone: string | null;
   status: string;
   source: string;
+  scope: string | null;
   estimatedValue: number;
   notes: string | null;
   createdAt: string;
@@ -20,7 +21,7 @@ interface Lead {
 
 const EMPTY_FORM = {
   companyName: '', contactName: '', email: '', phone: '',
-  status: 'NEW', source: '', estimatedValue: '', notes: '', userId: '',
+  status: 'NEW', source: '', scope: '', estimatedValue: '', notes: '', userId: '',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -52,7 +53,7 @@ function translateStatus(status: string) {
 
 const PAGE_SIZES = [10, 20, 50];
 
-type SortKey = 'companyName' | 'contactName' | 'email' | 'status' | 'estimatedValue' | 'source' | 'user' | 'createdAt';
+type SortKey = 'companyName' | 'scope' | 'contactName' | 'email' | 'status' | 'estimatedValue' | 'source' | 'user' | 'createdAt';
 
 export default function LeadsPage() {
   const { data: session } = useSession();
@@ -80,6 +81,7 @@ export default function LeadsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [fStatus, setFStatus] = useState('');
   const [fSource, setFSource] = useState('');
+  const [fScope, setFScope] = useState('');
   const [fValueMin, setFValueMin] = useState('');
   const [fValueMax, setFValueMax] = useState('');
   const [fUserId, setFUserId] = useState('');
@@ -125,6 +127,7 @@ export default function LeadsPage() {
       phone:          lead.phone || '',
       status:         lead.status,
       source:         lead.source,
+      scope:          lead.scope || '',
       estimatedValue: String(lead.estimatedValue),
       notes:          lead.notes || '',
       userId:         lead.user.id,
@@ -229,6 +232,7 @@ export default function LeadsPage() {
       }
       if (fStatus && l.status !== fStatus) return false;
       if (fSource && !l.source.toLowerCase().includes(fSource.toLowerCase())) return false;
+      if (fScope && l.scope !== fScope) return false;
       if (fValueMin && l.estimatedValue < Number(fValueMin)) return false;
       if (fValueMax && l.estimatedValue > Number(fValueMax)) return false;
       if (fUserId && l.user.id !== fUserId) return false;
@@ -278,8 +282,8 @@ export default function LeadsPage() {
   const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   // Reset page when filters or pageSize change
-  const activeFilterCount = [fStatus, fSource, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo].filter(v => v).length;
-  useMemo(() => { setPage(1); }, [search, fStatus, fSource, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo, pageSize]);
+  const activeFilterCount = [fStatus, fSource, fScope, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo].filter(v => v).length;
+  useMemo(() => { setPage(1); }, [search, fStatus, fSource, fScope, fValueMin, fValueMax, fUserId, fDateFrom, fDateTo, pageSize]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -366,6 +370,7 @@ export default function LeadsPage() {
     setSearch('');
     setFStatus('');
     setFSource('');
+    setFScope('');
     setFValueMin('');
     setFValueMax('');
     setFUserId('');
@@ -375,9 +380,9 @@ export default function LeadsPage() {
 
   const exportCSV = () => {
     const data = selected.size > 0 ? leads.filter(l => selected.has(l.id)) : sorted;
-    const headers = ['Empresa', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
+    const headers = ['Empresa', 'Alcance', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
     const rows = data.map(l => [
-      l.companyName, l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
+      l.companyName, l.scope ?? '', l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
       l.source, l.estimatedValue, l.user.name, new Date(l.createdAt).toLocaleDateString('es-ES'),
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
@@ -517,6 +522,18 @@ export default function LeadsPage() {
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Alcance</label>
+                <select value={fScope} onChange={e => setFScope(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
+                  <option value="">Todos</option>
+                  <option value="Nacional">Nacional</option>
+                  <option value="Internacional">Internacional</option>
+                  <option value="Regional">Regional</option>
+                  <option value="Local">Local</option>
+                  <option value="Multinacional">Multinacional</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">Valor mín.</label>
                 <input type="number" placeholder="$0" value={fValueMin} onChange={e => setFValueMin(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
@@ -557,6 +574,7 @@ export default function LeadsPage() {
             <div className="flex flex-wrap gap-2 mb-4">
               {fStatus && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">{translateStatus(fStatus)} <button onClick={() => setFStatus('')} className="hover:text-white">×</button></span>}
               {fSource && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">Fuente: {fSource} <button onClick={() => setFSource('')} className="hover:text-white">×</button></span>}
+              {fScope && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">Alcance: {fScope} <button onClick={() => setFScope('')} className="hover:text-white">×</button></span>}
               {fValueMin && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">≥ ${Number(fValueMin).toLocaleString()} <button onClick={() => setFValueMin('')} className="hover:text-white">×</button></span>}
               {fValueMax && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">≤ ${Number(fValueMax).toLocaleString()} <button onClick={() => setFValueMax('')} className="hover:text-white">×</button></span>}
               {fUserId && <span className="px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 flex items-center gap-1">{users.find(u => u.id === fUserId)?.name} <button onClick={() => setFUserId('')} className="hover:text-white">×</button></span>}
@@ -622,6 +640,7 @@ export default function LeadsPage() {
                     </th>
                     {([
                       { key: 'companyName' as SortKey,     label: 'Empresa' },
+                      { key: 'scope' as SortKey,           label: 'Alcance' },
                       { key: 'contactName' as SortKey,     label: 'Contacto' },
                       { key: 'email' as SortKey,            label: 'Email' },
                       { key: 'status' as SortKey,           label: 'Estado' },
@@ -643,7 +662,7 @@ export default function LeadsPage() {
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 10 : 9} className="px-6 py-16 text-center">
+                      <td colSpan={isAdmin ? 11 : 10} className="px-6 py-16 text-center">
                         {leads.length === 0 ? (
                           <div>
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
@@ -675,6 +694,7 @@ export default function LeadsPage() {
                             className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{lead.companyName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.scope || '—'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.contactName}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.email}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -774,10 +794,21 @@ export default function LeadsPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Empresa</label>
                   <input type="text" required value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Alcance</label>
+                  <select value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                    <option value="">Seleccionar...</option>
+                    <option value="Nacional">Nacional</option>
+                    <option value="Internacional">Internacional</option>
+                    <option value="Regional">Regional</option>
+                    <option value="Local">Local</option>
+                    <option value="Multinacional">Multinacional</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Contacto</label>

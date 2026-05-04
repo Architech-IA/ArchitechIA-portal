@@ -12,8 +12,9 @@ interface Lead {
   email: string;
   phone: string | null;
   status: string;
-  estimatedValue: number;
   source: string;
+  scope: string | null;
+  estimatedValue: number;
   notes: string | null;
   createdAt: string;
   user: { id: string; name: string; email: string };

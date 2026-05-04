@@ -33,6 +33,7 @@ model Lead {
   status        LeadStatus @default(NEW)
   source        String    // LinkedIn, Web, Referido, etc.
   estimatedValue Float    @default(0)
+  scope         String?
   notes         String?
   userId        String
   user          User      @relation(fields: [userId], references: [id])

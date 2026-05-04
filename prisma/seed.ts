@@ -69,6 +69,7 @@ async function main() {
       source:         'LinkedIn',
       estimatedValue: 15000,
       notes:          'Interesados en automatización de procesos con IA',
+      scope:          'Nacional',
       userId:         admin.id,
     },
   });
@@ -82,6 +83,7 @@ async function main() {
       source:         'Referido',
       estimatedValue: 25000,
       notes:          'Necesitan sistema de agentic AI para atención al cliente',
+      scope:          'Internacional',
       userId:         partner1.id,
     },
   });
@@ -95,6 +97,7 @@ async function main() {
       source:         'Web',
       estimatedValue: 35000,
       notes:          'Proyecto grande de automatización de reporting',
+      scope:          'Multinacional',
       userId:         partner2.id,
     },
   });
@@ -107,6 +110,7 @@ async function main() {
       status:         'NEW',
       source:         'Evento',
       estimatedValue: 12000,
+      scope:          'Local',
       userId:         partner3.id,
     },
   });
