@@ -8,63 +8,64 @@ interface Cuenta {
   descripcion: string;
   url: string;
   color: string;
+  logo: string;
 }
 
 const DEFAULT_ACCOUNTS: Cuenta[] = [
   {
     nombre: 'Zoho Mail', categoria: 'Correo',
     descripcion: 'Correo corporativo y colaboración',
-    url: 'https://mail.zoho.com', color: 'from-red-500 to-red-700',
+    url: 'https://mail.zoho.com', color: 'from-red-500 to-red-700', logo: '',
   },
   {
     nombre: 'n8n', categoria: 'Automatización',
     descripcion: 'Flujos de trabajo y automatización de procesos',
-    url: 'https://n8n.io', color: 'from-orange-500 to-orange-700',
+    url: 'https://n8n.io', color: 'from-orange-500 to-orange-700', logo: '',
   },
   {
     nombre: 'GitHub', categoria: 'Desarrollo',
     descripcion: 'Repositorios de código y control de versiones',
-    url: 'https://github.com', color: 'from-gray-600 to-gray-800',
+    url: 'https://github.com', color: 'from-gray-600 to-gray-800', logo: '',
   },
   {
     nombre: 'Slack', categoria: 'Comunicación',
     descripcion: 'Mensajería y comunicación del equipo',
-    url: 'https://slack.com', color: 'from-purple-500 to-purple-700',
+    url: 'https://slack.com', color: 'from-purple-500 to-purple-700', logo: '',
   },
   {
     nombre: 'Alibaba Cloud', categoria: 'Infraestructura',
     descripcion: 'Servicios cloud e infraestructura en la nube',
-    url: 'https://www.alibabacloud.com', color: 'from-orange-400 to-yellow-500',
+    url: 'https://www.alibabacloud.com', color: 'from-orange-400 to-yellow-500', logo: '',
   },
   {
     nombre: 'OpenCode', categoria: 'Desarrollo',
     descripcion: 'Plataforma de desarrollo y colaboración de código abierto',
-    url: 'https://opencode.ai', color: 'from-blue-500 to-blue-700',
+    url: 'https://opencode.ai', color: 'from-blue-500 to-blue-700', logo: '',
   },
   {
     nombre: 'LinkedIn', categoria: 'Redes Sociales',
     descripcion: 'Red profesional y presencia de marca empresarial',
-    url: 'https://linkedin.com', color: 'from-blue-600 to-blue-800',
+    url: 'https://linkedin.com', color: 'from-blue-600 to-blue-800', logo: '',
   },
   {
     nombre: 'Gmail', categoria: 'Correo',
     descripcion: 'Correo electrónico personal y comunicaciones externas',
-    url: 'https://mail.google.com', color: 'from-rose-500 to-red-600',
+    url: 'https://mail.google.com', color: 'from-rose-500 to-red-600', logo: '',
   },
   {
     nombre: 'OpenRouter', categoria: 'IA',
     descripcion: 'Acceso unificado a modelos de inteligencia artificial',
-    url: 'https://openrouter.ai', color: 'from-violet-500 to-indigo-700',
+    url: 'https://openrouter.ai', color: 'from-violet-500 to-indigo-700', logo: '',
   },
   {
     nombre: 'Instagram', categoria: 'Redes Sociales',
     descripcion: 'Presencia de marca y contenido visual en Instagram',
-    url: 'https://instagram.com', color: 'from-pink-500 to-purple-600',
+    url: 'https://instagram.com', color: 'from-pink-500 to-purple-600', logo: '',
   },
   {
     nombre: 'Supabase', categoria: 'Infraestructura',
     descripcion: 'Base de datos PostgreSQL y backend como servicio',
-    url: 'https://supabase.com', color: 'from-emerald-500 to-green-700',
+    url: 'https://supabase.com', color: 'from-emerald-500 to-green-700', logo: '',
   },
 ];
 
@@ -89,7 +90,7 @@ const COLORS = [
 
 const CATEGORIAS = ['Correo', 'Automatización', 'Desarrollo', 'Comunicación', 'Infraestructura', 'Redes Sociales', 'IA', 'Cloud'];
 
-const EMPTY_FORM: Cuenta = { nombre: '', categoria: '', descripcion: '', url: '', color: 'from-orange-500 to-orange-700' };
+const EMPTY_FORM: Cuenta = { nombre: '', categoria: '', descripcion: '', url: '', color: 'from-orange-500 to-orange-700', logo: '' };
 
 function getIconForName(nombre: string) {
   const icons: Record<string, React.ReactNode> = {
@@ -141,6 +142,14 @@ export default function CuentasPage() {
 
   const handleDelete = (nombre: string) => {
     setCuentas(prev => prev.filter(c => c.nombre !== nombre));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setForm({ ...form, logo: reader.result as string });
+    reader.readAsDataURL(file);
   };
 
   const categorias = [...new Set(cuentas.map(c => c.categoria))];
@@ -200,8 +209,12 @@ export default function CuentasPage() {
 
             {/* Header con color */}
             <div className={`bg-gradient-to-r ${cuenta.color} p-5 flex items-center gap-4`}>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                {getIconForName(cuenta.nombre)}
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden">
+                {cuenta.logo ? (
+                  <img src={cuenta.logo} alt={cuenta.nombre} className="w-full h-full object-cover" />
+                ) : (
+                  getIconForName(cuenta.nombre)
+                )}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">{cuenta.nombre}</h3>
@@ -273,6 +286,25 @@ export default function CuentasPage() {
                 <label className="block text-sm text-gray-400 mb-1">Descripción</label>
                 <input type="text" value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Logo / Imagen</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 text-gray-400 rounded-lg cursor-pointer hover:border-gray-500 text-sm flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    {form.logo ? 'Cambiar imagen' : 'Seleccionar archivo...'}
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  </label>
+                  {form.logo && (
+                    <button onClick={() => setForm({...form, logo: ''})}
+                      className="text-xs text-red-400 hover:text-red-300 px-2 py-1">Quitar</button>
+                  )}
+                </div>
+                {form.logo && (
+                  <div className="mt-2 w-12 h-12 rounded-lg overflow-hidden border border-gray-600">
+                    <img src={form.logo} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Color</label>
