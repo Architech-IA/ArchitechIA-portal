@@ -8,64 +8,64 @@ interface Cuenta {
   descripcion: string;
   url: string;
   color: string;
-  logo: string;
+  logo?: string;
 }
 
 const DEFAULT_ACCOUNTS: Cuenta[] = [
   {
     nombre: 'Zoho Mail', categoria: 'Correo',
     descripcion: 'Correo corporativo y colaboración',
-    url: 'https://mail.zoho.com', color: 'from-red-500 to-red-700', logo: '',
+    url: 'https://mail.zoho.com', color: 'from-red-500 to-red-700',
   },
   {
     nombre: 'n8n', categoria: 'Automatización',
     descripcion: 'Flujos de trabajo y automatización de procesos',
-    url: 'https://n8n.io', color: 'from-orange-500 to-orange-700', logo: '',
+    url: 'https://n8n.io', color: 'from-orange-500 to-orange-700',
   },
   {
     nombre: 'GitHub', categoria: 'Desarrollo',
     descripcion: 'Repositorios de código y control de versiones',
-    url: 'https://github.com', color: 'from-gray-600 to-gray-800', logo: '',
+    url: 'https://github.com', color: 'from-gray-600 to-gray-800',
   },
   {
     nombre: 'Slack', categoria: 'Comunicación',
     descripcion: 'Mensajería y comunicación del equipo',
-    url: 'https://slack.com', color: 'from-purple-500 to-purple-700', logo: '',
+    url: 'https://slack.com', color: 'from-purple-500 to-purple-700',
   },
   {
     nombre: 'Alibaba Cloud', categoria: 'Infraestructura',
     descripcion: 'Servicios cloud e infraestructura en la nube',
-    url: 'https://www.alibabacloud.com', color: 'from-orange-400 to-yellow-500', logo: '',
+    url: 'https://www.alibabacloud.com', color: 'from-orange-400 to-yellow-500',
   },
   {
     nombre: 'OpenCode', categoria: 'Desarrollo',
     descripcion: 'Plataforma de desarrollo y colaboración de código abierto',
-    url: 'https://opencode.ai', color: 'from-blue-500 to-blue-700', logo: '',
+    url: 'https://opencode.ai', color: 'from-blue-500 to-blue-700',
   },
   {
     nombre: 'LinkedIn', categoria: 'Redes Sociales',
     descripcion: 'Red profesional y presencia de marca empresarial',
-    url: 'https://linkedin.com', color: 'from-blue-600 to-blue-800', logo: '',
+    url: 'https://linkedin.com', color: 'from-blue-600 to-blue-800',
   },
   {
     nombre: 'Gmail', categoria: 'Correo',
     descripcion: 'Correo electrónico personal y comunicaciones externas',
-    url: 'https://mail.google.com', color: 'from-rose-500 to-red-600', logo: '',
+    url: 'https://mail.google.com', color: 'from-rose-500 to-red-600',
   },
   {
     nombre: 'OpenRouter', categoria: 'IA',
     descripcion: 'Acceso unificado a modelos de inteligencia artificial',
-    url: 'https://openrouter.ai', color: 'from-violet-500 to-indigo-700', logo: '',
+    url: 'https://openrouter.ai', color: 'from-violet-500 to-indigo-700',
   },
   {
     nombre: 'Instagram', categoria: 'Redes Sociales',
     descripcion: 'Presencia de marca y contenido visual en Instagram',
-    url: 'https://instagram.com', color: 'from-pink-500 to-purple-600', logo: '',
+    url: 'https://instagram.com', color: 'from-pink-500 to-purple-600',
   },
   {
     nombre: 'Supabase', categoria: 'Infraestructura',
     descripcion: 'Base de datos PostgreSQL y backend como servicio',
-    url: 'https://supabase.com', color: 'from-emerald-500 to-green-700', logo: '',
+    url: 'https://supabase.com', color: 'from-emerald-500 to-green-700',
   },
 ];
 
