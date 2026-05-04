@@ -17,12 +17,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { name, description, status, priority, progress, startDate, endDate, userId, proposalId } = body;
+  const { name, description, status, priority, progress, repository, startDate, endDate, userId, proposalId } = body;
 
   const project = await prisma.project.create({
     data: {
       name, description, status, priority,
       progress: parseInt(progress) || 0,
+      repository: repository || null,
       startDate: startDate ? new Date(startDate) : null,
       endDate:   endDate   ? new Date(endDate)   : null,
       proposalId: proposalId || null,

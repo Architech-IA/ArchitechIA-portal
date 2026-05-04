@@ -13,6 +13,7 @@ interface Lead {
   status: string;
   source: string;
   scope: string | null;
+  repository: string | null;
   estimatedValue: number;
   notes: string | null;
   createdAt: string;
@@ -21,7 +22,7 @@ interface Lead {
 
 const EMPTY_FORM = {
   companyName: '', contactName: '', email: '', phone: '',
-  status: 'NEW', source: '', scope: '', estimatedValue: '', notes: '', userId: '',
+  status: 'NEW', source: '', scope: '', repository: '', estimatedValue: '', notes: '', userId: '',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -128,6 +129,7 @@ export default function LeadsPage() {
       status:         lead.status,
       source:         lead.source,
       scope:          lead.scope || '',
+      repository:     lead.repository || '',
       estimatedValue: String(lead.estimatedValue),
       notes:          lead.notes || '',
       userId:         lead.user.id,
@@ -232,7 +234,7 @@ export default function LeadsPage() {
       }
       if (fStatus && l.status !== fStatus) return false;
       if (fSource && !l.source.toLowerCase().includes(fSource.toLowerCase())) return false;
-      if (fScope && l.scope !== fScope) return false;
+      if (fScope && l.scope && !l.scope.toLowerCase().includes(fScope.toLowerCase())) return false;
       if (fValueMin && l.estimatedValue < Number(fValueMin)) return false;
       if (fValueMax && l.estimatedValue > Number(fValueMax)) return false;
       if (fUserId && l.user.id !== fUserId) return false;
@@ -380,9 +382,9 @@ export default function LeadsPage() {
 
   const exportCSV = () => {
     const data = selected.size > 0 ? leads.filter(l => selected.has(l.id)) : sorted;
-    const headers = ['Empresa', 'Alcance', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
+    const headers = ['Empresa', 'Alcance', 'Repositorio', 'Contacto', 'Email', 'Teléfono', 'Estado', 'Fuente', 'Valor Estimado', 'Responsable', 'Creado'];
     const rows = data.map(l => [
-      l.companyName, l.scope ?? '', l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
+      l.companyName, l.scope ?? '', l.repository ?? '', l.contactName, l.email, l.phone ?? '', translateStatus(l.status),
       l.source, l.estimatedValue, l.user.name, new Date(l.createdAt).toLocaleDateString('es-ES'),
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
@@ -523,15 +525,8 @@ export default function LeadsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">Alcance</label>
-                <select value={fScope} onChange={e => setFScope(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
-                  <option value="">Todos</option>
-                  <option value="Nacional">Nacional</option>
-                  <option value="Internacional">Internacional</option>
-                  <option value="Regional">Regional</option>
-                  <option value="Local">Local</option>
-                  <option value="Multinacional">Multinacional</option>
-                </select>
+                <input type="text" placeholder="Buscar por alcance..." value={fScope} onChange={e => setFScope(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">Valor mín.</label>
@@ -654,6 +649,7 @@ export default function LeadsPage() {
                         {col.label}{sortIcon(col.key)}
                       </th>
                     ))}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Repo</th>
                     {isAdmin && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
                     )}
@@ -662,7 +658,7 @@ export default function LeadsPage() {
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 11 : 10} className="px-6 py-16 text-center">
+                      <td colSpan={isAdmin ? 12 : 11} className="px-6 py-16 text-center">
                         {leads.length === 0 ? (
                           <div>
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
@@ -704,6 +700,13 @@ export default function LeadsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {lead.repository ? (
+                            <a href={lead.repository} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition-colors" title={lead.repository}>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                          ) : <span className="text-gray-600">—</span>}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
                         {isAdmin && (
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -801,19 +804,16 @@ export default function LeadsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Alcance</label>
-                  <select value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
-                    <option value="">Seleccionar...</option>
-                    <option value="Nacional">Nacional</option>
-                    <option value="Internacional">Internacional</option>
-                    <option value="Regional">Regional</option>
-                    <option value="Local">Local</option>
-                    <option value="Multinacional">Multinacional</option>
-                  </select>
+                  <input type="text" placeholder="Describe el alcance u objeto del requerimiento..." value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white text-sm placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Contacto</label>
                   <input type="text" required value={formData.contactName} onChange={e => setFormData({...formData, contactName: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Repositorio / Carpeta</label>
+                <input type="url" placeholder="https://github.com/... o https://drive.google.com/..." value={formData.repository} onChange={e => setFormData({...formData, repository: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white text-sm placeholder-gray-500" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

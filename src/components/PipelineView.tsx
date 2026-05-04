@@ -14,6 +14,7 @@ interface Lead {
   status: string;
   source: string;
   scope: string | null;
+  repository: string | null;
   estimatedValue: number;
   notes: string | null;
   createdAt: string;

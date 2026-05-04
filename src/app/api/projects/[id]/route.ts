@@ -23,13 +23,14 @@ export async function PUT(
   }
   const { id } = await params;
   const body = await request.json();
-  const { name, description, status, priority, progress, startDate, endDate } = body;
+  const { name, description, status, priority, progress, repository, startDate, endDate } = body;
   try {
     const prev = await prisma.project.findUnique({ where: { id }, select: { status: true } });
     const project = await prisma.project.update({
       where: { id },
       data: { name, description, status, priority,
         progress: parseInt(progress) || 0,
+        repository: repository || null,
         startDate: startDate ? new Date(startDate) : null,
         endDate:   endDate   ? new Date(endDate)   : null },
       include: projectInclude,

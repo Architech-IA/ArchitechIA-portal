@@ -15,6 +15,7 @@ interface Project {
   status: string;
   priority: string;
   progress: number;
+  repository: string | null;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -24,7 +25,7 @@ interface Project {
 
 const EMPTY_FORM = {
   name: '', description: '', status: 'PLANNING', priority: 'MEDIUM',
-  progress: '0', startDate: '', endDate: '', userId: '',
+  progress: '0', repository: '', startDate: '', endDate: '', userId: '',
 };
 
 function getStatusColor(status: string) {
@@ -104,6 +105,7 @@ export default function ProjectsPage() {
       status:      p.status,
       priority:    p.priority,
       progress:    String(p.progress),
+      repository:  p.repository || '',
       startDate:   p.startDate ? p.startDate.split('T')[0] : '',
       endDate:     p.endDate ? p.endDate.split('T')[0] : '',
       userId:      p.users.find(u => u.role === 'OWNER')?.user.id || '',
@@ -293,6 +295,13 @@ export default function ProjectsPage() {
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-white">{project.name}</h3>
                 <p className="text-gray-400 mt-1">{project.description}</p>
+                {project.repository && (
+                  <a href={project.repository} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-orange-400 hover:text-orange-300 transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    Repositorio / Carpeta
+                  </a>
+                )}
               </div>
               <div className="flex gap-2 items-start ml-4">
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
@@ -439,6 +448,10 @@ export default function ProjectsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
                 <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Repositorio / Carpeta</label>
+                <input type="url" placeholder="https://github.com/... o carpeta del proyecto" value={formData.repository} onChange={e => setFormData({...formData, repository: e.target.value})} className="w-full px-4 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white text-sm placeholder-gray-500" />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
