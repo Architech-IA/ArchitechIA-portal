@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface Activity {
   id: string;
@@ -32,6 +33,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function TraceabilityPage() {
+  const { data: session } = useSession();
   const [tab, setTab] = useState<Tab>('activities');
 
   // ── Activities state ──
@@ -68,6 +70,31 @@ export default function TraceabilityPage() {
         });
     }
   }, [tab, sessionsFetched]);
+
+  // Backfill current user session if missing (e.g. logged in before session tracking was deployed)
+  useEffect(() => {
+    if (!session?.user?.email || !sessionsFetched) return;
+    const currentEmail = session.user.email;
+    const currentId = (session.user as { id?: string }).id || '';
+    const key = `session-backfill-${currentEmail}`;
+
+    if (localStorage.getItem(key)) return;
+
+    const hasRecentLogin = sessions.some(
+      s => s.email === currentEmail && s.action === 'LOGIN' && s.success
+    );
+
+    if (!hasRecentLogin && sessionsFetched) {
+      fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentId, email: currentEmail, action: 'LOGIN', success: true }),
+      }).then(() => {
+        localStorage.setItem(key, '1');
+        setSessionsFetched(false);
+      }).catch(() => {});
+    }
+  }, [session, sessionsFetched, sessions]);
 
   const filteredActivities = activities.filter(a => {
     const matchesSearch = a.description.toLowerCase().includes(filter.toLowerCase()) ||
