@@ -225,3 +225,15 @@ model Producto {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model SessionLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  action    String   @default("LOGIN")
+  ip        String?
+  userAgent String?
+  success   Boolean  @default(true)
+  details   String?
+  createdAt DateTime @default(now())
+}

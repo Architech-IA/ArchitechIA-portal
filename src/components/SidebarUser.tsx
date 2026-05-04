@@ -8,13 +8,29 @@ const ROLE_LABELS: Record<string, string> = {
   COLLABORATOR: 'Colaborador',
 };
 
+async function logLogout(userId: string, email: string) {
+  try {
+    await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, email, action: 'LOGOUT', success: true }),
+    });
+  } catch {}
+}
+
 export default function SidebarUser({ collapsed = false }: { collapsed?: boolean }) {
   const { data: session } = useSession();
 
   const name    = session?.user?.name  ?? 'Usuario';
   const email   = session?.user?.email ?? '';
   const role    = (session?.user as { role?: string })?.role ?? '';
+  const userId  = (session?.user as { id?: string })?.id ?? '';
   const initial = name.charAt(0).toUpperCase();
+
+  const handleLogout = async () => {
+    await logLogout(userId, email);
+    signOut({ callbackUrl: '/login' });
+  };
 
   if (collapsed) {
     return (
@@ -26,7 +42,7 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
           <span className="font-semibold text-black text-sm">{initial}</span>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={handleLogout}
           title="Cerrar sesión"
           className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors border border-gray-800"
           style={{ color: '#6b7280' }}
@@ -62,7 +78,7 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
         </div>
       </div>
       <button
-        onClick={() => signOut({ callbackUrl: '/login' })}
+        onClick={handleLogout}
         className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors border border-gray-800 hover:border-red-900"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

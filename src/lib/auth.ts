@@ -2,6 +2,23 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { headers } from 'next/headers';
+
+async function logSession(userId: string | null, email: string | null, action: string, success: boolean, details?: string) {
+  try {
+    const headersList = await headers();
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || headersList.get('x-real-ip')
+      || 'unknown';
+    const userAgent = headersList.get('user-agent') || 'unknown';
+
+    await prisma.sessionLog.create({
+      data: { userId, email, action, ip, userAgent, success, details },
+    });
+  } catch (e) {
+    console.error('SessionLog error:', e);
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -18,10 +35,16 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
 
-        if (!user) return null;
+        if (!user) {
+          await logSession(null, credentials?.email || null, 'FAILED_LOGIN', false, 'Usuario no encontrado');
+          return null;
+        }
 
         const passwordOk = await compare(credentials.password, user.password);
-        if (!passwordOk) return null;
+        if (!passwordOk) {
+          await logSession(user.id, user.email, 'FAILED_LOGIN', false, 'Contraseña incorrecta');
+          return null;
+        }
 
         return {
           id:    user.id,
@@ -33,6 +56,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, credentials }) {
+      if (user?.id) {
+        await logSession(user.id, credentials?.email as string || user.email || '', 'LOGIN', true);
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id   = user.id;
@@ -46,6 +75,24 @@ export const authOptions: NextAuthOptions = {
         (session.user as { id: string; role: string }).role = token.role as string;
       }
       return session;
+    },
+  },
+  events: {
+    async signOut({ token }) {
+      try {
+        await prisma.sessionLog.create({
+          data: {
+            userId: (token.id as string) || null,
+            email: (token.email as string) || null,
+            action: 'LOGOUT',
+            ip: 'unknown',
+            userAgent: 'unknown',
+            success: true,
+          },
+        });
+      } catch (e) {
+        console.error('SessionLog signOut error:', e);
+      }
     },
   },
   pages: {
