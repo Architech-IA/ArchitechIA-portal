@@ -189,7 +189,7 @@ export default function FinanzasPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Finanzas</h1>
+          <h1 className="text-3xl font-bold text-white">Finance</h1>
           <p className="text-gray-400 mt-1">Ingresos, gastos y rentabilidad de ArchiTechIA</p>
         </div>
         <button onClick={openNew} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium">
