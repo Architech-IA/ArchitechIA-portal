@@ -31,7 +31,7 @@ const SEARCH_INDEX = [
   { label: 'Cuentas',            url: '/cuentas',      tipo: 'Página'    },
   { label: 'Finanzas',           url: '/finanzas',     tipo: 'Página'    },
   { label: 'Clientes',           url: '/clientes',     tipo: 'Página'    },
-  { label: 'Pipeline de Ventas', url: '/pipeline',     tipo: 'Página'    },
+  { label: 'Pipeline de Ventas', url: '/leads',        tipo: 'Página'    },
   { label: 'Agente de Seguridad AI', url: '/productos', tipo: 'Producto' },
   { label: 'Zoho Mail',          url: '/cuentas',      tipo: 'Cuenta'    },
   { label: 'GitHub',             url: '/cuentas',      tipo: 'Cuenta'    },
