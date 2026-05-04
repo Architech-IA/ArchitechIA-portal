@@ -68,6 +68,7 @@ export default function MeetingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -80,6 +81,7 @@ export default function MeetingsPage() {
     setEditMeeting(null);
     setFormError('');
     setForm({ ...EMPTY_FORM, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
+    setSelectedAttendees([]);
     setShowModal(true);
   };
 
@@ -94,6 +96,7 @@ export default function MeetingsPage() {
       status: m.status, notes: m.notes || '',
       userId: m.userId,
     });
+    setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
     setShowModal(true);
   };
 
@@ -104,7 +107,8 @@ export default function MeetingsPage() {
     try {
       const url = editMeeting ? `/api/meetings/${editMeeting.id}` : '/api/meetings';
       const method = editMeeting ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const body = form.type === 'INTERNAL' ? { ...form, attendees: selectedAttendees.join(', ') } : form;
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
         const saved = await res.json();
         setMeetings(prev => editMeeting ? prev.map(m => m.id === saved.id ? saved : m) : [saved, ...prev]);
@@ -420,9 +424,28 @@ export default function MeetingsPage() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Asistentes</label>
-                <input type="text" value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
-                  placeholder="Nombres separados por coma..."
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                {form.type === 'INTERNAL' ? (
+                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 space-y-2">
+                    {users.map(u => (
+                      <label key={u.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
+                        <input
+                          type="checkbox"
+                          checked={selectedAttendees.includes(u.name)}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedAttendees([...selectedAttendees, u.name]);
+                            else setSelectedAttendees(selectedAttendees.filter(a => a !== u.name));
+                          }}
+                          className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
+                        {u.name}
+                      </label>
+                    ))}
+                    {users.length === 0 && <p className="text-gray-500 text-xs">Cargando equipo...</p>}
+                  </div>
+                ) : (
+                  <input type="text" value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
+                    placeholder="Nombres separados por coma..."
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Descripción</label>
