@@ -1,146 +1,169 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+interface Cuenta {
+  nombre: string;
+  categoria: string;
+  descripcion: string;
+  url: string;
+  color: string;
+}
+
+const DEFAULT_ACCOUNTS: Cuenta[] = [
+  {
+    nombre: 'Zoho Mail', categoria: 'Correo',
+    descripcion: 'Correo corporativo y colaboración',
+    url: 'https://mail.zoho.com', color: 'from-red-500 to-red-700',
+  },
+  {
+    nombre: 'n8n', categoria: 'Automatización',
+    descripcion: 'Flujos de trabajo y automatización de procesos',
+    url: 'https://n8n.io', color: 'from-orange-500 to-orange-700',
+  },
+  {
+    nombre: 'GitHub', categoria: 'Desarrollo',
+    descripcion: 'Repositorios de código y control de versiones',
+    url: 'https://github.com', color: 'from-gray-600 to-gray-800',
+  },
+  {
+    nombre: 'Slack', categoria: 'Comunicación',
+    descripcion: 'Mensajería y comunicación del equipo',
+    url: 'https://slack.com', color: 'from-purple-500 to-purple-700',
+  },
+  {
+    nombre: 'Alibaba Cloud', categoria: 'Infraestructura',
+    descripcion: 'Servicios cloud e infraestructura en la nube',
+    url: 'https://www.alibabacloud.com', color: 'from-orange-400 to-yellow-500',
+  },
+  {
+    nombre: 'OpenCode', categoria: 'Desarrollo',
+    descripcion: 'Plataforma de desarrollo y colaboración de código abierto',
+    url: 'https://opencode.ai', color: 'from-blue-500 to-blue-700',
+  },
+  {
+    nombre: 'LinkedIn', categoria: 'Redes Sociales',
+    descripcion: 'Red profesional y presencia de marca empresarial',
+    url: 'https://linkedin.com', color: 'from-blue-600 to-blue-800',
+  },
+  {
+    nombre: 'Gmail', categoria: 'Correo',
+    descripcion: 'Correo electrónico personal y comunicaciones externas',
+    url: 'https://mail.google.com', color: 'from-rose-500 to-red-600',
+  },
+  {
+    nombre: 'OpenRouter', categoria: 'IA',
+    descripcion: 'Acceso unificado a modelos de inteligencia artificial',
+    url: 'https://openrouter.ai', color: 'from-violet-500 to-indigo-700',
+  },
+  {
+    nombre: 'Instagram', categoria: 'Redes Sociales',
+    descripcion: 'Presencia de marca y contenido visual en Instagram',
+    url: 'https://instagram.com', color: 'from-pink-500 to-purple-600',
+  },
+  {
+    nombre: 'Supabase', categoria: 'Infraestructura',
+    descripcion: 'Base de datos PostgreSQL y backend como servicio',
+    url: 'https://supabase.com', color: 'from-emerald-500 to-green-700',
+  },
+];
+
+const COLORS = [
+  'from-red-500 to-red-700',
+  'from-orange-500 to-orange-700',
+  'from-amber-500 to-amber-700',
+  'from-yellow-400 to-yellow-600',
+  'from-lime-500 to-lime-700',
+  'from-emerald-500 to-green-700',
+  'from-teal-500 to-teal-700',
+  'from-cyan-500 to-cyan-700',
+  'from-sky-500 to-sky-700',
+  'from-blue-500 to-blue-700',
+  'from-indigo-500 to-indigo-700',
+  'from-violet-500 to-indigo-700',
+  'from-purple-500 to-purple-700',
+  'from-pink-500 to-purple-600',
+  'from-rose-500 to-red-600',
+  'from-gray-600 to-gray-800',
+];
+
+const CATEGORIAS = ['Correo', 'Automatización', 'Desarrollo', 'Comunicación', 'Infraestructura', 'Redes Sociales', 'IA', 'Cloud'];
+
+const EMPTY_FORM: Cuenta = { nombre: '', categoria: '', descripcion: '', url: '', color: 'from-orange-500 to-orange-700' };
+
+function getIconForName(nombre: string) {
+  const icons: Record<string, React.ReactNode> = {
+    email:   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+    auto:    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+    code:    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
+    globe:   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>,
+    chat:    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+    cloud:   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>,
+    social:  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+    brain:   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+    db:      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>,
+  };
+
+  const n = nombre.toLowerCase();
+  if (n.includes('mail') || n.includes('gmail') || n.includes('zoho')) return icons.email;
+  if (n.includes('n8n') || n.includes('auto')) return icons.auto;
+  if (n.includes('git') || n.includes('code') || n.includes('open')) return icons.code;
+  if (n.includes('slack') || n.includes('chat')) return icons.chat;
+  if (n.includes('cloud') || n.includes('alibaba') || n.includes('supabase') || n.includes('infra')) return icons.cloud;
+  if (n.includes('linkedin') || n.includes('instagram') || n.includes('social')) return icons.social;
+  if (n.includes('ai') || n.includes('router') || n.includes('brain')) return icons.brain;
+  if (n.includes('data') || n.includes('base')) return icons.db;
+  return icons.globe;
+}
+
 export default function CuentasPage() {
-  const cuentas = [
-    {
-      nombre: 'Zoho Mail',
-      categoria: 'Correo',
-      descripcion: 'Correo corporativo y colaboración',
-      url: 'https://mail.zoho.com',
-      color: 'from-red-500 to-red-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'n8n',
-      categoria: 'Automatización',
-      descripcion: 'Flujos de trabajo y automatización de procesos',
-      url: 'https://n8n.io',
-      color: 'from-orange-500 to-orange-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'GitHub',
-      categoria: 'Desarrollo',
-      descripcion: 'Repositorios de código y control de versiones',
-      url: 'https://github.com',
-      color: 'from-gray-600 to-gray-800',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'Slack',
-      categoria: 'Comunicación',
-      descripcion: 'Mensajería y comunicación del equipo',
-      url: 'https://slack.com',
-      color: 'from-purple-500 to-purple-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'Alibaba Cloud',
-      categoria: 'Infraestructura',
-      descripcion: 'Servicios cloud e infraestructura en la nube',
-      url: 'https://www.alibabacloud.com',
-      color: 'from-orange-400 to-yellow-500',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'OpenCode',
-      categoria: 'Desarrollo',
-      descripcion: 'Plataforma de desarrollo y colaboración de código abierto',
-      url: 'https://opencode.ai',
-      color: 'from-blue-500 to-blue-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'LinkedIn',
-      categoria: 'Redes Sociales',
-      descripcion: 'Red profesional y presencia de marca empresarial',
-      url: 'https://linkedin.com',
-      color: 'from-blue-600 to-blue-800',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'Gmail',
-      categoria: 'Correo',
-      descripcion: 'Correo electrónico personal y comunicaciones externas',
-      url: 'https://mail.google.com',
-      color: 'from-rose-500 to-red-600',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.910 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'OpenRouter',
-      categoria: 'IA',
-      descripcion: 'Acceso unificado a modelos de inteligencia artificial',
-      url: 'https://openrouter.ai',
-      color: 'from-violet-500 to-indigo-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'Instagram',
-      categoria: 'Redes Sociales',
-      descripcion: 'Presencia de marca y contenido visual en Instagram',
-      url: 'https://instagram.com',
-      color: 'from-pink-500 to-purple-600',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
-        </svg>
-      ),
-    },
-    {
-      nombre: 'Supabase',
-      categoria: 'Infraestructura',
-      descripcion: 'Base de datos PostgreSQL y backend como servicio',
-      url: 'https://supabase.com',
-      color: 'from-emerald-500 to-green-700',
-      icono: (
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.33 12.57.697 13.35 1.378 13.35h7.905l-.273 9.614c.015.986 1.26 1.41 1.874.637l9.262-11.652c.434-.52.067-1.3-.614-1.3h-7.905l.273-9.613z" />
-        </svg>
-      ),
-    },
-  ];
+  const [cuentas, setCuentas] = useState<Cuenta[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cuentas');
+    setCuentas(saved ? JSON.parse(saved) : DEFAULT_ACCOUNTS);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (loaded) localStorage.setItem('cuentas', JSON.stringify(cuentas));
+  }, [cuentas, loaded]);
+
+  const handleAdd = () => {
+    if (!form.nombre || !form.url || !form.categoria) return;
+    setCuentas(prev => [{ ...form }, ...prev]);
+    setForm(EMPTY_FORM);
+    setShowModal(false);
+  };
+
+  const handleDelete = (nombre: string) => {
+    setCuentas(prev => prev.filter(c => c.nombre !== nombre));
+  };
 
   const categorias = [...new Set(cuentas.map(c => c.categoria))];
 
+  if (!loaded) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+    </div>
+  );
+
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Cuentas</h1>
-        <p className="text-gray-400 mt-1">Plataformas y servicios activos de ArchiTechIA</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Cuentas</h1>
+          <p className="text-gray-400 mt-1">Plataformas y servicios activos de ArchiTechIA</p>
+        </div>
+        <button
+          onClick={() => { setForm(EMPTY_FORM); setShowModal(true); }}
+          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+        >
+          + Nueva Cuenta
+        </button>
       </div>
 
       {/* Resumen */}
@@ -149,7 +172,7 @@ export default function CuentasPage() {
           <p className="text-xs text-gray-400 mb-1">Total cuentas</p>
           <p className="text-2xl font-bold text-white">{cuentas.length}</p>
         </div>
-        {categorias.map(cat => (
+        {categorias.slice(0, 3).map(cat => (
           <div key={cat} className="bg-gray-800 border border-gray-700 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-1">{cat}</p>
             <p className="text-2xl font-bold text-white">{cuentas.filter(c => c.categoria === cat).length}</p>
@@ -161,13 +184,24 @@ export default function CuentasPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cuentas.map((cuenta) => (
           <div
-            key={cuenta.nombre}
-            className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hover:border-orange-500/50 transition-colors"
+            key={cuenta.nombre + cuenta.url}
+            className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hover:border-orange-500/50 transition-colors group relative"
           >
+            {/* Delete button */}
+            <button
+              onClick={() => handleDelete(cuenta.nombre)}
+              className="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-black/40 text-white/60 hover:text-red-400 hover:bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Eliminar cuenta"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
             {/* Header con color */}
             <div className={`bg-gradient-to-r ${cuenta.color} p-5 flex items-center gap-4`}>
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                {cuenta.icono}
+                {getIconForName(cuenta.nombre)}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">{cuenta.nombre}</h3>
@@ -201,6 +235,66 @@ export default function CuentasPage() {
           </div>
         ))}
       </div>
+
+      {/* Modal nueva cuenta */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-lg border border-gray-700">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-white">Nueva Cuenta</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Nombre</label>
+                  <input type="text" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Categoría</label>
+                  <select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, color: form.color === EMPTY_FORM.color ? 'from-orange-500 to-orange-700' : form.color})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
+                    <option value="">Seleccionar...</option>
+                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">URL</label>
+                <input type="url" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://..."
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Descripción</label>
+                <input type="text" value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Color</label>
+                <div className="grid grid-cols-8 gap-2">
+                  {COLORS.map(c => (
+                    <button key={c} type="button" onClick={() => setForm({...form, color: c})}
+                      className={`h-8 rounded-lg bg-gradient-to-r ${c} border-2 transition-all ${form.color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
+                      title={c} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm">Cancelar</button>
+                <button onClick={handleAdd} disabled={!form.nombre || !form.url || !form.categoria}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium disabled:opacity-50">
+                  Agregar Cuenta
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
