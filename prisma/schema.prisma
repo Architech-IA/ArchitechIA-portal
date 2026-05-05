@@ -9,14 +9,18 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          Role      @default(COLLABORATOR)
-  avatar        String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  password           String
+  role               Role      @default(COLLABORATOR)
+  avatar             String?
+  googleAccessToken  String?
+  googleRefreshToken String?
+  googleTokenExpiry  DateTime?
+  googleCalendarId   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   leads         Lead[]
   proposals     Proposal[]
@@ -265,21 +269,22 @@ model SessionLog {
 }
 
 model Meeting {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  type        String   @default("INTERNAL")
-  date        DateTime
-  endDate     DateTime?
-  location    String?
-  link        String?
-  attendees   String?
-  status      String   @default("SCHEDULED")
-  notes       String?
-  actaFile     String?
-  actaFileName String?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  type          String   @default("INTERNAL")
+  date          DateTime
+  endDate       DateTime?
+  location      String?
+  link          String?
+  attendees     String?
+  status        String   @default("SCHEDULED")
+  notes         String?
+  actaFile      String?
+  actaFileName  String?
+  googleEventId String?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
