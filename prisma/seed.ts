@@ -30,7 +30,7 @@ async function main() {
       name:     'Santiago Ortega',
       email:    'santiago.ortega@architechia.co',
       password: partnerHash,
-      role:     'PARTNER',
+      role:     'GERENTE_COMERCIAL',
     },
   });
 
@@ -41,7 +41,7 @@ async function main() {
       name:     'Daniel Martínez',
       email:    'daniel.martinez@architechia.co',
       password: partnerHash,
-      role:     'PARTNER',
+      role:     'GERENTE_ADMINISTRATIVO',
     },
   });
 
@@ -52,7 +52,7 @@ async function main() {
       name:     'Freddy Orozco',
       email:    'freddy.orozco@architechia.co',
       password: partnerHash,
-      role:     'PARTNER',
+      role:     'GERENTE_OPERACIONES',
     },
   });
 

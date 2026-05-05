@@ -69,7 +69,7 @@ export default function TeamPage() {
     name: '',
     email: '',
     password: '',
-    role: 'COLLABORATOR',
+    role: 'ARQUITECTO_SOLUCIONES',
   });
 
   useEffect(() => {
@@ -108,15 +108,17 @@ export default function TeamPage() {
       const newUser = await res.json();
       setUsers([...users, newUser]);
       setShowModal(false);
-      setFormData({ name: '', email: '', password: '', role: 'COLLABORATOR' });
+      setFormData({ name: '', email: '', password: '', role: 'ARQUITECTO_SOLUCIONES' });
     }
   };
 
   const getRoleBadge = (role: string) => {
     const colors: Record<string, string> = {
       ADMIN: 'bg-red-900/30 text-red-400',
-      PARTNER: 'bg-orange-900/30 text-orange-400',
-      COLLABORATOR: 'bg-amber-900/30 text-amber-400',
+      GERENTE_COMERCIAL: 'bg-blue-900/30 text-blue-400',
+      GERENTE_ADMINISTRATIVO: 'bg-emerald-900/30 text-emerald-400',
+      GERENTE_OPERACIONES: 'bg-purple-900/30 text-purple-400',
+      ARQUITECTO_SOLUCIONES: 'bg-cyan-900/30 text-cyan-400',
     };
     return colors[role] || 'bg-gray-800 text-gray-400';
   };
@@ -124,8 +126,10 @@ export default function TeamPage() {
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       ADMIN: 'Administrador',
-      PARTNER: 'Socio',
-      COLLABORATOR: 'Colaborador',
+      GERENTE_COMERCIAL: 'Gerente Comercial',
+      GERENTE_ADMINISTRATIVO: 'Gerente Administrativo',
+      GERENTE_OPERACIONES: 'Gerente de Operaciones',
+      ARQUITECTO_SOLUCIONES: 'Arquitecto de Soluciones',
     };
     return labels[role] || role;
   };
@@ -385,8 +389,10 @@ export default function TeamPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Rol</label>
                 <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className="w-full px-4 py-2 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-orange-500">
-                  <option value="COLLABORATOR">Colaborador</option>
-                  <option value="PARTNER">Socio</option>
+                  <option value="ARQUITECTO_SOLUCIONES">Arquitecto de Soluciones</option>
+                  <option value="GERENTE_COMERCIAL">Gerente Comercial</option>
+                  <option value="GERENTE_ADMINISTRATIVO">Gerente Administrativo</option>
+                  <option value="GERENTE_OPERACIONES">Gerente de Operaciones</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>

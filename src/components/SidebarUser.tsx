@@ -3,9 +3,13 @@
 import { useSession, signOut } from 'next-auth/react';
 
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN:        'Administrador',
-  PARTNER:      'Socio',
-  COLLABORATOR: 'Colaborador',
+  ADMIN:                     'Administrador',
+  GERENTE_COMERCIAL:         'Gerente Comercial',
+  GERENTE_ADMINISTRATIVO:    'Gerente Administrativo',
+  GERENTE_OPERACIONES:       'Gerente de Operaciones',
+  ARQUITECTO_SOLUCIONES:     'Arquitecto de Soluciones',
+  PARTNER:                   'Socio',
+  COLLABORATOR:              'Colaborador',
 };
 
 async function logLogout(userId: string, email: string) {

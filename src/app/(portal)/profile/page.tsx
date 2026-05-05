@@ -10,9 +10,13 @@ interface ProfileData {
 }
 
 const ROLE_LABELS: Record<string, { label: string; cls: string }> = {
-  ADMIN:        { label: 'Admin',        cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  PARTNER:      { label: 'Socio',        cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  COLLABORATOR: { label: 'Colaborador',  cls: 'bg-gray-700 text-gray-400 border-gray-600' },
+  ADMIN:                     { label: 'Admin',                  cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  GERENTE_COMERCIAL:         { label: 'Gerente Comercial',      cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  GERENTE_ADMINISTRATIVO:    { label: 'Gerente Administrativo', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  GERENTE_OPERACIONES:       { label: 'Gerente Operaciones',    cls: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  ARQUITECTO_SOLUCIONES:     { label: 'Arquitecto Soluciones',  cls: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+  PARTNER:                   { label: 'Socio',                  cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  COLLABORATOR:              { label: 'Colaborador',            cls: 'bg-gray-700 text-gray-400 border-gray-600' },
 };
 
 const ACTIVITY_ICONS: Record<string, string> = {
@@ -48,7 +52,7 @@ export default function ProfilePage() {
   const [tab, setTab] = useState<'perfil' | 'equipo'>('perfil');
   const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string; role: string; avatar: string | null }[]>([]);
   const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'COLLABORATOR' });
+  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'ARQUITECTO_SOLUCIONES' });
   const [userFormError, setUserFormError] = useState('');
   const [userSaving, setUserSaving] = useState(false);
 
@@ -181,8 +185,10 @@ export default function ProfilePage() {
                     <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}
                       className="px-2 py-1 bg-gray-800 border border-gray-600 text-white rounded text-xs focus:ring-1 focus:ring-orange-500">
                       <option value="ADMIN">Admin</option>
-                      <option value="PARTNER">Socio</option>
-                      <option value="COLLABORATOR">Colaborador</option>
+                      <option value="GERENTE_COMERCIAL">Gerente Comercial</option>
+                      <option value="GERENTE_ADMINISTRATIVO">Gerente Administrativo</option>
+                      <option value="GERENTE_OPERACIONES">Gerente Operaciones</option>
+                      <option value="ARQUITECTO_SOLUCIONES">Arquitecto Soluciones</option>
                     </select>
                   </div>
                 ) : (

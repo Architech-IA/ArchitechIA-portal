@@ -13,7 +13,7 @@ model User {
   name               String
   email              String    @unique
   password           String
-  role               Role      @default(COLLABORATOR)
+  role               Role      @default(ARQUITECTO_SOLUCIONES)
   avatar             String?
   googleAccessToken  String?
   googleRefreshToken String?
@@ -154,6 +154,10 @@ model Activity {
 
 enum Role {
   ADMIN
+  GERENTE_COMERCIAL
+  GERENTE_ADMINISTRATIVO
+  GERENTE_OPERACIONES
+  ARQUITECTO_SOLUCIONES
   PARTNER
   COLLABORATOR
 }
