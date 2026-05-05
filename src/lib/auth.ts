@@ -1,5 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { headers } from 'next/headers';
@@ -22,6 +23,17 @@ async function logSession(userId: string | null, email: string | null, action: s
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'openid email profile https://www.googleapis.com/auth/calendar.events',
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    }),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -52,30 +64,69 @@ export const authOptions: NextAuthOptions = {
           email:  user.email,
           role:   user.role,
           avatar: user.avatar,
+          googleConnected: !!(user.googleAccessToken),
         };
       },
     }),
   ],
   callbacks: {
-    async signIn({ user, credentials }) {
+    async signIn({ user, account, credentials }) {
+      if (account?.provider === 'google' && account.access_token) {
+        const email = user.email!;
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+
+        if (existingUser) {
+          await prisma.user.update({
+            where: { email },
+            data: {
+              googleAccessToken: account.access_token,
+              googleRefreshToken: account.refresh_token,
+              googleTokenExpiry: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            },
+          });
+        } else {
+          const hashedPassword = await (await import('bcryptjs')).hash(Math.random().toString(36).slice(2) + Date.now().toString(36), 12);
+          await prisma.user.create({
+            data: {
+              name: user.name || email.split('@')[0],
+              email,
+              password: hashedPassword,
+              role: 'PARTNER',
+              avatar: (user as { image?: string }).image || null,
+              googleAccessToken: account.access_token,
+              googleRefreshToken: account.refresh_token,
+              googleTokenExpiry: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            },
+          });
+        }
+      }
+
       if (user?.id) {
         await logSession(user.id, credentials?.email as string || user.email || '', 'LOGIN', true);
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id   = user.id;
         token.role = (user as unknown as { role: string }).role;
         token.avatar = (user as unknown as { avatar: string | null }).avatar;
+        token.googleConnected = (user as unknown as { googleConnected: boolean }).googleConnected;
+      }
+      if (account?.provider === 'google') {
+        token.googleAccessToken = account.access_token;
+        token.googleRefreshToken = account.refresh_token;
+        token.googleTokenExpiry = account.expires_at;
+        token.googleConnected = true;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string; role: string; avatar: string | null }).id   = token.id as string;
-        (session.user as { id: string; role: string; avatar: string | null }).role = token.role as string;
-        (session.user as { id: string; role: string; avatar: string | null }).avatar = token.avatar as string | null;
+        (session.user as { id: string; role: string; avatar: string | null; googleConnected: boolean }).id   = token.id as string;
+        (session.user as { id: string; role: string; avatar: string | null; googleConnected: boolean }).role = token.role as string;
+        (session.user as { id: string; role: string; avatar: string | null; googleConnected: boolean }).avatar = token.avatar as string | null;
+        (session.user as { id: string; role: string; avatar: string | null; googleConnected: boolean }).googleConnected = !!(token.googleConnected as boolean);
       }
       return session;
     },

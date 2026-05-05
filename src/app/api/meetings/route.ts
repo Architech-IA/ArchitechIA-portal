@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseUTC5, parseUTC5Nullable } from '@/lib/timezone';
+import { createCalendarEvent } from '@/lib/googleCalendar';
 
 export async function GET() {
   const meetings = await prisma.meeting.findMany({
@@ -16,8 +18,8 @@ export async function POST(request: NextRequest) {
   const meeting = await prisma.meeting.create({
     data: {
       title, description, type: type || 'INTERNAL',
-      date: new Date(date),
-      endDate: endDate ? new Date(endDate) : null,
+      date: parseUTC5(date),
+      endDate: parseUTC5Nullable(endDate),
       location: location || null,
       link: link || null,
       attendees: attendees || null,
@@ -29,6 +31,18 @@ export async function POST(request: NextRequest) {
     },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
+
+  createCalendarEvent(
+    userId,
+    meeting.id,
+    title,
+    description || null,
+    meeting.date,
+    meeting.endDate,
+    meeting.location,
+    meeting.attendees,
+    meeting.link,
+  ).catch(() => {});
 
   return NextResponse.json(meeting);
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { toDatetimeLocalInput, getDateStrUTC5, getTodayStrUTC5, getTimeStrUTC5, getDateFullUTC5, getDayUTC5, getWeekdayDateUTC5 } from '@/lib/timezone';
 
 interface Meeting {
   id: string;
@@ -96,8 +97,8 @@ export default function MeetingsPage() {
     setFormError('');
     setForm({
       title: m.title, description: m.description || '', type: m.type,
-      date: new Date(m.date).toISOString().slice(0, 16),
-      endDate: m.endDate ? new Date(m.endDate).toISOString().slice(0, 16) : '',
+      date: toDatetimeLocalInput(m.date),
+      endDate: m.endDate ? toDatetimeLocalInput(m.endDate) : '',
       location: m.location || '', link: m.link || '', attendees: m.attendees || '',
       status: m.status, notes: m.notes || '',
       userId: m.userId,
@@ -166,12 +167,12 @@ export default function MeetingsPage() {
   const calendarDays = useMemo(() => {
     const firstDay = new Date(viewYear, viewMonth, 1).getDay();
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStrUTC5();
     const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayMeetings = meetings.filter(m => m.date.slice(0, 10) === dateStr);
+      const dayMeetings = meetings.filter(m => getDateStrUTC5(m.date) === dateStr);
       days.push({ day: d, date: dateStr, meetings: dayMeetings, isToday: dateStr === today });
     }
     return days;
@@ -188,7 +189,21 @@ export default function MeetingsPage() {
     });
   }, [meetings, filterType, search]);
 
-  const dayMeetings = selectedDay ? meetings.filter(m => m.date.slice(0, 10) === selectedDay) : [];
+  const dayMeetings = selectedDay ? meetings.filter(m => getDateStrUTC5(m.date) === selectedDay) : [];
+
+  const thisWeekMeetings = useMemo(() => {
+    const todayStr = getTodayStrUTC5();
+    const todayUTC5 = new Date(todayStr + 'T00:00:00-05:00');
+    const dayOfWeek = todayUTC5.getUTCDay();
+    const monday = new Date(todayUTC5.getTime() - dayOfWeek * 86400000);
+    const sunday = new Date(monday.getTime() + 7 * 86400000);
+    return meetings
+      .filter(m => {
+        const d = new Date(m.date);
+        return d >= monday && d < sunday;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [meetings]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -222,10 +237,12 @@ export default function MeetingsPage() {
           { label: 'Programadas', value: meetings.filter(m => m.status === 'SCHEDULED').length, color: 'text-blue-400' },
           { label: 'Completadas', value: meetings.filter(m => m.status === 'COMPLETED').length, color: 'text-green-400' },
           { label: 'Esta semana', value: meetings.filter(m => {
+            const todayStr = getTodayStrUTC5();
+            const todayUTC5 = new Date(todayStr + 'T00:00:00-05:00');
+            const dayOfWeek = todayUTC5.getUTCDay();
+            const start = new Date(todayUTC5.getTime() - dayOfWeek * 86400000);
+            const end = new Date(start.getTime() + 7 * 86400000);
             const d = new Date(m.date);
-            const now = new Date();
-            const start = new Date(now); start.setDate(now.getDate() - now.getDay());
-            const end = new Date(start); end.setDate(start.getDate() + 7);
             return d >= start && d < end;
           }).length, color: 'text-orange-400' },
         ].map(k => (
@@ -287,48 +304,98 @@ export default function MeetingsPage() {
             </div>
           </div>
 
-          {/* Panel del día seleccionado */}
+          {/* Panel del día / semana */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              {selectedDay
-                ? new Date(selectedDay + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-                : 'Selecciona un día'}
-            </h3>
-            {selectedDay && dayMeetings.length === 0 && (
-              <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
-            )}
-            <div className="space-y-3">
-              {dayMeetings.map(m => (
-                <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="text-sm font-semibold text-white">{m.title}</h4>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${STATUS_COLORS[m.status]}`}>
-                      {translateStatus(m.status)}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-xs text-gray-400">
-                    <p>{new Date(m.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                      {m.endDate ? ` — ${new Date(m.endDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                    </p>
-                    {m.location && <p>📍 {m.location}</p>}
-                    {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
-                    {m.attendees && <p>👥 {m.attendees}</p>}
-                    {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
-                    {m.actaFile && (
-                      <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
-                        📎 Descargar {m.actaFileName || 'acta'}
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button onClick={() => openEdit(m)} className="text-xs text-gray-400 hover:text-white">Editar</button>
-                    <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
-                      {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
-                    </button>
-                  </div>
+            {selectedDay ? (
+              <>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                  {getWeekdayDateUTC5(selectedDay)}
+                </h3>
+                {dayMeetings.length === 0 && (
+                  <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
+                )}
+                <div className="space-y-3">
+                  {dayMeetings.map(m => (
+                    <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="text-sm font-semibold text-white">{m.title}</h4>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${STATUS_COLORS[m.status]}`}>
+                          {translateStatus(m.status)}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs text-gray-400">
+                        <p>{getTimeStrUTC5(m.date)}
+                          {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
+                        </p>
+                        {m.location && <p>📍 {m.location}</p>}
+                        {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
+                        {m.attendees && <p>👥 {m.attendees}</p>}
+                        {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
+                        {m.actaFile && (
+                          <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
+                            📎 Descargar {m.actaFileName || 'acta'}
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => openEdit(m)} className="text-xs text-gray-400 hover:text-white">Editar</button>
+                        <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
+                          {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Esta Semana</h3>
+                {thisWeekMeetings.length === 0 ? (
+                  <p className="text-gray-500 text-sm">Sin reuniones esta semana.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {(function () {
+                      const grouped = new Map<string, typeof thisWeekMeetings>();
+                      for (const m of thisWeekMeetings) {
+                        const day = getDateStrUTC5(m.date);
+                        if (!grouped.has(day)) grouped.set(day, []);
+                        grouped.get(day)!.push(m);
+                      }
+                      return Array.from(grouped.entries()).map(([dateStr, dayMts]) => (
+                        <div key={dateStr}>
+                          <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase">
+                            {new Date(dateStr + 'T12:00:00-05:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Bogota' })}
+                          </h4>
+                          <div className="space-y-2">
+                            {dayMts.map(m => (
+                              <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <div>
+                                    <h5 className="text-sm font-medium text-white leading-tight">{m.title}</h5>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      {getTimeStrUTC5(m.date)}
+                                      {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
+                                      <span className={`ml-2 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {m.attendees}</p>}
+                                <div className="flex gap-2 mt-2">
+                                  <button onClick={() => openEdit(m)} className="text-xs text-gray-500 hover:text-gray-300">Editar</button>
+                                  <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
+                                    {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -352,7 +419,7 @@ export default function MeetingsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${m.status === 'COMPLETED' ? 'bg-green-900/30 text-green-400' : m.status === 'CANCELLED' ? 'bg-red-900/30 text-red-400' : 'bg-orange-900/30 text-orange-400'}`}>
-                      {new Date(m.date).getDate()}
+                      {getDayUTC5(m.date)}
                     </div>
                     <div>
                       <h3 className={`font-semibold text-white ${m.status === 'CANCELLED' ? 'line-through opacity-50' : ''}`}>{m.title}</h3>
@@ -371,7 +438,7 @@ export default function MeetingsPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-400">
-                  <p>📅 {new Date(m.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} {new Date(m.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p>📅 {getDateFullUTC5(m.date)} {getTimeStrUTC5(m.date)}</p>
                   {m.location && <p>📍 {m.location}</p>}
                   {m.attendees && <p>👥 {m.attendees}</p>}
                   <p>👤 {m.user.name}</p>
@@ -440,12 +507,16 @@ export default function MeetingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Ubicación</label>
-                  <input type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})}
-                    placeholder="Oficina, Virtual, Cliente..."
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                  <select value={form.location} onChange={e => setForm({...form, location: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
+                    <option value="">Seleccionar...</option>
+                    <option value="Presencial">Presencial</option>
+                    <option value="Virtual">Virtual</option>
+                    <option value="Otro">Otro</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Enlace (Meet/Zoom)</label>
+                  <label className="block text-sm text-gray-400 mb-1">Dirección (URL)</label>
                   <input type="url" value={form.link} onChange={e => setForm({...form, link: e.target.value})}
                     placeholder="https://meet.google.com/..."
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
