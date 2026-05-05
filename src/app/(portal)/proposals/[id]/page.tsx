@@ -148,9 +148,20 @@ export default function ProposalDetailPage() {
     if (selectedStage === stageKey) { setSelectedStage(null); return; }
     setSelectedStage(stageKey);
     setLoadingStageDocs(true);
+    setStageNewDocName('');
+    setStageNewDocUrl('');
     const res = await fetch(`/api/proposals/${id}/documents?stage=${stageKey}`);
     setStageDocs(await res.json());
     setLoadingStageDocs(false);
+  };
+
+  const handleStageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!stageNewDocName.trim()) setStageNewDocName(file.name.replace(/\.[^.]+$/, ''));
+    const reader = new FileReader();
+    reader.onload = () => setStageNewDocUrl(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleAddStageDoc = async () => {
@@ -331,8 +342,17 @@ export default function ProposalDetailPage() {
             <div className="flex gap-2 flex-wrap mb-4">
               <input type="text" value={stageNewDocName} onChange={e => setStageNewDocName(e.target.value)}
                 placeholder="Nombre del documento" className="flex-1 min-w-32 px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-orange-500" />
-              <input type="url" value={stageNewDocUrl} onChange={e => setStageNewDocUrl(e.target.value)}
-                placeholder="URL o enlace" className="flex-[2] min-w-48 px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-orange-500" />
+              <div className="flex-[2] min-w-48 flex gap-1">
+                <input type="text" value={stageNewDocUrl && !stageNewDocUrl.startsWith('data:') ? stageNewDocUrl : ''} onChange={e => setStageNewDocUrl(e.target.value)}
+                  placeholder={stageNewDocUrl.startsWith('data:') ? 'Archivo adjunto ✓' : 'URL o pegar enlace'}
+                  className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-orange-500" />
+                <label className={`px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:border-orange-500/50 text-xs flex items-center gap-1 transition-colors ${
+                  stageNewDocUrl.startsWith('data:') ? 'text-orange-400 border-orange-500/50' : 'text-gray-400'
+                }`}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                  <input type="file" accept=".pdf,.doc,.docx,.txt,.xlsx,.pptx,.png,.jpg,.jpeg,.zip" onChange={handleStageFileUpload} className="hidden" />
+                </label>
+              </div>
               <select value={stageNewDocType} onChange={e => setStageNewDocType(e.target.value)}
                 className="px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white focus:ring-1 focus:ring-orange-500">
                 <option value="acta">Acta</option>
