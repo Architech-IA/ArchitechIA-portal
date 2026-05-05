@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface Proposal {
   id: string;
@@ -45,6 +46,7 @@ const EMPTY_FORM = { title: '', description: '', status: 'DRAFT', amount: '', le
 
 export default function ProposalsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
 
   const [proposals, setProposals]   = useState<Proposal[]>([]);
@@ -261,7 +263,11 @@ export default function ProposalsPage() {
             <tbody className="bg-gray-900 divide-y divide-gray-800">
               {filtered.map(p => (
                 <tr key={p.id} className="hover:bg-gray-800/50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{p.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onClick={() => router.push(`/proposals/${p.id}`)} className="text-white hover:text-orange-400 transition-colors cursor-pointer">
+                      {p.title}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.lead?.companyName || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[p.status] || 'bg-gray-800 text-gray-400'}`}>

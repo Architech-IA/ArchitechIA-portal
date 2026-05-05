@@ -9,7 +9,11 @@ export async function GET(request: NextRequest) {
   if (id) {
     const proposal = await prisma.proposal.findUnique({
       where: { id },
-      include: { lead: true, user: { select: { id: true, name: true, email: true } } },
+      include: {
+        lead: true,
+        user: { select: { id: true, name: true, email: true } },
+        activities: { include: { user: { select: { name: true } } }, orderBy: { createdAt: 'desc' } },
+      },
     });
     return NextResponse.json(proposal);
   }
