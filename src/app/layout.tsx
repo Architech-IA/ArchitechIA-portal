@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-poppins",
+});
 
 export const metadata: Metadata = {
   title: "ArchiTechIA - Portal Interno",
@@ -12,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="antialiased">
+      <body className={`${poppins.variable} antialiased`}>
         <SessionProvider>
           <ThemeProvider>
             {children}
