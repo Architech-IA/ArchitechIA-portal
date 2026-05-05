@@ -43,6 +43,19 @@ export default function ProfilePage() {
   const [pwSuccess, setPwSuccess] = useState('');
   const [changing, setChanging] = useState(false);
 
+  // ── Admin: gestionar equipo ──
+  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const [tab, setTab] = useState<'perfil' | 'equipo'>('perfil');
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string; role: string; avatar: string | null }[]>([]);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'COLLABORATOR' });
+  const [userFormError, setUserFormError] = useState('');
+  const [userSaving, setUserSaving] = useState(false);
+
+  const fetchUsers = () => {
+    fetch('/api/users').then(r => r.json()).then(setAllUsers);
+  };
+
   const fetchProfile = () => {
     fetch('/api/profile')
       .then(r => r.json())
@@ -137,9 +150,80 @@ export default function ProfilePage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-8">Mi Perfil</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-white">Mi Perfil</h1>
+        {isAdmin && (
+          <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+            <button onClick={() => setTab('perfil')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'perfil' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mi Perfil</button>
+            <button onClick={() => { setTab('equipo'); fetchUsers(); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'equipo' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Gestionar Equipo</button>
+          </div>
+        )}
+      </div>
 
-      {/* ── Perfil card ── */}
+      {tab === 'equipo' && isAdmin ? (
+        <div className="space-y-4">
+          {allUsers.map(u => (
+            <div key={u.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {u.avatar ? (
+                  <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-semibold text-black text-xs">{u.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                {editingUser === u.id ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <input type="text" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})}
+                      className="px-2 py-1 bg-gray-800 border border-gray-600 text-white rounded text-xs focus:ring-1 focus:ring-orange-500" placeholder="Nombre" />
+                    <input type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})}
+                      className="px-2 py-1 bg-gray-800 border border-gray-600 text-white rounded text-xs focus:ring-1 focus:ring-orange-500" placeholder="Email" />
+                    <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}
+                      className="px-2 py-1 bg-gray-800 border border-gray-600 text-white rounded text-xs focus:ring-1 focus:ring-orange-500">
+                      <option value="ADMIN">Admin</option>
+                      <option value="PARTNER">Socio</option>
+                      <option value="COLLABORATOR">Colaborador</option>
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-white">{u.name}</p>
+                    <p className="text-xs text-gray-400">{u.email} · <span className={u.role === 'ADMIN' ? 'text-orange-400' : u.role === 'PARTNER' ? 'text-blue-400' : 'text-gray-500'}>{ROLE_LABELS[u.role]?.label || u.role}</span></p>
+                  </>
+                )}
+                {userFormError && editingUser === u.id && <p className="text-xs text-red-400 mt-1">{userFormError}</p>}
+              </div>
+              <div className="flex gap-1">
+                {editingUser === u.id ? (
+                  <>
+                    <button onClick={async () => {
+                      if (!userForm.name.trim() || !userForm.email.trim()) { setUserFormError('Nombre y email requeridos'); return; }
+                      setUserSaving(true); setUserFormError('');
+                      const res = await fetch(`/api/users`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id, ...userForm }) });
+                      if (res.ok) { setEditingUser(null); fetchUsers(); } else { const d = await res.json(); setUserFormError(d.error || 'Error'); }
+                      setUserSaving(false);
+                    }} disabled={userSaving}
+                      className="px-3 py-1 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50">Guardar</button>
+                    <button onClick={() => setEditingUser(null)}
+                      className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Cancelar</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditingUser(u.id); setUserForm({ name: u.name, email: u.email, role: u.role }); setUserFormError(''); }}
+                      className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg">Editar</button>
+                    {u.role !== 'ADMIN' && (
+                      <button onClick={async () => { await fetch(`/api/users`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id }) }); fetchUsers(); }}
+                        className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg">Eliminar</button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+      <>
+        {/* ── Perfil card ── */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6 flex items-center gap-6">
         {user.avatar ? (
           <img
@@ -458,6 +542,8 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
