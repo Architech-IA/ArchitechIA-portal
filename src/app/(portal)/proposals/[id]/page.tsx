@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 interface Proposal {
   id: string; title: string; description: string; status: string;
   amount: number; sentDate: string | null; acceptedDate: string | null; createdAt: string;
-  lead: { id: string; companyName: string; contactName: string; email: string };
+  lead: { id: string; companyName: string; contactName: string; email: string; status: string };
   user: { id: string; name: string; email: string };
   activities: Activity[];
   tasks: Task[];
@@ -52,6 +52,22 @@ const STATUS_FLOW: Record<string, string[]> = {
   ACCEPTED: ['ACCEPTED'],
   REJECTED: ['REJECTED', 'DRAFT'],
 };
+
+const LEAD_STAGES = [
+  { key: 'NEW',             label: 'Nuevo' },
+  { key: 'CONTACTED',       label: 'Contactado' },
+  { key: 'DIAGNOSIS',       label: 'Diagnóstico' },
+  { key: 'QUALIFIED',       label: 'Calificado' },
+  { key: 'DEMO_VALIDATION', label: 'Demo' },
+  { key: 'PROPOSAL_SENT',   label: 'Propuesta' },
+  { key: 'NEGOTIATION',     label: 'Negociación' },
+  { key: 'WON',             label: 'Ganado' },
+  { key: 'LOST',            label: 'Perdido' },
+];
+
+function getLeadStageIndex(status: string) {
+  return LEAD_STAGES.findIndex(s => s.key === status);
+}
 
 export default function ProposalDetailPage() {
   const params = useParams();
@@ -223,6 +239,46 @@ export default function ProposalDetailPage() {
             </div>
           </div>
         )}
+        {/* Lead Pipeline Timeline */}
+        <div className="mt-5 pt-4 border-t border-gray-800">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {proposal.lead.companyName}</p>
+          <div className="flex items-center overflow-x-auto pb-2">
+            {LEAD_STAGES.filter(s => s.key !== 'LOST' || proposal.lead.status === 'LOST').map((stage, i, arr) => {
+              const currentIdx = getLeadStageIndex(proposal.lead.status);
+              const isCompleted = currentIdx >= 0 && i <= currentIdx && proposal.lead.status !== 'LOST';
+              const isCurrent = i === currentIdx;
+              const isLost = proposal.lead.status === 'LOST' && stage.key === 'LOST';
+              const isPastLost = proposal.lead.status === 'LOST' && i < arr.length - 1;
+              return (
+                <div key={stage.key} className="flex items-center flex-1 min-w-0">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                      isLost ? 'bg-red-600 text-white' :
+                      isCompleted ? 'bg-green-600 text-white' :
+                      isCurrent ? 'bg-orange-500 text-white ring-2 ring-orange-500/30' :
+                      'bg-gray-700 text-gray-500'
+                    }`}>
+                      {isCompleted && !isCurrent ? '✓' : isLost ? '✗' : i + 1}
+                    </div>
+                    <span className={`text-[10px] mt-1 text-center leading-tight ${
+                      isLost ? 'text-red-400' :
+                      isCompleted ? 'text-green-400' :
+                      isCurrent ? 'text-orange-400 font-semibold' :
+                      'text-gray-600'
+                    }`}>{stage.label}</span>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-0.5 ${
+                      isPastLost ? 'bg-red-600/40' :
+                      i < currentIdx ? 'bg-green-600' :
+                      'bg-gray-700'
+                    }`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
