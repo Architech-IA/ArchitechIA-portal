@@ -13,7 +13,7 @@ interface Proposal {
   sentDate: string | null;
   acceptedDate: string | null;
   createdAt: string;
-  lead: { id: string; companyName: string; contactName: string } | null;
+  lead: { id: string; companyName: string; contactName: string };
   user: { id: string; name: string; email: string };
 }
 
@@ -89,7 +89,7 @@ export default function ProposalsPage() {
       description: p.description,
       status:      p.status,
       amount:      String(p.amount),
-      leadId:      p.lead?.id || '',
+      leadId:      p.lead.id,
       userId:      p.user.id,
       sentDate:    p.sentDate ? p.sentDate.split('T')[0] : '',
     });
@@ -176,7 +176,7 @@ export default function ProposalsPage() {
 
   const filtered = proposals.filter(p => {
     const matchSearch = p.title.toLowerCase().includes(filter.toLowerCase()) ||
-      p.lead?.companyName.toLowerCase().includes(filter.toLowerCase());
+      p.lead.companyName.toLowerCase().includes(filter.toLowerCase());
     const matchStatus = !statusFilter || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -268,7 +268,7 @@ export default function ProposalsPage() {
                       {p.title}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.lead?.companyName || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{p.lead.companyName}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[p.status] || 'bg-gray-800 text-gray-400'}`}>
                       {translateStatus(p.status)}
@@ -347,9 +347,9 @@ export default function ProposalsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Lead Asociado</label>
-                  <select value={formData.leadId} onChange={e => setFormData({...formData, leadId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
-                    <option value="">Ninguno</option>
+                   <label className="block text-sm font-medium text-gray-300 mb-1">Lead Asociado *</label>
+                   <select required value={formData.leadId} onChange={e => setFormData({...formData, leadId: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                     <option value="">Seleccionar lead...</option>
                     {leads.map(l => <option key={l.id} value={l.id}>{l.companyName}</option>)}
                   </select>
                 </div>

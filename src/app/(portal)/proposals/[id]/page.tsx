@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 interface Proposal {
   id: string; title: string; description: string; status: string;
   amount: number; sentDate: string | null; acceptedDate: string | null; createdAt: string;
-  lead: { id: string; companyName: string; contactName: string; email: string } | null;
+  lead: { id: string; companyName: string; contactName: string; email: string };
   user: { id: string; name: string; email: string };
   activities: Activity[];
   tasks: Task[];
