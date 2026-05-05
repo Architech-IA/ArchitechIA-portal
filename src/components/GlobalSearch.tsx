@@ -11,7 +11,7 @@ interface SearchResults {
 }
 
 const STATUS_ES: Record<string, string> = {
-  NEW: 'Nuevo', CONTACTED: 'Contactado', QUALIFIED: 'Calificado', WON: 'Ganado', LOST: 'Perdido',
+  NEW: 'Identificación', CONTACTED: 'Contacto', QUALIFIED: 'Diagnóstico', WON: 'Resultado', LOST: 'Resultado',
   DRAFT: 'Borrador', SENT: 'Enviado', ACCEPTED: 'Aceptado', REJECTED: 'Rechazado',
   PLANNING: 'Planificación', IN_PROGRESS: 'En Progreso', COMPLETED: 'Completado',
 };

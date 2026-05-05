@@ -24,8 +24,8 @@ interface DashboardData {
 }
 
 const ETAPA_LABELS: Record<string, string> = {
-  NEW: 'Nuevo', CONTACTED: 'Contactado', QUALIFIED: 'Calificado',
-  PROPOSAL_SENT: 'Propuesta', NEGOTIATION: 'Negociación', WON: 'Ganado',
+  NEW: 'Identificación', CONTACTED: 'Contacto', QUALIFIED: 'Diagnóstico',
+  PROPOSAL_SENT: 'Propuesta', NEGOTIATION: 'Negociación', WON: 'Resultado',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -366,9 +366,9 @@ export default function Home() {
 
 function translateStatus(status: string): string {
   const t: Record<string, string> = {
-    NEW: 'Nuevo', CONTACTED: 'Contactado', QUALIFIED: 'Calificado',
-    PROPOSAL_SENT: 'Propuesta Enviada', NEGOTIATION: 'Negociación',
-    WON: 'Ganado', LOST: 'Perdido', DRAFT: 'Borrador', SENT: 'Enviado',
+    NEW: 'Identificación', CONTACTED: 'Contacto', QUALIFIED: 'Diagnóstico',
+    PROPOSAL_SENT: 'Propuesta', NEGOTIATION: 'Negociación',
+    WON: 'Resultado', LOST: 'Resultado', DRAFT: 'Borrador', SENT: 'Enviado',
     UNDER_REVIEW: 'En Revisión', ACCEPTED: 'Aceptado', REJECTED: 'Rechazado',
     PLANNING: 'Planificación', IN_PROGRESS: 'En Progreso', ON_HOLD: 'En Pausa',
     COMPLETED: 'Completado', CANCELLED: 'Cancelado',

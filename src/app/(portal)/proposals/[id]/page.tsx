@@ -54,15 +54,15 @@ const STATUS_FLOW: Record<string, string[]> = {
 };
 
 const LEAD_STAGES = [
-  { key: 'NEW',             label: 'Nuevo' },
-  { key: 'CONTACTED',       label: 'Contactado' },
+  { key: 'NEW',             label: 'Identificación' },
+  { key: 'CONTACTED',       label: 'Contacto' },
   { key: 'DIAGNOSIS',       label: 'Diagnóstico' },
-  { key: 'QUALIFIED',       label: 'Calificado' },
+  { key: 'QUALIFIED',       label: 'Diagnóstico' },
   { key: 'DEMO_VALIDATION', label: 'Demo' },
   { key: 'PROPOSAL_SENT',   label: 'Propuesta' },
   { key: 'NEGOTIATION',     label: 'Negociación' },
-  { key: 'WON',             label: 'Ganado' },
-  { key: 'LOST',            label: 'Perdido' },
+  { key: 'WON',             label: 'Resultado' },
+  { key: 'LOST',            label: 'Resultado' },
 ];
 
 function getLeadStageIndex(status: string) {
@@ -286,7 +286,12 @@ export default function ProposalDetailPage() {
         <div className="mt-5 pt-4 border-t border-gray-800">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {lead.companyName} <span className="text-gray-600 ml-1">(click en una fase)</span></p>
           <div className="flex items-center overflow-x-auto pb-2">
-            {LEAD_STAGES.filter(s => s.key !== 'LOST' || lead.status === 'LOST').map((stage, i, arr) => {
+            {LEAD_STAGES.filter(s => {
+              if (s.key === 'QUALIFIED') return false;
+              if (s.key === 'WON' && lead.status !== 'WON') return false;
+              if (s.key === 'LOST' && lead.status !== 'LOST') return false;
+              return true;
+            }).map((stage, i, arr) => {
               const isCompleted = currentIdx >= 0 && i <= currentIdx && lead.status !== 'LOST';
               const isCurrent = i === currentIdx;
               const isLost = lead.status === 'LOST' && stage.key === 'LOST';

@@ -26,11 +26,11 @@ const EMPTY_FORM = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  NEW:             'bg-gray-500/20 text-gray-400',
-  CONTACTED:       'bg-blue-500/20 text-blue-400',
+  NEW:             'bg-blue-500/20 text-blue-400',
+  CONTACTED:       'bg-purple-500/20 text-purple-400',
   DIAGNOSIS:       'bg-cyan-500/20 text-cyan-400',
-  QUALIFIED:       'bg-yellow-500/20 text-yellow-400',
-  DEMO_VALIDATION: 'bg-purple-500/20 text-purple-400',
+  QUALIFIED:       'bg-cyan-500/20 text-cyan-400',
+  DEMO_VALIDATION: 'bg-teal-500/20 text-teal-400',
   PROPOSAL_SENT:   'bg-indigo-500/20 text-indigo-400',
   NEGOTIATION:     'bg-orange-500/20 text-orange-400',
   WON:             'bg-green-500/20 text-green-400',
@@ -39,15 +39,15 @@ const STATUS_COLORS: Record<string, string> = {
 
 function translateStatus(status: string) {
   const t: Record<string, string> = {
-    NEW:             'Nuevo',
-    CONTACTED:       'Contactado',
+    NEW:             'Identificación',
+    CONTACTED:       'Contacto',
     DIAGNOSIS:       'Diagnóstico',
-    QUALIFIED:       'Calificado',
-    DEMO_VALIDATION: 'Demo / Validación',
-    PROPOSAL_SENT:   'Propuesta Enviada',
+    QUALIFIED:       'Diagnóstico',
+    DEMO_VALIDATION: 'Demo',
+    PROPOSAL_SENT:   'Propuesta',
     NEGOTIATION:     'Negociación',
-    WON:             'Ganado',
-    LOST:            'Perdido',
+    WON:             'Resultado',
+    LOST:            'Resultado',
   };
   return t[status] || status;
 }
@@ -464,7 +464,7 @@ export default function LeadsPage() {
             {[
               { label: 'Total Leads',      value: leads.length,                           color: 'text-white' },
               { label: 'Pipeline activo',  value: `$${totalPipeline.toLocaleString()}`,   color: 'text-orange-400' },
-              { label: 'Valor ganado',     value: `$${totalGanado.toLocaleString()}`,     color: 'text-green-400' },
+              { label: 'Valor resultado',  value: `$${totalGanado.toLocaleString()}`,     color: 'text-green-400' },
               { label: 'Tasa conversión',  value: `${tasaConversion}%`,                   color: 'text-blue-400' },
             ].map(k => (
               <div key={k.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -507,15 +507,15 @@ export default function LeadsPage() {
                 <select value={fStatus} onChange={e => setFStatus(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
                   <option value="">Todos</option>
-                  <option value="NEW">Nuevo</option>
-                  <option value="CONTACTED">Contactado</option>
+                  <option value="NEW">Identificación</option>
+                  <option value="CONTACTED">Contacto</option>
                   <option value="DIAGNOSIS">Diagnóstico</option>
-                  <option value="QUALIFIED">Calificado</option>
-                  <option value="DEMO_VALIDATION">Demo / Validación</option>
-                  <option value="PROPOSAL_SENT">Propuesta Enviada</option>
+                  <option value="QUALIFIED">Diagnóstico</option>
+                  <option value="DEMO_VALIDATION">Demo</option>
+                  <option value="PROPOSAL_SENT">Propuesta</option>
                   <option value="NEGOTIATION">Negociación</option>
-                  <option value="WON">Ganado</option>
-                  <option value="LOST">Perdido</option>
+                  <option value="WON">Resultado</option>
+                  <option value="LOST">Resultado</option>
                 </select>
               </div>
               <div>
@@ -585,15 +585,15 @@ export default function LeadsPage() {
               <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
                 className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500">
                 <option value="">Cambiar estado...</option>
-                <option value="NEW">Nuevo</option>
-                <option value="CONTACTED">Contactado</option>
+                <option value="NEW">Identificación</option>
+                <option value="CONTACTED">Contacto</option>
                 <option value="DIAGNOSIS">Diagnóstico</option>
-                <option value="QUALIFIED">Calificado</option>
-                <option value="DEMO_VALIDATION">Demo / Validación</option>
-                <option value="PROPOSAL_SENT">Propuesta Enviada</option>
+                <option value="QUALIFIED">Diagnóstico</option>
+                <option value="DEMO_VALIDATION">Demo</option>
+                <option value="PROPOSAL_SENT">Propuesta</option>
                 <option value="NEGOTIATION">Negociación</option>
-                <option value="WON">Ganado</option>
-                <option value="LOST">Perdido</option>
+                <option value="WON">Resultado</option>
+                <option value="LOST">Resultado</option>
               </select>
               <button onClick={handleBulkStatusChange} disabled={!bulkStatus || bulkSaving}
                 className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors">
@@ -829,15 +829,15 @@ export default function LeadsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
                   <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
-                    <option value="NEW">Nuevo</option>
-                    <option value="CONTACTED">Contactado</option>
+                    <option value="NEW">Identificación</option>
+                    <option value="CONTACTED">Contacto</option>
                     <option value="DIAGNOSIS">Diagnóstico</option>
-                    <option value="QUALIFIED">Calificado</option>
-                    <option value="DEMO_VALIDATION">Demo / Validación</option>
-                    <option value="PROPOSAL_SENT">Propuesta Enviada</option>
+                    <option value="QUALIFIED">Diagnóstico</option>
+                    <option value="DEMO_VALIDATION">Demo</option>
+                    <option value="PROPOSAL_SENT">Propuesta</option>
                     <option value="NEGOTIATION">Negociación</option>
-                    <option value="WON">Ganado</option>
-                    <option value="LOST">Perdido</option>
+                    <option value="WON">Resultado</option>
+                    <option value="LOST">Resultado</option>
                   </select>
                 </div>
                 <div>

@@ -443,13 +443,13 @@ function getPriorityColor(priority: string): string {
 
 function translateStatus(status: string): string {
   const translations: Record<string, string> = {
-    NEW: 'Nuevo',
-    CONTACTED: 'Contactado',
-    QUALIFIED: 'Calificado',
-    PROPOSAL_SENT: 'Propuesta Enviada',
+    NEW: 'Identificación',
+    CONTACTED: 'Contacto',
+    QUALIFIED: 'Diagnóstico',
+    PROPOSAL_SENT: 'Propuesta',
     NEGOTIATION: 'Negociación',
-    WON: 'Ganado',
-    LOST: 'Perdido',
+    WON: 'Resultado',
+    LOST: 'Resultado',
     PLANNING: 'Planificación',
     IN_PROGRESS: 'En Progreso',
     ON_HOLD: 'En Pausa',

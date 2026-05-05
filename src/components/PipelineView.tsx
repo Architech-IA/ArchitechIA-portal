@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
-type Etapa = 'Nuevo' | 'Contactado' | 'Calificado' | 'Propuesta' | 'Negociación' | 'Ganado' | 'Perdido';
+type Etapa = 'Identificación' | 'Contacto' | 'Diagnóstico' | 'Demo' | 'Propuesta' | 'Negociación' | 'Resultado';
 
 interface Lead {
   id: string;
@@ -22,47 +22,47 @@ interface Lead {
 }
 
 const STATUS_TO_ETAPA: Record<string, Etapa> = {
-  NEW:             'Nuevo',
-  CONTACTED:       'Contactado',
-  DIAGNOSIS:       'Calificado',
-  QUALIFIED:       'Calificado',
-  DEMO_VALIDATION: 'Propuesta',
+  NEW:             'Identificación',
+  CONTACTED:       'Contacto',
+  DIAGNOSIS:       'Diagnóstico',
+  QUALIFIED:       'Diagnóstico',
+  DEMO_VALIDATION: 'Demo',
   PROPOSAL_SENT:   'Propuesta',
   NEGOTIATION:     'Negociación',
-  WON:             'Ganado',
-  LOST:            'Perdido',
+  WON:             'Resultado',
+  LOST:            'Resultado',
 };
 
 const ETAPA_TO_STATUS: Record<Etapa, string> = {
-  Nuevo:       'NEW',
-  Contactado:  'CONTACTED',
-  Calificado:  'QUALIFIED',
-  Propuesta:   'PROPOSAL_SENT',
-  Negociación: 'NEGOTIATION',
-  Ganado:      'WON',
-  Perdido:     'LOST',
+  Identificación: 'NEW',
+  Contacto:       'CONTACTED',
+  Diagnóstico:    'QUALIFIED',
+  Demo:           'DEMO_VALIDATION',
+  Propuesta:      'PROPOSAL_SENT',
+  Negociación:    'NEGOTIATION',
+  Resultado:      'WON',
 };
 
-const ETAPAS: Etapa[] = ['Nuevo', 'Contactado', 'Calificado', 'Propuesta', 'Negociación', 'Ganado', 'Perdido'];
+const ETAPAS: Etapa[] = ['Identificación', 'Contacto', 'Diagnóstico', 'Demo', 'Propuesta', 'Negociación', 'Resultado'];
 
 const ETAPA_COLORS: Record<Etapa, string> = {
-  Nuevo:       'border-blue-500/40 bg-blue-900/10',
-  Contactado:  'border-purple-500/40 bg-purple-900/10',
-  Calificado:  'border-yellow-500/40 bg-yellow-900/10',
-  Propuesta:   'border-indigo-500/40 bg-indigo-900/10',
-  Negociación: 'border-orange-500/40 bg-orange-900/10',
-  Ganado:      'border-green-500/40 bg-green-900/10',
-  Perdido:     'border-red-500/40 bg-red-900/10',
+  Identificación: 'border-blue-500/40 bg-blue-900/10',
+  Contacto:       'border-purple-500/40 bg-purple-900/10',
+  Diagnóstico:    'border-cyan-500/40 bg-cyan-900/10',
+  Demo:           'border-teal-500/40 bg-teal-900/10',
+  Propuesta:      'border-indigo-500/40 bg-indigo-900/10',
+  Negociación:    'border-orange-500/40 bg-orange-900/10',
+  Resultado:      'border-green-500/40 bg-green-900/10',
 };
 
 const ETAPA_HEADER: Record<Etapa, string> = {
-  Nuevo:       'bg-blue-900/30 text-blue-300',
-  Contactado:  'bg-purple-900/30 text-purple-300',
-  Calificado:  'bg-yellow-900/30 text-yellow-300',
-  Propuesta:   'bg-indigo-900/30 text-indigo-300',
-  Negociación: 'bg-orange-900/30 text-orange-300',
-  Ganado:      'bg-green-900/30 text-green-300',
-  Perdido:     'bg-red-900/30 text-red-300',
+  Identificación: 'bg-blue-900/30 text-blue-300',
+  Contacto:       'bg-purple-900/30 text-purple-300',
+  Diagnóstico:    'bg-cyan-900/30 text-cyan-300',
+  Demo:           'bg-teal-900/30 text-teal-300',
+  Propuesta:      'bg-indigo-900/30 text-indigo-300',
+  Negociación:    'bg-orange-900/30 text-orange-300',
+  Resultado:      'bg-green-900/30 text-green-300',
 };
 
 function getPrioridad(valor: number): { label: string; cls: string } {
@@ -71,7 +71,7 @@ function getPrioridad(valor: number): { label: string; cls: string } {
   return                     { label: 'Baja',  cls: 'bg-gray-700 text-gray-400' };
 }
 
-const EMPTY_FORM = { companyName: '', contactName: '', email: '', estimatedValue: '', source: '', etapa: 'Nuevo' as Etapa };
+const EMPTY_FORM = { companyName: '', contactName: '', email: '', estimatedValue: '', source: '', etapa: 'Identificación' as Etapa };
 
 interface PipelineViewProps {
   leads: Lead[];
@@ -151,7 +151,7 @@ export default function PipelineView({ leads, users, onLeadsChange }: PipelineVi
           <p className="text-xl font-bold text-white">${totalPipeline.toLocaleString()}</p>
         </div>
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-400 mb-1">Ganado</p>
+          <p className="text-xs text-gray-400 mb-1">Resultado</p>
           <p className="text-xl font-bold text-green-400">${totalGanado.toLocaleString()}</p>
         </div>
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
