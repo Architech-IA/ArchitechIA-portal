@@ -507,12 +507,16 @@ export default function MeetingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Ubicación</label>
-                  <input type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})}
-                    placeholder="Oficina, Virtual, Cliente..."
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                  <select value={form.location} onChange={e => setForm({...form, location: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
+                    <option value="">Seleccionar...</option>
+                    <option value="Presencial">Presencial</option>
+                    <option value="Virtual">Virtual</option>
+                    <option value="Otro">Otro</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Enlace (Meet/Zoom)</label>
+                  <label className="block text-sm text-gray-400 mb-1">Dirección (URL)</label>
                   <input type="url" value={form.link} onChange={e => setForm({...form, link: e.target.value})}
                     placeholder="https://meet.google.com/..."
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
