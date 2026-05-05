@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { toDatetimeLocalInput } from '@/lib/timezone';
 
 interface Meeting {
   id: string;
@@ -96,8 +97,8 @@ export default function MeetingsPage() {
     setFormError('');
     setForm({
       title: m.title, description: m.description || '', type: m.type,
-      date: new Date(m.date).toISOString().slice(0, 16),
-      endDate: m.endDate ? new Date(m.endDate).toISOString().slice(0, 16) : '',
+      date: toDatetimeLocalInput(m.date),
+      endDate: m.endDate ? toDatetimeLocalInput(m.endDate) : '',
       location: m.location || '', link: m.link || '', attendees: m.attendees || '',
       status: m.status, notes: m.notes || '',
       userId: m.userId,

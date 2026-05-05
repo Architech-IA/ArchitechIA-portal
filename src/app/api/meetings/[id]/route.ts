@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseUTC5, parseUTC5Nullable } from '@/lib/timezone';
 
 export async function PUT(
   request: NextRequest,
@@ -14,8 +15,8 @@ export async function PUT(
       where: { id },
       data: {
         title, description, type,
-        date: date ? new Date(date) : undefined,
-        endDate: endDate ? new Date(endDate) : null,
+        date: date ? parseUTC5(date) : undefined,
+        endDate: endDate ? parseUTC5Nullable(endDate) : null,
         location: location || null,
         link: link || null,
         attendees: attendees || null,
