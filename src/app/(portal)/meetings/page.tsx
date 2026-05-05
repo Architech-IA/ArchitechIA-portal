@@ -191,6 +191,20 @@ export default function MeetingsPage() {
 
   const dayMeetings = selectedDay ? meetings.filter(m => getDateStrUTC5(m.date) === selectedDay) : [];
 
+  const thisWeekMeetings = useMemo(() => {
+    const todayStr = getTodayStrUTC5();
+    const todayUTC5 = new Date(todayStr + 'T00:00:00-05:00');
+    const dayOfWeek = todayUTC5.getUTCDay();
+    const monday = new Date(todayUTC5.getTime() - dayOfWeek * 86400000);
+    const sunday = new Date(monday.getTime() + 7 * 86400000);
+    return meetings
+      .filter(m => {
+        const d = new Date(m.date);
+        return d >= monday && d < sunday;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [meetings]);
+
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
@@ -290,49 +304,98 @@ export default function MeetingsPage() {
             </div>
           </div>
 
-          {/* Panel del día seleccionado */}
+          {/* Panel del día / semana */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              {selectedDay
-                ? getWeekdayDateUTC5(selectedDay)
-                : 'Selecciona un día'}
-            </h3>
-            {selectedDay && dayMeetings.length === 0 && (
-              <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
-            )}
-            <div className="space-y-3">
-              {dayMeetings.map(m => (
-                <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="text-sm font-semibold text-white">{m.title}</h4>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${STATUS_COLORS[m.status]}`}>
-                      {translateStatus(m.status)}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-xs text-gray-400">
-                    <p>{getTimeStrUTC5(m.date)}
-                      {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
-                    </p>
-                    {m.location && <p>📍 {m.location}</p>}
-                    {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
-                    {m.attendees && <p>👥 {m.attendees}</p>}
-                    {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
-                    {m.actaFile && (
-                      <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
-                        📎 Descargar {m.actaFileName || 'acta'}
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button onClick={() => openEdit(m)} className="text-xs text-gray-400 hover:text-white">Editar</button>
-                    <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
-                      {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
-                    </button>
-                  </div>
+            {selectedDay ? (
+              <>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                  {getWeekdayDateUTC5(selectedDay)}
+                </h3>
+                {dayMeetings.length === 0 && (
+                  <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
+                )}
+                <div className="space-y-3">
+                  {dayMeetings.map(m => (
+                    <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="text-sm font-semibold text-white">{m.title}</h4>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${STATUS_COLORS[m.status]}`}>
+                          {translateStatus(m.status)}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs text-gray-400">
+                        <p>{getTimeStrUTC5(m.date)}
+                          {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
+                        </p>
+                        {m.location && <p>📍 {m.location}</p>}
+                        {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
+                        {m.attendees && <p>👥 {m.attendees}</p>}
+                        {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
+                        {m.actaFile && (
+                          <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
+                            📎 Descargar {m.actaFileName || 'acta'}
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => openEdit(m)} className="text-xs text-gray-400 hover:text-white">Editar</button>
+                        <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
+                          {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Esta Semana</h3>
+                {thisWeekMeetings.length === 0 ? (
+                  <p className="text-gray-500 text-sm">Sin reuniones esta semana.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {(function () {
+                      const grouped = new Map<string, typeof thisWeekMeetings>();
+                      for (const m of thisWeekMeetings) {
+                        const day = getDateStrUTC5(m.date);
+                        if (!grouped.has(day)) grouped.set(day, []);
+                        grouped.get(day)!.push(m);
+                      }
+                      return Array.from(grouped.entries()).map(([dateStr, dayMts]) => (
+                        <div key={dateStr}>
+                          <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase">
+                            {new Date(dateStr + 'T12:00:00-05:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Bogota' })}
+                          </h4>
+                          <div className="space-y-2">
+                            {dayMts.map(m => (
+                              <div key={m.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <div>
+                                    <h5 className="text-sm font-medium text-white leading-tight">{m.title}</h5>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      {getTimeStrUTC5(m.date)}
+                                      {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
+                                      <span className={`ml-2 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {m.attendees}</p>}
+                                <div className="flex gap-2 mt-2">
+                                  <button onClick={() => openEdit(m)} className="text-xs text-gray-500 hover:text-gray-300">Editar</button>
+                                  <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
+                                    {m.status === 'COMPLETED' ? 'Reabrir' : 'Completar'}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </>
+            )}
         </div>
       ) : (
         <>
