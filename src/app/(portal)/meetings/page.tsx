@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { toDatetimeLocalInput } from '@/lib/timezone';
+import { toDatetimeLocalInput, getDateStrUTC5, getTodayStrUTC5, getTimeStrUTC5, getDateFullUTC5, getDayUTC5, getWeekdayDateUTC5 } from '@/lib/timezone';
 
 interface Meeting {
   id: string;
@@ -167,12 +167,12 @@ export default function MeetingsPage() {
   const calendarDays = useMemo(() => {
     const firstDay = new Date(viewYear, viewMonth, 1).getDay();
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStrUTC5();
     const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayMeetings = meetings.filter(m => m.date.slice(0, 10) === dateStr);
+      const dayMeetings = meetings.filter(m => getDateStrUTC5(m.date) === dateStr);
       days.push({ day: d, date: dateStr, meetings: dayMeetings, isToday: dateStr === today });
     }
     return days;
@@ -189,7 +189,7 @@ export default function MeetingsPage() {
     });
   }, [meetings, filterType, search]);
 
-  const dayMeetings = selectedDay ? meetings.filter(m => m.date.slice(0, 10) === selectedDay) : [];
+  const dayMeetings = selectedDay ? meetings.filter(m => getDateStrUTC5(m.date) === selectedDay) : [];
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -223,10 +223,12 @@ export default function MeetingsPage() {
           { label: 'Programadas', value: meetings.filter(m => m.status === 'SCHEDULED').length, color: 'text-blue-400' },
           { label: 'Completadas', value: meetings.filter(m => m.status === 'COMPLETED').length, color: 'text-green-400' },
           { label: 'Esta semana', value: meetings.filter(m => {
+            const todayStr = getTodayStrUTC5();
+            const todayUTC5 = new Date(todayStr + 'T00:00:00-05:00');
+            const dayOfWeek = todayUTC5.getUTCDay();
+            const start = new Date(todayUTC5.getTime() - dayOfWeek * 86400000);
+            const end = new Date(start.getTime() + 7 * 86400000);
             const d = new Date(m.date);
-            const now = new Date();
-            const start = new Date(now); start.setDate(now.getDate() - now.getDay());
-            const end = new Date(start); end.setDate(start.getDate() + 7);
             return d >= start && d < end;
           }).length, color: 'text-orange-400' },
         ].map(k => (
@@ -292,7 +294,7 @@ export default function MeetingsPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
               {selectedDay
-                ? new Date(selectedDay + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+                ? getWeekdayDateUTC5(selectedDay)
                 : 'Selecciona un día'}
             </h3>
             {selectedDay && dayMeetings.length === 0 && (
@@ -308,8 +310,8 @@ export default function MeetingsPage() {
                     </span>
                   </div>
                   <div className="space-y-1.5 text-xs text-gray-400">
-                    <p>{new Date(m.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                      {m.endDate ? ` — ${new Date(m.endDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                    <p>{getTimeStrUTC5(m.date)}
+                      {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
                     </p>
                     {m.location && <p>📍 {m.location}</p>}
                     {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
@@ -353,7 +355,7 @@ export default function MeetingsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${m.status === 'COMPLETED' ? 'bg-green-900/30 text-green-400' : m.status === 'CANCELLED' ? 'bg-red-900/30 text-red-400' : 'bg-orange-900/30 text-orange-400'}`}>
-                      {new Date(m.date).getDate()}
+                      {getDayUTC5(m.date)}
                     </div>
                     <div>
                       <h3 className={`font-semibold text-white ${m.status === 'CANCELLED' ? 'line-through opacity-50' : ''}`}>{m.title}</h3>
@@ -372,7 +374,7 @@ export default function MeetingsPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-400">
-                  <p>📅 {new Date(m.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} {new Date(m.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p>📅 {getDateFullUTC5(m.date)} {getTimeStrUTC5(m.date)}</p>
                   {m.location && <p>📍 {m.location}</p>}
                   {m.attendees && <p>👥 {m.attendees}</p>}
                   <p>👤 {m.user.name}</p>
