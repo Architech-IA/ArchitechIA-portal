@@ -86,6 +86,12 @@ export default function ProposalDetailPage() {
   const [addingDoc, setAddingDoc] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [stageDocs, setStageDocs] = useState<Doc[]>([]);
+  const [stageNewDocName, setStageNewDocName] = useState('');
+  const [stageNewDocUrl, setStageNewDocUrl] = useState('');
+  const [stageNewDocType, setStageNewDocType] = useState('acta');
+  const [loadingStageDocs, setLoadingStageDocs] = useState(false);
 
   const fetchProposal = useCallback(async () => {
     const res = await fetch(`/api/proposals?id=${id}`);
@@ -136,6 +142,28 @@ export default function ProposalDetailPage() {
   const handleDeleteTask = async (taskId: string) => {
     await fetch(`/api/proposals/${proposal?.id}/tasks/${taskId}`, { method: 'DELETE' });
     fetchProposal();
+  };
+
+  const handleStageClick = async (stageKey: string) => {
+    if (selectedStage === stageKey) { setSelectedStage(null); return; }
+    setSelectedStage(stageKey);
+    setLoadingStageDocs(true);
+    const res = await fetch(`/api/proposals/${id}/documents?stage=${stageKey}`);
+    setStageDocs(await res.json());
+    setLoadingStageDocs(false);
+  };
+
+  const handleAddStageDoc = async () => {
+    if (!stageNewDocName.trim() || !stageNewDocUrl.trim() || !proposal) return;
+    setAddingDoc(true);
+    await fetch(`/api/proposals/${proposal.id}/documents`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: stageNewDocName, url: stageNewDocUrl, type: stageNewDocType, stage: selectedStage }),
+    });
+    setStageNewDocName('');
+    setStageNewDocUrl('');
+    setAddingDoc(false);
+    handleStageClick(selectedStage!);
   };
 
   const handleAddDocument = async () => {
@@ -245,24 +273,31 @@ export default function ProposalDetailPage() {
           const currentIdx = getLeadStageIndex(lead.status);
           return (
         <div className="mt-5 pt-4 border-t border-gray-800">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {lead.companyName}</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {lead.companyName} <span className="text-gray-600 ml-1">(click en una fase)</span></p>
           <div className="flex items-center overflow-x-auto pb-2">
             {LEAD_STAGES.filter(s => s.key !== 'LOST' || lead.status === 'LOST').map((stage, i, arr) => {
               const isCompleted = currentIdx >= 0 && i <= currentIdx && lead.status !== 'LOST';
               const isCurrent = i === currentIdx;
               const isLost = lead.status === 'LOST' && stage.key === 'LOST';
               const isPastLost = lead.status === 'LOST' && i < arr.length - 1;
+              const isSelected = selectedStage === stage.key;
               return (
                 <div key={stage.key} className="flex items-center flex-1 min-w-0">
                   <div className="flex flex-col items-center flex-1">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                      isLost ? 'bg-red-600 text-white' :
-                      isCompleted ? 'bg-green-600 text-white' :
-                      isCurrent ? 'bg-orange-500 text-white ring-2 ring-orange-500/30' :
-                      'bg-gray-700 text-gray-500'
-                    }`}>
+                    <button
+                      onClick={() => handleStageClick(stage.key)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                        isSelected ? 'ring-2 ring-white scale-110' : ''
+                      } ${
+                        isLost ? 'bg-red-600 text-white hover:bg-red-500' :
+                        isCompleted ? 'bg-green-600 text-white hover:bg-green-500' :
+                        isCurrent ? 'bg-orange-500 text-white ring-2 ring-orange-500/30 hover:bg-orange-400' :
+                        'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-white'
+                      }`}
+                      title={`${stage.label} — Click para ver/agregar documentos`}
+                    >
                       {isCompleted && !isCurrent ? '✓' : isLost ? '✗' : i + 1}
-                    </div>
+                    </button>
                     <span className={`text-[10px] mt-1 text-center leading-tight ${
                       isLost ? 'text-red-400' :
                       isCompleted ? 'text-green-400' :
@@ -283,6 +318,61 @@ export default function ProposalDetailPage() {
           </div>
         </div>
         );})()}
+        {/* Stage Detail Panel */}
+        {selectedStage && (
+          <div className="mt-4 p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">
+                📋 Fase: <span className="text-orange-400">{LEAD_STAGES.find(s => s.key === selectedStage)?.label}</span>
+              </h3>
+              <button onClick={() => setSelectedStage(null)} className="text-gray-500 hover:text-white">×</button>
+            </div>
+            {/* Upload new doc to stage */}
+            <div className="flex gap-2 flex-wrap mb-4">
+              <input type="text" value={stageNewDocName} onChange={e => setStageNewDocName(e.target.value)}
+                placeholder="Nombre del documento" className="flex-1 min-w-32 px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-orange-500" />
+              <input type="url" value={stageNewDocUrl} onChange={e => setStageNewDocUrl(e.target.value)}
+                placeholder="URL o enlace" className="flex-[2] min-w-48 px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-orange-500" />
+              <select value={stageNewDocType} onChange={e => setStageNewDocType(e.target.value)}
+                className="px-3 py-1.5 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white focus:ring-1 focus:ring-orange-500">
+                <option value="acta">Acta</option>
+                <option value="presentacion">Presentación</option>
+                <option value="correo">Correo</option>
+                <option value="contrato">Contrato</option>
+                <option value="documento">Documento</option>
+                <option value="otro">Otro</option>
+              </select>
+              <button onClick={handleAddStageDoc} disabled={addingDoc || !stageNewDocName.trim() || !stageNewDocUrl.trim()}
+                className="px-4 py-1.5 bg-orange-600 text-white rounded-lg text-xs hover:bg-orange-700 disabled:opacity-50">
+                Agregar
+              </button>
+            </div>
+            {/* Stage documents */}
+            {loadingStageDocs ? (
+              <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500" /></div>
+            ) : stageDocs.length === 0 ? (
+              <p className="text-gray-500 text-xs py-2">Sin documentos en esta fase. Agrega actas, presentaciones, correos, etc.</p>
+            ) : (
+              <div className="space-y-2">
+                {stageDocs.map(doc => (
+                  <div key={doc.id} className="flex items-center gap-3 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2">
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      doc.type === 'acta' ? 'bg-blue-900/30 text-blue-400' :
+                      doc.type === 'presentacion' ? 'bg-purple-900/30 text-purple-400' :
+                      doc.type === 'correo' ? 'bg-yellow-900/30 text-yellow-400' :
+                      doc.type === 'contrato' ? 'bg-green-900/30 text-green-400' :
+                      'bg-gray-700 text-gray-400'
+                    }`}>{doc.type}</span>
+                    <span className="flex-1 text-xs text-white truncate">{doc.name}</span>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300">Abrir</a>
+                    <button onClick={() => { fetch(`/api/proposals/${proposal.id}/documents`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ docId: doc.id }) }).then(() => handleStageClick(selectedStage)); }}
+                      className="text-gray-600 hover:text-red-400 text-xs">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

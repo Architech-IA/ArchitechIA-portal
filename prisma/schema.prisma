@@ -81,6 +81,7 @@ model ProposalDocument {
   name        String
   url         String
   type        String   @default("file")
+  stage       String?  // fase del pipeline: NEW, CONTACTED, QUALIFIED, etc.
   proposalId  String
   proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
