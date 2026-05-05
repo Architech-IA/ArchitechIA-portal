@@ -24,7 +24,7 @@ export async function PUT(
     const proposal = await prisma.proposal.update({
       where: { id },
       data: { title, description, status, amount: parseFloat(amount) || 0,
-        leadId, userId, sentDate: sentDate ? new Date(sentDate) : null },
+        leadId: leadId || null, userId, sentDate: sentDate ? new Date(sentDate) : null },
       include: { lead: true, user: { select: { id: true, name: true, email: true } } },
     });
 

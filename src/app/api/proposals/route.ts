@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   await logActivity({ type: 'CREATED', description: `creó la propuesta "${title}"`,
     entityType: 'proposal', entityId: proposal.id, userId, proposalId: proposal.id,
-    leadId });
+    leadId: leadId || null });
 
   return NextResponse.json(proposal);
 }

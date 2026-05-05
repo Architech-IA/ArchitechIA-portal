@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 interface Proposal {
   id: string; title: string; description: string; status: string;
   amount: number; sentDate: string | null; acceptedDate: string | null; createdAt: string;
-  lead: { id: string; companyName: string; contactName: string; email: string; status: string };
+  lead: { id: string; companyName: string; contactName: string; email: string; status: string } | null;
   user: { id: string; name: string; email: string };
   activities: Activity[];
   tasks: Task[];
@@ -240,15 +240,18 @@ export default function ProposalDetailPage() {
           </div>
         )}
         {/* Lead Pipeline Timeline */}
+        {proposal.lead && (() => {
+          const lead = proposal.lead;
+          const currentIdx = getLeadStageIndex(lead.status);
+          return (
         <div className="mt-5 pt-4 border-t border-gray-800">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {proposal.lead.companyName}</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pipeline del Lead — {lead.companyName}</p>
           <div className="flex items-center overflow-x-auto pb-2">
-            {LEAD_STAGES.filter(s => s.key !== 'LOST' || proposal.lead.status === 'LOST').map((stage, i, arr) => {
-              const currentIdx = getLeadStageIndex(proposal.lead.status);
-              const isCompleted = currentIdx >= 0 && i <= currentIdx && proposal.lead.status !== 'LOST';
+            {LEAD_STAGES.filter(s => s.key !== 'LOST' || lead.status === 'LOST').map((stage, i, arr) => {
+              const isCompleted = currentIdx >= 0 && i <= currentIdx && lead.status !== 'LOST';
               const isCurrent = i === currentIdx;
-              const isLost = proposal.lead.status === 'LOST' && stage.key === 'LOST';
-              const isPastLost = proposal.lead.status === 'LOST' && i < arr.length - 1;
+              const isLost = lead.status === 'LOST' && stage.key === 'LOST';
+              const isPastLost = lead.status === 'LOST' && i < arr.length - 1;
               return (
                 <div key={stage.key} className="flex items-center flex-1 min-w-0">
                   <div className="flex flex-col items-center flex-1">
@@ -279,6 +282,7 @@ export default function ProposalDetailPage() {
             })}
           </div>
         </div>
+        );})()}
       </div>
 
       {/* Tabs */}

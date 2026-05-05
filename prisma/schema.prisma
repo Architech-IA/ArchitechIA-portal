@@ -52,8 +52,8 @@ model Proposal {
   description   String
   status        ProposalStatus @default(DRAFT)
   amount        Float
-  leadId        String
-  lead          Lead      @relation(fields: [leadId], references: [id])
+  leadId        String?
+  lead          Lead?     @relation(fields: [leadId], references: [id])
   userId        String
   user          User      @relation(fields: [userId], references: [id])
   sentDate      DateTime?
