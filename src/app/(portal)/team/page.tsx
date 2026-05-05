@@ -7,6 +7,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  avatar: string | null;
   createdAt: string;
 }
 
@@ -152,8 +153,12 @@ export default function TeamPage() {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-400 to-amber-500 flex items-center justify-center text-white font-semibold text-lg">
-                  {user.name.charAt(0)}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-400 to-amber-500 flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')
+                  )}
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">{user.name}</h3>
@@ -188,8 +193,12 @@ export default function TeamPage() {
             <div className="bg-gradient-to-r from-orange-500 to-amber-600 p-6 text-white">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-3xl font-bold">
-                    {selectedUser.name.charAt(0)}
+                  <div className="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold overflow-hidden">
+                    {selectedUser.avatar ? (
+                      <img src={selectedUser.avatar} alt={selectedUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedUser.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')
+                    )}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">{selectedUser.name}</h2>

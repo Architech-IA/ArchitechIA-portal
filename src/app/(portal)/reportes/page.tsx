@@ -176,7 +176,7 @@ export default function ReportesPage() {
           {topSocios.map(s => (
             <div key={s.id} className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">{s.name?.charAt(0).toUpperCase()}</span>
+                <span className="text-white font-bold text-xs">{s.name?.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}</span>
               </div>
               <div>
                 <p className="text-white font-medium text-sm">{s.name}</p>

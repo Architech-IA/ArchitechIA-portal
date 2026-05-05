@@ -25,6 +25,13 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
   const email   = session?.user?.email ?? '';
   const role    = (session?.user as { role?: string })?.role ?? '';
   const userId  = (session?.user as { id?: string })?.id ?? '';
+  const avatar  = (session?.user as { avatar?: string | null })?.avatar ?? null;
+  const initials = name
+    .split(' ')
+    .filter(w => w.length > 0)
+    .slice(0, 2)
+    .map(w => w.charAt(0).toUpperCase())
+    .join('');
   const initial = name.charAt(0).toUpperCase();
 
   const handleLogout = async () => {
@@ -37,9 +44,13 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
       <div className="p-2 border-t border-gray-800 flex flex-col items-center gap-2">
         <div
           title={`${name} — ${ROLE_LABELS[role] ?? role}`}
-          className="w-9 h-9 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0"
+          className="w-9 h-9 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden"
         >
-          <span className="font-semibold text-black text-sm">{initial}</span>
+          {avatar ? (
+            <img src={avatar} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-semibold text-black text-xs">{initials}</span>
+          )}
         </div>
         <button
           onClick={handleLogout}
@@ -68,8 +79,12 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
   return (
     <div className="p-4 border-t border-gray-800">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0">
-          <span className="font-semibold text-black text-sm">{initial}</span>
+        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {avatar ? (
+            <img src={avatar} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-semibold text-black text-sm">{initials}</span>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-orange-400 text-sm truncate">{name}</p>

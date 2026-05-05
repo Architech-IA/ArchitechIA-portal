@@ -132,7 +132,7 @@ export default function Home() {
                   #{i + 1}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-black font-bold text-sm flex-shrink-0">
-                  {socio.name.charAt(0)}
+                  {socio.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{socio.name}</p>
@@ -346,7 +346,7 @@ export default function Home() {
           {data?.recentActivities.map(activity => (
             <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-800">
               <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-semibold text-orange-500">{activity.user.name.charAt(0)}</span>
+                <span className="text-xs font-semibold text-orange-500">{activity.user.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-300">

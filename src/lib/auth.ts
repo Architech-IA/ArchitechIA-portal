@@ -47,10 +47,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id:    user.id,
-          name:  user.name,
-          email: user.email,
-          role:  user.role,
+          id:     user.id,
+          name:   user.name,
+          email:  user.email,
+          role:   user.role,
+          avatar: user.avatar,
         };
       },
     }),
@@ -66,13 +67,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id   = user.id;
         token.role = (user as unknown as { role: string }).role;
+        token.avatar = (user as unknown as { avatar: string | null }).avatar;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string; role: string }).id   = token.id as string;
-        (session.user as { id: string; role: string }).role = token.role as string;
+        (session.user as { id: string; role: string; avatar: string | null }).id   = token.id as string;
+        (session.user as { id: string; role: string; avatar: string | null }).role = token.role as string;
+        (session.user as { id: string; role: string; avatar: string | null }).avatar = token.avatar as string | null;
       }
       return session;
     },
