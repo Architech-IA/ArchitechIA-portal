@@ -27,6 +27,7 @@ model User {
   projects      ProjectUser[]
   activities    Activity[]
   meetings      Meeting[]
+  prospectos    Prospecto[]
 }
 
 model Lead {
