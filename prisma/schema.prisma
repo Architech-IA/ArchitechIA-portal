@@ -45,8 +45,6 @@ model Lead {
   notes         String?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  sourceConnections NicheConnection[] @relation("NicheFrom")
-  targetConnections NicheConnection[] @relation("NicheTo")
   createdAt   DateTime @default(now())
   updatedAt     DateTime  @updatedAt
   
