@@ -28,6 +28,7 @@ model User {
   activities    Activity[]
   meetings      Meeting[]
   prospectos    Prospecto[]
+  nicheMarkets  NicheMarket[]
 }
 
 model Lead {
@@ -42,9 +43,11 @@ model Lead {
   scope         String?
   repository    String?
   notes         String?
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  createdAt     DateTime  @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  sourceConnections NicheConnection[] @relation("SourceConnections")
+  targetConnections NicheConnection[] @relation("TargetConnections")
+  createdAt   DateTime @default(now())
   updatedAt     DateTime  @updatedAt
   
   proposals     Proposal[]
