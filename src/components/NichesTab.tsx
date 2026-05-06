@@ -21,8 +21,8 @@ interface NicheNode {
 
 interface ConnEdge {
   id: string;
-  sourceId: string;
-  targetId: string;
+  fromId: string;
+  toId: string;
   label: string | null;
   strength: number;
 }
@@ -65,10 +65,10 @@ export default function NichesTab() {
     });
   }, []);
 
-  const handleConnect = useCallback(async (sourceId: string, targetId: string) => {
+  const handleConnect = useCallback(async (fromId: string, toId: string) => {
     const res = await fetch('/api/niches/connections', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceId, targetId, label: edgeLabel || null, strength: 1 }),
+      body: JSON.stringify({ fromId, toId, label: edgeLabel || null, strength: 1 }),
     });
     if (res.ok) {
       const conn = await res.json();
@@ -200,11 +200,11 @@ export default function NichesTab() {
               </button>
 
               {/* Connected edges */}
-              {edges.filter(e => e.sourceId === selected.id || e.targetId === selected.id).length > 0 && (
+              {edges.filter(e => e.fromId === selected.id || e.toId === selected.id).length > 0 && (
                 <div className="border-t border-gray-800 pt-3">
                   <p className="text-xs text-gray-500 mb-2">Conexiones</p>
-                  {edges.filter(e => e.sourceId === selected.id || e.targetId === selected.id).map(e => {
-                    const otherId = e.sourceId === selected.id ? e.targetId : e.sourceId;
+                  {edges.filter(e => e.fromId === selected.id || e.toId === selected.id).map(e => {
+                    const otherId = e.fromId === selected.id ? e.toId : e.fromId;
                     const other = nodes.find(n => n.id === otherId);
                     return (
                       <div key={e.id} className="flex items-center justify-between py-1">

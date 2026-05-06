@@ -35,7 +35,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await prisma.nicheConnection.deleteMany({ where: { OR: [{ sourceId: id }, { targetId: id }] } });
+  await prisma.nicheConnection.deleteMany({ where: { OR: [{ fromId: id }, { toId: id }] } });
   await prisma.nicheMarket.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

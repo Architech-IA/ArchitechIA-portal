@@ -19,8 +19,8 @@ interface NicheNode {
 
 interface ConnEdge {
   id: string;
-  sourceId: string;
-  targetId: string;
+  fromId: string;
+  toId: string;
   label: string | null;
   strength: number;
 }
@@ -150,8 +150,8 @@ export default function NicheGraph({
 
         {/* Edges */}
         {edges.map(edge => {
-          const src = getNodePosition(edge.sourceId);
-          const tgt = getNodePosition(edge.targetId);
+          const src = getNodePosition(edge.fromId);
+          const tgt = getNodePosition(edge.toId);
           if (!src.x && !src.y) return null;
           const particle = particles.find(p => p.edgeId === edge.id);
           const px = src.x + (tgt.x - src.x) * (particle?.progress || 0);
@@ -160,13 +160,13 @@ export default function NicheGraph({
             <g key={edge.id}>
               <line
                 x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
-                stroke={nodes.find(n => n.id === edge.sourceId)?.color || '#555'}
+                stroke={nodes.find(n => n.id === edge.fromId)?.color || '#555'}
                 strokeWidth={Math.max(1, edge.strength * 2)}
                 strokeOpacity={0.4}
               />
               {particle && (
                 <circle cx={px} cy={py} r={3}
-                  fill={nodes.find(n => n.id === edge.sourceId)?.color || '#f97316'}
+                  fill={nodes.find(n => n.id === edge.fromId)?.color || '#f97316'}
                   filter="url(#glow)" opacity={0.9}
                 />
               )}

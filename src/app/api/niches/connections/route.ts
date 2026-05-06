@@ -3,12 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { sourceId, targetId, label, strength } = body;
+  const { fromId, toId, label, strength } = body;
 
   const existing = await prisma.nicheConnection.findFirst({
     where: { OR: [
-      { sourceId, targetId },
-      { sourceId: targetId, targetId: sourceId },
+      { fromId, toId },
+      { fromId: toId, toId: fromId },
     ]},
   });
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   const connection = await prisma.nicheConnection.create({
-    data: { sourceId, targetId, label: label || null, strength: strength || 1 },
+    data: { fromId, toId, label: label || null, strength: strength || 1 },
   });
 
   return NextResponse.json(connection);
