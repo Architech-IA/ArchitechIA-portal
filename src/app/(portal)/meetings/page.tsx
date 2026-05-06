@@ -63,8 +63,6 @@ function translateStatus(s: string) {
   return ({ SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' } as Record<string, string>)[s] || s;
 }
 
-const isInternalType = (t: string) => t === 'INTERNAL_DAILY' || t === 'INTERNAL_WORKSHOP';
-
 function resolveAttendees(attendees: string | null, users: { name: string; email: string }[]): string {
   if (!attendees) return '';
   return attendees.split(',').map(a => {
@@ -95,7 +93,6 @@ export default function MeetingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
   const [actaFileBase64, setActaFileBase64] = useState('');
   const [actaFileNameState, setActaFileNameState] = useState('');
   const [externalAttendees, setExternalAttendees] = useState<string[]>([]);
@@ -115,7 +112,6 @@ export default function MeetingsPage() {
     const pad = (n: number) => String(n).padStart(2, '0');
     const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T09:00`;
     setForm({ ...EMPTY_FORM, date: today, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
-    setSelectedAttendees([]);
     setExternalAttendees([]);
     setAttendeeInput('');
     setActaFileBase64('');
@@ -134,8 +130,7 @@ export default function MeetingsPage() {
       status: m.status, notes: m.notes || '',
       userId: m.userId,
     });
-    setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
-    setExternalAttendees(!isInternalType(m.type) && m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setExternalAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
     setAttendeeInput('');
     setActaFileBase64(m.actaFile || '');
     setActaFileNameState(m.actaFileName || '');
@@ -149,7 +144,7 @@ export default function MeetingsPage() {
     try {
       const url = editMeeting ? `/api/meetings/${editMeeting.id}` : '/api/meetings';
       const method = editMeeting ? 'PUT' : 'POST';
-      const body = isInternalType(form.type) ? { ...form, attendees: selectedAttendees.join(', ') } : form;
+      const body = form;
       const payload = { ...body, actaFile: actaFileBase64 || null, actaFileName: actaFileNameState || null };
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) {
@@ -682,105 +677,86 @@ export default function MeetingsPage() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Asistentes</label>
-                {isInternalType(form.type) ? (
-                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 space-y-2">
-                    {users.filter(u => u.name !== 'Admin ArchiTechIA').map(u => (
-                      <label key={u.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
-                        <input
-                          type="checkbox"
-                          checked={selectedAttendees.includes(u.name)}
-                          onChange={e => {
-                            if (e.target.checked) setSelectedAttendees([...selectedAttendees, u.name]);
-                            else setSelectedAttendees(selectedAttendees.filter(a => a !== u.name));
-                          }}
-                          className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
-                        {u.name}
-                      </label>
-                    ))}
-                    {users.length === 0 && <p className="text-gray-500 text-xs">Cargando equipo...</p>}
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={attendeeInput}
-                      onChange={e => setAttendeeInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && attendeeInput.trim()) {
-                          e.preventDefault();
-                          const name = attendeeInput.trim();
-                          if (!externalAttendees.includes(name)) {
-                            const updated = [...externalAttendees, name];
-                            setExternalAttendees(updated);
-                            setForm({...form, attendees: updated.join(', ')});
-                          }
-                          setAttendeeInput('');
-                        }
-                        if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
-                          const updated = externalAttendees.slice(0, -1);
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={attendeeInput}
+                    onChange={e => setAttendeeInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && attendeeInput.trim()) {
+                        e.preventDefault();
+                        const name = attendeeInput.trim();
+                        if (!externalAttendees.includes(name)) {
+                          const updated = [...externalAttendees, name];
                           setExternalAttendees(updated);
                           setForm({...form, attendees: updated.join(', ')});
                         }
-                      }}
-                      placeholder="Nombre o email y presiona Enter..."
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
-                    {attendeeInput.trim() && (() => {
-                      const q = attendeeInput.trim().toLowerCase();
-                      const suggestions = users.filter(u =>
-                        u.role !== 'ADMIN' &&
-                        !externalAttendees.includes(u.email) &&
-                        !externalAttendees.includes(u.name) &&
-                        (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-                      ).slice(0, 5);
-                      if (suggestions.length === 0) return null;
-                      return (
-                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg overflow-hidden">
-                          {suggestions.map(u => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => {
-                                const updated = [...externalAttendees, u.email];
-                                setExternalAttendees(updated);
-                                setForm({...form, attendees: updated.join(', ')});
-                                setAttendeeInput('');
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center gap-3 transition-colors"
-                            >
-                              <span className="w-7 h-7 rounded-full bg-orange-900/30 text-orange-400 flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                                {u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                              </span>
-                              <div className="min-w-0">
-                                <p className="text-sm text-white truncate">{u.name}</p>
-                                <p className="text-xs text-gray-500 truncate">{u.email}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    {externalAttendees.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {externalAttendees.map((a, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
-                            {a}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = externalAttendees.filter((_, j) => j !== i);
-                                setExternalAttendees(updated);
-                                setForm({...form, attendees: updated.join(', ')});
-                              }}
-                              className="ml-0.5 text-orange-400 hover:text-white"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
+                        setAttendeeInput('');
+                      }
+                      if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
+                        const updated = externalAttendees.slice(0, -1);
+                        setExternalAttendees(updated);
+                        setForm({...form, attendees: updated.join(', ')});
+                      }
+                    }}
+                    placeholder="Nombre o email y presiona Enter..."
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                  {attendeeInput.trim() && (() => {
+                    const q = attendeeInput.trim().toLowerCase();
+                    const suggestions = users.filter(u =>
+                      u.role !== 'ADMIN' &&
+                      !externalAttendees.includes(u.email) &&
+                      !externalAttendees.includes(u.name) &&
+                      (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+                    ).slice(0, 5);
+                    if (suggestions.length === 0) return null;
+                    return (
+                      <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                        {suggestions.map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => {
+                              const updated = [...externalAttendees, u.email];
+                              setExternalAttendees(updated);
+                              setForm({...form, attendees: updated.join(', ')});
+                              setAttendeeInput('');
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                          >
+                            <span className="w-7 h-7 rounded-full bg-orange-900/30 text-orange-400 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                              {u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm text-white truncate">{u.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                            </div>
+                          </button>
                         ))}
                       </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  })()}
+                  {externalAttendees.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {externalAttendees.map((a, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
+                          {a}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = externalAttendees.filter((_, j) => j !== i);
+                              setExternalAttendees(updated);
+                              setForm({...form, attendees: updated.join(', ')});
+                            }}
+                            className="ml-0.5 text-orange-400 hover:text-white"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               {form.type !== 'INTERNAL_DAILY' && (
                 <div>
