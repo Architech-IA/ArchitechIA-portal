@@ -123,7 +123,7 @@ export default function ClientesPage() {
         <button onClick={() => setActiveTab('prospeccion')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'prospeccion' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Prospección</button>
       </div>
 
-      {activeTab === 'clientes' ? (
+      {activeTab === 'clientes' && (
         <>
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
@@ -320,9 +320,10 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
-      ) : (
-        <ProspeccionTab />
+        </>
       )}
+
+      {activeTab === 'prospeccion' && <ProspeccionTab />}
     </div>
   );
 }
