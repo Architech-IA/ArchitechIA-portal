@@ -468,7 +468,7 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      {activeTab === 'lista' ? (
+      {activeTab === 'lista' && (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-4 gap-4 mb-6">
@@ -791,11 +791,11 @@ export default function LeadsPage() {
             )}
           </div>
         </>
-      ) : (
-        <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />
-      ) : (
-        <ProposalsTab isAdmin={isAdmin} />
       )}
+
+      {activeTab === 'pipeline' && <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />}
+
+      {activeTab === 'propuestas' && <ProposalsTab isAdmin={isAdmin} />}
 
       {/* Modal crear / editar */}
       {showModal && (
