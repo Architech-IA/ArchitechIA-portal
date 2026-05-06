@@ -293,3 +293,22 @@ model Meeting {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model Prospecto {
+  id          String   @id @default(cuid())
+  empresa     String
+  industria   String
+  nicho       String?
+  contacto    String?
+  email       String?
+  telefono    String?
+  pais        String?
+  fuente      String   @default("LinkedIn")
+  estado      String   @default("Identificado")
+  prioridad   String   @default("Media")
+  notas       String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
