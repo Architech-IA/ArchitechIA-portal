@@ -29,6 +29,7 @@ model User {
   meetings      Meeting[]
   prospectos    Prospecto[]
   nicheMarkets  NicheMarket[]
+  comments      Comment[]
 }
 
 model Lead {
@@ -339,5 +340,29 @@ model NicheConnection {
   toId        String
   label       String?
   strength    Float    @default(1)
+  createdAt   DateTime @default(now())
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  text        String
+  entityType  String
+  entityId    String
+  parentId    String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentReplies")
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  title       String
+  message     String
+  link        String?
+  read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 }

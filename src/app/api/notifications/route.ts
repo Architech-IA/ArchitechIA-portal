@@ -1,71 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
-  const hoy     = new Date();
-  const hace7d  = new Date(hoy); hace7d.setDate(hoy.getDate() - 7);
-  const hace5d  = new Date(hoy); hace5d.setDate(hoy.getDate() - 5);
-  const en7d    = new Date(hoy); en7d.setDate(hoy.getDate() + 7);
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+  const notifs = await prisma.notification.findMany({
+    where: userId ? { userId } : {},
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  return NextResponse.json(notifs);
+}
 
-  const [leadsInactivos, propuestasSinRespuesta, proximosDeadlines, registrosPendientes] =
-    await Promise.all([
-      prisma.lead.findMany({
-        where: { status: { notIn: ['WON', 'LOST'] }, updatedAt: { lt: hace7d } },
-        select: { id: true, companyName: true, updatedAt: true },
-        take: 5,
-      }),
-      prisma.proposal.findMany({
-        where: { status: 'SENT', sentDate: { lt: hace5d } },
-        select: { id: true, title: true, sentDate: true },
-        take: 5,
-      }),
-      prisma.project.findMany({
-        where: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, endDate: { lte: en7d, gte: hoy } },
-        select: { id: true, name: true, endDate: true, priority: true },
-        orderBy: { endDate: 'asc' },
-        take: 5,
-      }),
-      prisma.registroFinanciero.findMany({
-        where: { estado: 'pendiente' },
-        select: { id: true, concepto: true, monto: true, moneda: true },
-        take: 5,
-      }),
-    ]);
+export async function POST(request: NextRequest) {
+  const { userId, type, title, message, link } = await request.json();
+  const notif = await prisma.notification.create({
+    data: { userId, type: type || 'info', title, message, link: link || null },
+  });
+  return NextResponse.json(notif);
+}
 
-  const notifs = [
-    ...leadsInactivos.map(l => ({
-      id:    `lead-${l.id}`,
-      tipo:  'lead' as const,
-      texto: `Lead sin actividad: ${l.companyName}`,
-      sub:   `Sin actualizar desde hace ${Math.floor((hoy.getTime() - new Date(l.updatedAt).getTime()) / 86400000)} días`,
-      href:  '/leads',
-      leida: false,
-    })),
-    ...propuestasSinRespuesta.map(p => ({
-      id:    `prop-${p.id}`,
-      tipo:  'propuesta' as const,
-      texto: `Propuesta sin respuesta: ${p.title}`,
-      sub:   `Enviada hace ${Math.floor((hoy.getTime() - new Date(p.sentDate!).getTime()) / 86400000)} días`,
-      href:  '/proposals',
-      leida: false,
-    })),
-    ...proximosDeadlines.map(p => ({
-      id:    `proj-${p.id}`,
-      tipo:  'proyecto' as const,
-      texto: `Deadline próximo: ${p.name}`,
-      sub:   `Vence el ${new Date(p.endDate!).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`,
-      href:  '/projects',
-      leida: false,
-    })),
-    ...registrosPendientes.map(r => ({
-      id:    `fin-${r.id}`,
-      tipo:  'finanza' as const,
-      texto: `Pago pendiente: ${r.concepto}`,
-      sub:   `${r.moneda === 'EUR' ? '€' : '$'}${r.monto.toLocaleString()} ${r.moneda}`,
-      href:  '/finanzas',
-      leida: false,
-    })),
-  ];
-
-  return NextResponse.json({ notifs, total: notifs.length });
+export async function PATCH(request: NextRequest) {
+  const { id, read } = await request.json();
+  if (id) {
+    await prisma.notification.update({ where: { id }, data: { read } });
+  } else {
+    const { userId } = await request.json();
+    if (userId) {
+      await prisma.notification.updateMany({ where: { userId, read: false }, data: { read: true } });
+    }
+  }
+  return NextResponse.json({ ok: true });
 }

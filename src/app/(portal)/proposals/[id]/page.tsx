@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import CommentsSection from '@/components/CommentsSection';
 
 interface Proposal {
   id: string; title: string; description: string; status: string;
@@ -77,7 +78,7 @@ export default function ProposalDetailPage() {
 
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'timeline' | 'tareas' | 'documentos'>('timeline');
+  const [tab, setTab] = useState<'timeline' | 'tareas' | 'documentos' | 'comentarios'>('timeline');
   const [newTask, setNewTask] = useState('');
   const [addingTask, setAddingTask] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
@@ -463,6 +464,7 @@ export default function ProposalDetailPage() {
           { key: 'timeline' as const, label: 'Timeline' },
           { key: 'tareas' as const, label: `Tareas (${proposal.tasks.filter(t => !t.completed).length} pend.)` },
           { key: 'documentos' as const, label: `Documentos (${proposal.documents.length})` },
+          { key: 'comentarios' as const, label: 'Comentarios' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
@@ -590,6 +592,13 @@ export default function ProposalDetailPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Comentarios */}
+      {tab === 'comentarios' && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <CommentsSection entityType="proposal" entityId={proposal.id} />
         </div>
       )}
     </div>
