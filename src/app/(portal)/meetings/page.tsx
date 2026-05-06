@@ -56,7 +56,7 @@ const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 export default function MeetingsPage() {
   const { data: session } = useSession();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'calendario' | 'lista'>('calendario');
   const [showModal, setShowModal] = useState(false);
@@ -674,34 +674,67 @@ export default function MeetingsPage() {
                     {users.length === 0 && <p className="text-gray-500 text-xs">Cargando equipo...</p>}
                   </div>
                 ) : (
-                  <div>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={attendeeInput}
-                        onChange={e => setAttendeeInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && attendeeInput.trim()) {
-                            e.preventDefault();
-                            const name = attendeeInput.trim();
-                            if (!externalAttendees.includes(name)) {
-                              const updated = [...externalAttendees, name];
-                              setExternalAttendees(updated);
-                              setForm({...form, attendees: updated.join(', ')});
-                            }
-                            setAttendeeInput('');
-                          }
-                          if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
-                            const updated = externalAttendees.slice(0, -1);
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={attendeeInput}
+                      onChange={e => setAttendeeInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && attendeeInput.trim()) {
+                          e.preventDefault();
+                          const name = attendeeInput.trim();
+                          if (!externalAttendees.includes(name)) {
+                            const updated = [...externalAttendees, name];
                             setExternalAttendees(updated);
                             setForm({...form, attendees: updated.join(', ')});
                           }
-                        }}
-                        placeholder="Nombre o email y presiona Enter..."
-                        className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
-                    </div>
+                          setAttendeeInput('');
+                        }
+                        if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
+                          const updated = externalAttendees.slice(0, -1);
+                          setExternalAttendees(updated);
+                          setForm({...form, attendees: updated.join(', ')});
+                        }
+                      }}
+                      placeholder="Nombre o email y presiona Enter..."
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                    {attendeeInput.trim() && (() => {
+                      const q = attendeeInput.trim().toLowerCase();
+                      const suggestions = users.filter(u =>
+                        u.role !== 'ADMIN' &&
+                        !externalAttendees.includes(u.email) &&
+                        !externalAttendees.includes(u.name) &&
+                        (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+                      ).slice(0, 5);
+                      if (suggestions.length === 0) return null;
+                      return (
+                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                          {suggestions.map(u => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                const updated = [...externalAttendees, u.email];
+                                setExternalAttendees(updated);
+                                setForm({...form, attendees: updated.join(', ')});
+                                setAttendeeInput('');
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                            >
+                              <span className="w-7 h-7 rounded-full bg-orange-900/30 text-orange-400 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                                {u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm text-white truncate">{u.name}</p>
+                                <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {externalAttendees.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5 mt-2">
                         {externalAttendees.map((a, i) => (
                           <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
                             {a}
