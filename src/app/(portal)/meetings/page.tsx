@@ -57,6 +57,15 @@ function translateStatus(s: string) {
 
 const isInternalType = (t: string) => t === 'INTERNAL_DAILY' || t === 'INTERNAL_WORKSHOP';
 
+function resolveAttendees(attendees: string | null, users: { name: string; email: string }[]): string {
+  if (!attendees) return '';
+  return attendees.split(',').map(a => {
+    const trimmed = a.trim();
+    const user = users.find(u => u.email === trimmed);
+    return user ? user.name : trimmed;
+  }).join(', ');
+}
+
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
@@ -345,7 +354,7 @@ export default function MeetingsPage() {
                         </p>
                         {m.location && <p>📍 {m.location}</p>}
                         {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
-                        {m.attendees && <p>👥 {m.attendees}</p>}
+                        {m.attendees && <p>👥 {resolveAttendees(m.attendees, users)}</p>}
                         {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
                         {m.actaFile && (
                           <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
@@ -395,7 +404,7 @@ export default function MeetingsPage() {
                                     </p>
                                   </div>
                                 </div>
-                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {m.attendees}</p>}
+                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {resolveAttendees(m.attendees, users)}</p>}
                                 <div className="flex gap-2 mt-2">
                                   <button onClick={() => openEdit(m)} className="text-xs text-gray-500 hover:text-gray-300">Editar</button>
                                   <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
@@ -456,7 +465,7 @@ export default function MeetingsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-400">
                   <p>📅 {getDateFullUTC5(m.date)} {getTimeStrUTC5(m.date)}</p>
                   {m.location && <p>📍 {m.location}</p>}
-                  {m.attendees && <p>👥 {m.attendees}</p>}
+                  {m.attendees && <p>👥 {resolveAttendees(m.attendees, users)}</p>}
                   <p>👤 {m.user.name}</p>
                 </div>
                 {m.notes && (
