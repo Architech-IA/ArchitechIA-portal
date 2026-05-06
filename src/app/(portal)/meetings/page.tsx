@@ -24,20 +24,33 @@ interface Meeting {
 }
 
 const EMPTY_FORM = {
-  title: '', description: '', type: 'INTERNAL',
+  title: '', description: '', type: 'INTERNAL_DAILY',
   date: '', endDate: '', location: '', link: '',
   attendees: '', status: 'SCHEDULED', notes: '', userId: '',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  INTERNAL:    'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  CLIENT:      'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  APPOINTMENT: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  OTHER:       'bg-gray-500/20 text-gray-400 border-gray-500/30',
+  INTERNAL_DAILY:    'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  INTERNAL_WORKSHOP: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  COMMERCIAL:        'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  ADVISORY:          'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  PROVIDER:          'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  INTERNAL: 'Reunión Interna', CLIENT: 'Cliente', APPOINTMENT: 'Cita', OTHER: 'Otro',
+  INTERNAL_DAILY: 'Reunión Interna - Daily',
+  INTERNAL_WORKSHOP: 'Reunión Interna - Workshop',
+  COMMERCIAL: 'Comercial',
+  ADVISORY: 'Asesoría',
+  PROVIDER: 'Proveedores',
+};
+
+const TYPE_SHORT: Record<string, string> = {
+  INTERNAL_DAILY: 'Daily',
+  INTERNAL_WORKSHOP: 'Workshop',
+  COMMERCIAL: 'Comercial',
+  ADVISORY: 'Asesoría',
+  PROVIDER: 'Proveedores',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -50,13 +63,22 @@ function translateStatus(s: string) {
   return ({ SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' } as Record<string, string>)[s] || s;
 }
 
+function resolveAttendees(attendees: string | null, users: { name: string; email: string }[]): string {
+  if (!attendees) return '';
+  return attendees.split(',').map(a => {
+    const trimmed = a.trim();
+    const user = users.find(u => u.email === trimmed);
+    return user ? user.name : trimmed;
+  }).join(', ');
+}
+
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
 export default function MeetingsPage() {
   const { data: session } = useSession();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'calendario' | 'lista'>('calendario');
   const [showModal, setShowModal] = useState(false);
@@ -71,9 +93,10 @@ export default function MeetingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
   const [actaFileBase64, setActaFileBase64] = useState('');
   const [actaFileNameState, setActaFileNameState] = useState('');
+  const [externalAttendees, setExternalAttendees] = useState<string[]>([]);
+  const [attendeeInput, setAttendeeInput] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -85,8 +108,12 @@ export default function MeetingsPage() {
   const openNew = () => {
     setEditMeeting(null);
     setFormError('');
-    setForm({ ...EMPTY_FORM, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
-    setSelectedAttendees([]);
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T09:00`;
+    setForm({ ...EMPTY_FORM, date: today, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
+    setExternalAttendees([]);
+    setAttendeeInput('');
     setActaFileBase64('');
     setActaFileNameState('');
     setShowModal(true);
@@ -103,7 +130,8 @@ export default function MeetingsPage() {
       status: m.status, notes: m.notes || '',
       userId: m.userId,
     });
-    setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setExternalAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setAttendeeInput('');
     setActaFileBase64(m.actaFile || '');
     setActaFileNameState(m.actaFileName || '');
     setShowModal(true);
@@ -116,7 +144,7 @@ export default function MeetingsPage() {
     try {
       const url = editMeeting ? `/api/meetings/${editMeeting.id}` : '/api/meetings';
       const method = editMeeting ? 'PUT' : 'POST';
-      const body = form.type === 'INTERNAL' ? { ...form, attendees: selectedAttendees.join(', ') } : form;
+      const body = form;
       const payload = { ...body, actaFile: actaFileBase64 || null, actaFileName: actaFileNameState || null };
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) {
@@ -216,11 +244,11 @@ export default function MeetingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Meetings</h1>
+          <h1 className="text-3xl font-bold text-white">Calendario</h1>
           <p className="text-gray-400 mt-1">Calendario de reuniones, citas y actas</p>
         </div>
         <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
-          + Nueva Reunión
+          + Nuevo Evento
         </button>
       </div>
 
@@ -233,7 +261,7 @@ export default function MeetingsPage() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total reuniones', value: meetings.length, color: 'text-white' },
+          { label: 'Total eventos', value: meetings.length, color: 'text-white' },
           { label: 'Programadas', value: meetings.filter(m => m.status === 'SCHEDULED').length, color: 'text-blue-400' },
           { label: 'Completadas', value: meetings.filter(m => m.status === 'COMPLETED').length, color: 'text-green-400' },
           { label: 'Esta semana', value: meetings.filter(m => {
@@ -312,7 +340,7 @@ export default function MeetingsPage() {
                   {getWeekdayDateUTC5(selectedDay)}
                 </h3>
                 {dayMeetings.length === 0 && (
-                  <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
+                  <p className="text-gray-500 text-sm">Sin eventos este día.</p>
                 )}
                 <div className="space-y-3">
                   {dayMeetings.map(m => (
@@ -329,7 +357,7 @@ export default function MeetingsPage() {
                         </p>
                         {m.location && <p>📍 {m.location}</p>}
                         {m.link && <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 block">🔗 Enlace</a>}
-                        {m.attendees && <p>👥 {m.attendees}</p>}
+                        {m.attendees && <p>👥 {resolveAttendees(m.attendees, users)}</p>}
                         {m.notes && <p className="text-gray-500 mt-1 italic border-t border-gray-700 pt-1">📝 {m.notes.slice(0, 150)}{m.notes.length > 150 ? '...' : ''}</p>}
                         {m.actaFile && (
                           <a href={m.actaFile} download={m.actaFileName || 'acta'} className="text-xs text-orange-400 hover:text-orange-300 mt-1 block">
@@ -351,7 +379,7 @@ export default function MeetingsPage() {
               <>
                 <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Esta Semana</h3>
                 {thisWeekMeetings.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Sin reuniones esta semana.</p>
+                  <p className="text-gray-500 text-sm">Sin eventos esta semana.</p>
                 ) : (
                   <div className="space-y-4">
                     {(function () {
@@ -375,11 +403,12 @@ export default function MeetingsPage() {
                                     <p className="text-xs text-gray-400 mt-0.5">
                                       {getTimeStrUTC5(m.date)}
                                       {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
-                                      <span className={`ml-2 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
+                                      <span className={`ml-1.5 px-1 py-0.5 rounded text-xs ${TYPE_COLORS[m.type] || 'bg-gray-700 text-gray-400'}`}>{TYPE_SHORT[m.type] || m.type}</span>
+                                      <span className={`ml-1.5 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
                                     </p>
                                   </div>
                                 </div>
-                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {m.attendees}</p>}
+                                {m.attendees && <p className="text-xs text-gray-500 mt-1">👥 {resolveAttendees(m.attendees, users)}</p>}
                                 <div className="flex gap-2 mt-2">
                                   <button onClick={() => openEdit(m)} className="text-xs text-gray-500 hover:text-gray-300">Editar</button>
                                   <button onClick={() => handleStatusToggle(m)} className={`text-xs ${m.status === 'COMPLETED' ? 'text-blue-400 hover:text-blue-300' : 'text-green-400 hover:text-green-300'}`}>
@@ -404,7 +433,7 @@ export default function MeetingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 mb-6 flex gap-3 flex-wrap items-center">
             <input type="text" placeholder="Buscar por título o asistentes..." value={search} onChange={e => setSearch(e.target.value)}
               className="flex-1 min-w-48 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500" />
-            {['', 'INTERNAL', 'CLIENT', 'APPOINTMENT', 'OTHER'].map(t => (
+            {['', 'INTERNAL_DAILY', 'INTERNAL_WORKSHOP', 'COMMERCIAL', 'ADVISORY', 'PROVIDER'].map(t => (
               <button key={t} onClick={() => setFilterType(t)}
                 className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${filterType === t ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
                 {t === '' ? 'Todas' : TYPE_LABELS[t]}
@@ -440,7 +469,7 @@ export default function MeetingsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-400">
                   <p>📅 {getDateFullUTC5(m.date)} {getTimeStrUTC5(m.date)}</p>
                   {m.location && <p>📍 {m.location}</p>}
-                  {m.attendees && <p>👥 {m.attendees}</p>}
+                  {m.attendees && <p>👥 {resolveAttendees(m.attendees, users)}</p>}
                   <p>👤 {m.user.name}</p>
                 </div>
                 {m.notes && (
@@ -456,8 +485,8 @@ export default function MeetingsPage() {
             ))}
             {filtered.length === 0 && (
               <div className="text-center py-16 text-gray-500">
-                <p className="text-lg mb-2">No hay reuniones</p>
-                <p className="text-sm">Crea tu primera reunión con el botón "Nueva Reunión".</p>
+                <p className="text-lg mb-2">No hay eventos</p>
+                <p className="text-sm">Crea tu primer evento con el botón "Nuevo Evento".</p>
               </div>
             )}
           </div>
@@ -469,7 +498,7 @@ export default function MeetingsPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-700">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white">{editMeeting ? 'Editar Reunión' : 'Nueva Reunión'}</h2>
+              <h2 className="text-lg font-bold text-white">{editMeeting ? 'Editar Evento' : 'Nuevo Evento'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -485,23 +514,147 @@ export default function MeetingsPage() {
                   <label className="block text-sm text-gray-400 mb-1">Tipo</label>
                   <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
-                    <option value="INTERNAL">Reunión Interna</option>
-                    <option value="CLIENT">Cliente</option>
-                    <option value="APPOINTMENT">Cita</option>
-                    <option value="OTHER">Otro</option>
+                    <option value="INTERNAL_DAILY">Reunión Interna - Daily</option>
+                    <option value="INTERNAL_WORKSHOP">Reunión Interna - Workshop</option>
+                    <option value="COMMERCIAL">Comercial</option>
+                    <option value="ADVISORY">Asesoría</option>
+                    <option value="PROVIDER">Proveedores</option>
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
+                {/* Fecha */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Fecha y hora</label>
-                  <input type="datetime-local" required value={form.date} onChange={e => setForm({...form, date: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm [color-scheme:dark]" />
+                  <label className="block text-sm text-gray-400 mb-2">Fecha</label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </div>
+                      <input type="date" required value={form.date ? form.date.slice(0, 10) : ''}
+                        onChange={e => {
+                          const time = form.date ? form.date.slice(11, 16) : '09:00';
+                          setForm({...form, date: `${e.target.value}T${time}`});
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm [color-scheme:dark]" />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <select value={form.date ? form.date.slice(11, 13) : '09'}
+                        onChange={e => {
+                          const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                          const min = form.date ? form.date.slice(14, 16) : '00';
+                          setForm({...form, date: `${date}T${e.target.value}:${min}`});
+                        }}
+                        className="w-16 px-2 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm text-center">
+                        {Array.from({length: 24}, (_, i) => String(i).padStart(2, '0')).map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                      <span className="text-gray-500 text-sm">:</span>
+                      <select value={form.date ? form.date.slice(14, 16) : '00'}
+                        onChange={e => {
+                          const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                          const hour = form.date ? form.date.slice(11, 13) : '09';
+                          setForm({...form, date: `${date}T${hour}:${e.target.value}`});
+                        }}
+                        className="w-16 px-2 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm text-center">
+                        {['00','15','30','45'].map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <span className="text-xs text-gray-500 ml-1">hrs</span>
+                    </div>
+                  </div>
+                  {form.date && (
+                    <p className="text-xs text-orange-400/60 mt-1.5">
+                      {new Date(form.date + ':00-05:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                  )}
                 </div>
+
+                {/* Fin */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Fin (opcional)</label>
-                  <input type="datetime-local" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm [color-scheme:dark]" />
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="text-sm text-gray-400">Fin</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (form.endDate) {
+                          setForm({...form, endDate: ''});
+                        } else if (form.date) {
+                          const startDate = form.date.slice(0, 10);
+                          const startHour = parseInt(form.date.slice(11, 13));
+                          const startMin = form.date.slice(14, 16);
+                          const endHour = startHour + 1;
+                          setForm({...form, endDate: `${startDate}T${String(endHour).padStart(2, '0')}:${startMin}`});
+                        }
+                      }}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.endDate ? 'bg-orange-600' : 'bg-gray-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.endDate ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                    {form.endDate && (
+                      <span className="text-xs text-gray-500">(opcional)</span>
+                    )}
+                  </div>
+                  {form.endDate ? (
+                    <div className="flex gap-3">
+                      <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                        <input type="date" value={form.endDate.slice(0, 10)}
+                          onChange={e => {
+                            const time = form.endDate.slice(11, 16) || '10:00';
+                            setForm({...form, endDate: `${e.target.value}T${time}`});
+                          }}
+                          className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm [color-scheme:dark]" />
+                      </div>
+                      <select value={form.endDate.slice(11, 13) || '10'}
+                        onChange={e => {
+                          const date = form.endDate.slice(0, 10);
+                          const min = form.endDate.slice(14, 16) || '00';
+                          setForm({...form, endDate: `${date}T${e.target.value}:${min}`});
+                        }}
+                        className="w-16 px-2 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm text-center">
+                        {Array.from({length: 24}, (_, i) => String(i).padStart(2, '0')).map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                      <span className="text-gray-500 text-sm self-center">:</span>
+                      <select value={form.endDate.slice(14, 16) || '00'}
+                        onChange={e => {
+                          const date = form.endDate.slice(0, 10);
+                          const hour = form.endDate.slice(11, 13) || '10';
+                          setForm({...form, endDate: `${date}T${hour}:${e.target.value}`});
+                        }}
+                        className="w-16 px-2 py-2.5 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm text-center">
+                        {['00','15','30','45'].map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                  ) : form.date ? (
+                    <div className="flex gap-2">
+                      {[
+                        { label: '30 min', mins: 30 },
+                        { label: '1 h', mins: 60 },
+                        { label: '1.5 h', mins: 90 },
+                        { label: '2 h', mins: 120 },
+                      ].map(p => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            const startDate = form.date.slice(0, 10);
+                            const startHour = parseInt(form.date.slice(11, 13));
+                            const startMin = parseInt(form.date.slice(14, 16));
+                            const totalMin = startHour * 60 + startMin + p.mins;
+                            const endH = Math.floor(totalMin / 60) % 24;
+                            const endM = totalMin % 60;
+                            setForm({...form, endDate: `${startDate}T${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`});
+                          }}
+                          className="px-3 py-1.5 text-xs bg-gray-800 border border-gray-700 text-gray-400 rounded-lg hover:border-orange-500/50 hover:text-orange-400 transition-colors"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-600">Selecciona primero la fecha de inicio</p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -524,34 +677,94 @@ export default function MeetingsPage() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Asistentes</label>
-                {form.type === 'INTERNAL' ? (
-                  <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 space-y-2">
-                    {users.filter(u => u.name !== 'Admin ArchiTechIA').map(u => (
-                      <label key={u.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
-                        <input
-                          type="checkbox"
-                          checked={selectedAttendees.includes(u.name)}
-                          onChange={e => {
-                            if (e.target.checked) setSelectedAttendees([...selectedAttendees, u.name]);
-                            else setSelectedAttendees(selectedAttendees.filter(a => a !== u.name));
-                          }}
-                          className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
-                        {u.name}
-                      </label>
-                    ))}
-                    {users.length === 0 && <p className="text-gray-500 text-xs">Cargando equipo...</p>}
-                  </div>
-                ) : (
-                  <input type="text" value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
-                    placeholder="Nombres separados por coma..."
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={attendeeInput}
+                    onChange={e => setAttendeeInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && attendeeInput.trim()) {
+                        e.preventDefault();
+                        const name = attendeeInput.trim();
+                        if (!externalAttendees.includes(name)) {
+                          const updated = [...externalAttendees, name];
+                          setExternalAttendees(updated);
+                          setForm({...form, attendees: updated.join(', ')});
+                        }
+                        setAttendeeInput('');
+                      }
+                      if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
+                        const updated = externalAttendees.slice(0, -1);
+                        setExternalAttendees(updated);
+                        setForm({...form, attendees: updated.join(', ')});
+                      }
+                    }}
+                    placeholder="Nombre o email y presiona Enter..."
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
-                )}
+                  {attendeeInput.trim() && (() => {
+                    const q = attendeeInput.trim().toLowerCase();
+                    const suggestions = users.filter(u =>
+                      u.role !== 'ADMIN' &&
+                      !externalAttendees.includes(u.email) &&
+                      !externalAttendees.includes(u.name) &&
+                      (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+                    ).slice(0, 5);
+                    if (suggestions.length === 0) return null;
+                    return (
+                      <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                        {suggestions.map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => {
+                              const updated = [...externalAttendees, u.email];
+                              setExternalAttendees(updated);
+                              setForm({...form, attendees: updated.join(', ')});
+                              setAttendeeInput('');
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                          >
+                            <span className="w-7 h-7 rounded-full bg-orange-900/30 text-orange-400 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                              {u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm text-white truncate">{u.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  {externalAttendees.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {externalAttendees.map((a, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
+                          {a}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = externalAttendees.filter((_, j) => j !== i);
+                              setExternalAttendees(updated);
+                              setForm({...form, attendees: updated.join(', ')});
+                            }}
+                            className="ml-0.5 text-orange-400 hover:text-white"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Descripción</label>
-                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
-              </div>
+              {form.type !== 'INTERNAL_DAILY' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Descripción</label>
+                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Acta / Notas de reunión</label>
                 <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={4}
@@ -585,7 +798,7 @@ export default function MeetingsPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 text-gray-300 text-sm">Cancelar</button>
                 <button type="submit" disabled={saving} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-60 text-sm font-medium flex items-center gap-2">
                   {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {editMeeting ? 'Guardar Cambios' : 'Crear Reunión'}
+                  {editMeeting ? 'Guardar Cambios' : 'Crear Evento'}
                 </button>
               </div>
             </form>
@@ -602,7 +815,7 @@ export default function MeetingsPage() {
                 <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
               </div>
               <div>
-                <h3 className="text-white font-semibold">Eliminar reunión</h3>
+                <h3 className="text-white font-semibold">Eliminar evento</h3>
                 <p className="text-gray-400 text-sm">¿Eliminar <span className="text-white font-medium">{confirmDel.title}</span>?</p>
               </div>
             </div>

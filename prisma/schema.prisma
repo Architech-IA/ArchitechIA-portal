@@ -27,6 +27,8 @@ model User {
   projects      ProjectUser[]
   activities    Activity[]
   meetings      Meeting[]
+  prospectos    Prospecto[]
+  nicheMarkets  NicheMarket[]
 }
 
 model Lead {
@@ -41,9 +43,9 @@ model Lead {
   scope         String?
   repository    String?
   notes         String?
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  createdAt     DateTime  @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
   updatedAt     DateTime  @updatedAt
   
   proposals     Proposal[]
@@ -277,7 +279,7 @@ model Meeting {
   id            String   @id @default(cuid())
   title         String
   description   String?
-  type          String   @default("INTERNAL")
+  type        String   @default("INTERNAL_DAILY")
   date          DateTime
   endDate       DateTime?
   location      String?
@@ -292,4 +294,50 @@ model Meeting {
   user          User     @relation(fields: [userId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Prospecto {
+  id          String   @id @default(cuid())
+  empresa     String
+  industria   String
+  nicho       String?
+  contacto    String?
+  email       String?
+  telefono    String?
+  pais        String?
+  fuente      String   @default("LinkedIn")
+  estado      String   @default("Identificado")
+  prioridad   String   @default("Media")
+  notas       String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NicheMarket {
+  id            String    @id @default(cuid())
+  name          String
+  color         String    @default("#f97316")
+  size          Float     @default(30)
+  x             Float     @default(0)
+  y             Float     @default(0)
+  description   String?
+  industry      String
+  potential     Float     @default(0)
+  competitors   Int       @default(0)
+  trend         String    @default("stable")
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model NicheConnection {
+  id          String   @id @default(cuid())
+  fromId      String
+  toId        String
+  label       String?
+  strength    Float    @default(1)
+  createdAt   DateTime @default(now())
 }

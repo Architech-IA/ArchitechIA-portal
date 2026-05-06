@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import PipelineView from '@/components/PipelineView';
+import ProposalsTab from '@/components/ProposalsTab';
 
 interface Lead {
   id: string;
@@ -76,7 +77,7 @@ export default function LeadsPage() {
   const [noteText, setNoteText]       = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
-  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline'>('lista');
+  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'propuestas'>('lista');
 
   // ── Filtros avanzados ──
   const [showFilters, setShowFilters] = useState(false);
@@ -455,9 +456,19 @@ export default function LeadsPage() {
         >
           Pipeline
         </button>
+        <button
+          onClick={() => setActiveTab('propuestas')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'propuestas'
+              ? 'bg-orange-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Propuestas
+        </button>
       </div>
 
-      {activeTab === 'lista' ? (
+      {activeTab === 'lista' && (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-4 gap-4 mb-6">
@@ -790,9 +801,11 @@ export default function LeadsPage() {
             )}
           </div>
         </>
-      ) : (
-        <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />
       )}
+
+      {activeTab === 'pipeline' && <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />}
+
+      {activeTab === 'propuestas' && <ProposalsTab isAdmin={isAdmin} />}
 
       {/* Modal crear / editar */}
       {showModal && (
