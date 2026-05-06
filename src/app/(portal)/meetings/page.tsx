@@ -45,6 +45,14 @@ const TYPE_LABELS: Record<string, string> = {
   PROVIDER: 'Proveedores',
 };
 
+const TYPE_SHORT: Record<string, string> = {
+  INTERNAL_DAILY: 'Daily',
+  INTERNAL_WORKSHOP: 'Workshop',
+  COMMERCIAL: 'Comercial',
+  ADVISORY: 'Asesoría',
+  PROVIDER: 'Proveedores',
+};
+
 const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: 'bg-blue-500/20 text-blue-400',
   COMPLETED: 'bg-green-500/20 text-green-400',
@@ -400,7 +408,8 @@ export default function MeetingsPage() {
                                     <p className="text-xs text-gray-400 mt-0.5">
                                       {getTimeStrUTC5(m.date)}
                                       {m.endDate ? ` — ${getTimeStrUTC5(m.endDate)}` : ''}
-                                      <span className={`ml-2 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
+                                      <span className={`ml-1.5 px-1 py-0.5 rounded text-xs ${TYPE_COLORS[m.type] || 'bg-gray-700 text-gray-400'}`}>{TYPE_SHORT[m.type] || m.type}</span>
+                                      <span className={`ml-1.5 px-1 py-0.5 rounded text-xs ${STATUS_COLORS[m.status]}`}>{translateStatus(m.status)}</span>
                                     </p>
                                   </div>
                                 </div>
