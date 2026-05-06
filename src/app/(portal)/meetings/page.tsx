@@ -782,11 +782,13 @@ export default function MeetingsPage() {
                   </div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Descripción</label>
-                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
-              </div>
+              {form.type !== 'INTERNAL_DAILY' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Descripción</label>
+                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" />
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Acta / Notas de reunión</label>
                 <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={4}
