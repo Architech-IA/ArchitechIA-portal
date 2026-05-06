@@ -318,32 +318,28 @@ model Prospecto {
 }
 
 model NicheMarket {
-  id            String             @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
-  color         String             @default("#f97316")
-  size          Float              @default(30)
-  x             Float              @default(0)
-  y             Float              @default(0)
+  color         String    @default("#f97316")
+  size          Float     @default(30)
+  x             Float     @default(0)
+  y             Float     @default(0)
   description   String?
   industry      String
-  potential     Float              @default(0)
-  competitors   Int                @default(0)
-  trend         String             @default("stable")
+  potential     Float     @default(0)
+  competitors   Int       @default(0)
+  trend         String    @default("stable")
   userId        String
-  user          User               @relation(fields: [userId], references: [id])
-  edgesFrom     NicheConnection[]  @relation("EdgeFrom")
-  edgesTo       NicheConnection[]  @relation("EdgeTo")
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model NicheConnection {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   fromId      String
   toId        String
   label       String?
-  strength    Float        @default(1)
-  fromNiche   NicheMarket  @relation("EdgeFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  toNiche     NicheMarket  @relation("EdgeTo", fields: [toId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
+  strength    Float    @default(1)
+  createdAt   DateTime @default(now())
 }
