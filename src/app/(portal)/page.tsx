@@ -39,6 +39,23 @@ export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartTab, setChartTab] = useState<'ingresos' | 'leads' | 'proyectos'>('ingresos');
+  const [showSettings, setShowSettings] = useState(false);
+
+  const defaultWidgets = { kpis: true, jornada: true, meta: true, embudo: true, alertas: true, fuentes: true, actividad: true };
+  const [widgets, setWidgets] = useState(defaultWidgets);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboardWidgets');
+    if (saved) setWidgets(JSON.parse(saved));
+  }, []);
+
+  const toggleWidget = (key: string) => {
+    setWidgets(prev => {
+      const next = { ...prev, [key]: !prev[key as keyof typeof prev] };
+      localStorage.setItem('dashboardWidgets', JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -73,11 +90,16 @@ export default function Home() {
         {alertas > 0 && (
           <div className="flex items-center gap-2 bg-red-900/20 border border-red-800 text-red-400 text-sm px-4 py-2 rounded-lg">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            {alertas} {alertas === 1 ? 'alerta' : 'alertas'} requieren atención
+            {alertas} alerta{alertas > 1 ? 's' : ''}
           </div>
         )}
+        <button onClick={() => setShowSettings(!showSettings)}
+          className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+          title="Personalizar dashboard">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </button>
       </div>
 
       {/* KPIs principales */}
