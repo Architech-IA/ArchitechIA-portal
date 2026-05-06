@@ -21,6 +21,8 @@ interface DashboardData {
   ingresosMes: number;
   recentActivities: { id: string; type: string; description: string; entityType: string; createdAt: string; user: { name: string } }[];
   tendencias: { mes: string; leads: number; proyectos: number; ingresos: number }[];
+  myDay: { leadsContactar: { id: string; companyName: string; contactName: string; status: string; updatedAt: string }[]; propuestasPendientes: { id: string; title: string; status: string; amount: number }[]; tareasVencidas: any[] };
+  staleLeads: { id: string; companyName: string; status: string; updatedAt: string }[];
 }
 
 const ETAPA_LABELS: Record<string, string> = {
@@ -100,6 +102,50 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* Mi Jornada */}
+      {data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Lo que debo hacer hoy</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {data.myDay.leadsContactar.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Leads por contactar</p>
+                {data.myDay.leadsContactar.map(l => (
+                  <a key={l.id} href={`/leads`} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg mb-1 hover:bg-gray-700 transition-colors text-xs">
+                    <span className="text-white truncate">{l.companyName}</span>
+                    <span className="text-gray-500 ml-2">{Math.floor((Date.now() - new Date(l.updatedAt).getTime()) / 86400000)}d</span>
+                  </a>
+                ))}
+              </div>
+            )}
+            {data.myDay.propuestasPendientes.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Propuestas en seguimiento</p>
+                {data.myDay.propuestasPendientes.map(p => (
+                  <a key={p.id} href={`/proposals/${p.id}`} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg mb-1 hover:bg-gray-700 transition-colors text-xs">
+                    <span className="text-white truncate">{p.title}</span>
+                    <span className={`ml-2 ${p.status === 'DRAFT' ? 'text-gray-400' : p.status === 'SENT' ? 'text-orange-400' : 'text-yellow-400'}`}>
+                      ${p.amount.toLocaleString()}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+            {(data.staleLeads?.length ?? 0) > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">⚠️ Leads estancados (+7 días)</p>
+                {data.staleLeads!.slice(0, 5).map(l => (
+                  <a key={l.id} href={`/leads`} className="flex items-center justify-between px-3 py-2 bg-red-900/10 border border-red-900/20 rounded-lg mb-1 hover:bg-red-900/20 transition-colors text-xs">
+                    <span className="text-white truncate">{l.companyName}</span>
+                    <span className="text-red-400 ml-2">{Math.floor((Date.now() - new Date(l.updatedAt).getTime()) / 86400000)}d</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Meta mensual + Top socios */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

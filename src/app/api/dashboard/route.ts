@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const userId = (token as { sub?: string })?.sub;
   const hoy = new Date();
   const hace7dias  = new Date(hoy); hace7dias.setDate(hoy.getDate() - 7);
   const hace5dias  = new Date(hoy); hace5dias.setDate(hoy.getDate() - 5);
@@ -49,6 +52,25 @@ export async function GET() {
     select: { id: true, concepto: true, monto: true, moneda: true, tipo: true },
     take: 5,
   });
+
+  // ── "Lo que debo hacer hoy" para el usuario actual
+  let myDay = { leadsContactar: [] as any[], propuestasPendientes: [] as any[], tareasVencidas: [] as any[] };
+  if (userId) {
+    const [myLeads, myProposals] = await Promise.all([
+      prisma.lead.findMany({
+        where: { userId, status: { in: ['NEW', 'CONTACTED'] } },
+        select: { id: true, companyName: true, contactName: true, status: true, updatedAt: true },
+        orderBy: { updatedAt: 'asc' }, take: 5,
+      }),
+      prisma.proposal.findMany({
+        where: { userId, status: { in: ['DRAFT', 'SENT', 'UNDER_REVIEW'] } },
+        select: { id: true, title: true, status: true, amount: true, createdAt: true },
+        orderBy: { createdAt: 'desc' }, take: 5,
+      }),
+    ]);
+    myDay.leadsContactar = myLeads.map(l => ({ id: l.id, companyName: l.companyName, contactName: l.contactName, status: l.status, updatedAt: l.updatedAt }));
+    myDay.propuestasPendientes = myProposals.map(p => ({ id: p.id, title: p.title, status: p.status, amount: p.amount }));
+  }
 
   // ── Conteos y agrupaciones desde JS (sin más DB calls)
   const leads      = allLeads.length;
@@ -129,6 +151,8 @@ export async function GET() {
     registrosPendientes,
     recentActivities,
     tendencias,
+    myDay,
+    staleLeads: leadsInactivos,
   });
 }
 

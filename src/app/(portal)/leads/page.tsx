@@ -641,6 +641,7 @@ export default function LeadsPage() {
                       { key: 'status' as SortKey,           label: 'Estado' },
                       { key: 'estimatedValue' as SortKey,   label: 'Valor' },
                       { key: 'source' as SortKey,           label: 'Fuente' },
+                      { key: 'createdAt' as SortKey,       label: 'Días' },
                       { key: 'user' as SortKey,             label: 'Responsable' },
                     ]).map(col => (
                       <th key={col.key}
@@ -658,7 +659,7 @@ export default function LeadsPage() {
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 12 : 11} className="px-6 py-16 text-center">
+                      <td colSpan={isAdmin ? 13 : 12} className="px-6 py-16 text-center">
                         {leads.length === 0 ? (
                           <div>
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
@@ -700,6 +701,15 @@ export default function LeadsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            !['WON', 'LOST'].includes(lead.status) &&
+                            (Date.now() - new Date(lead.createdAt).getTime()) / 86400000 > 7
+                              ? 'bg-red-900/20 text-red-400' : 'text-gray-500'
+                          }`}>
+                            {Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / 86400000)}d
+                          </span>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {lead.repository ? (
                             <a href={lead.repository} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition-colors" title={lead.repository}>
