@@ -171,6 +171,17 @@ export default function ProspeccionTab() {
 
   return (
     <>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-white">Prospección</h1>
+          <p className="text-gray-400 text-sm mt-0.5">Identificación de nuevos clientes y nichos de mercado</p>
+        </div>
+        <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
+          + Nuevo Prospecto
+        </button>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {kpis.map(k => (
