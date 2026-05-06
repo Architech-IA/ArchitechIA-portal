@@ -74,6 +74,8 @@ export default function MeetingsPage() {
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
   const [actaFileBase64, setActaFileBase64] = useState('');
   const [actaFileNameState, setActaFileNameState] = useState('');
+  const [externalAttendees, setExternalAttendees] = useState<string[]>([]);
+  const [attendeeInput, setAttendeeInput] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -90,6 +92,8 @@ export default function MeetingsPage() {
     const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T09:00`;
     setForm({ ...EMPTY_FORM, date: today, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
     setSelectedAttendees([]);
+    setExternalAttendees([]);
+    setAttendeeInput('');
     setActaFileBase64('');
     setActaFileNameState('');
     setShowModal(true);
@@ -107,6 +111,8 @@ export default function MeetingsPage() {
       userId: m.userId,
     });
     setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setExternalAttendees(m.type !== 'INTERNAL' && m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setAttendeeInput('');
     setActaFileBase64(m.actaFile || '');
     setActaFileNameState(m.actaFileName || '');
     setShowModal(true);
@@ -668,9 +674,53 @@ export default function MeetingsPage() {
                     {users.length === 0 && <p className="text-gray-500 text-xs">Cargando equipo...</p>}
                   </div>
                 ) : (
-                  <input type="text" value={form.attendees} onChange={e => setForm({...form, attendees: e.target.value})}
-                    placeholder="Nombres separados por coma..."
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                  <div>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={attendeeInput}
+                        onChange={e => setAttendeeInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && attendeeInput.trim()) {
+                            e.preventDefault();
+                            const name = attendeeInput.trim();
+                            if (!externalAttendees.includes(name)) {
+                              const updated = [...externalAttendees, name];
+                              setExternalAttendees(updated);
+                              setForm({...form, attendees: updated.join(', ')});
+                            }
+                            setAttendeeInput('');
+                          }
+                          if (e.key === 'Backspace' && !attendeeInput && externalAttendees.length > 0) {
+                            const updated = externalAttendees.slice(0, -1);
+                            setExternalAttendees(updated);
+                            setForm({...form, attendees: updated.join(', ')});
+                          }
+                        }}
+                        placeholder="Nombre o email y presiona Enter..."
+                        className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                    </div>
+                    {externalAttendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {externalAttendees.map((a, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
+                            {a}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = externalAttendees.filter((_, j) => j !== i);
+                                setExternalAttendees(updated);
+                                setForm({...form, attendees: updated.join(', ')});
+                              }}
+                              className="ml-0.5 text-orange-400 hover:text-white"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               <div>
