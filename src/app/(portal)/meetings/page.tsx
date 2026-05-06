@@ -244,11 +244,11 @@ export default function MeetingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Meetings</h1>
+          <h1 className="text-3xl font-bold text-white">Calendario</h1>
           <p className="text-gray-400 mt-1">Calendario de reuniones, citas y actas</p>
         </div>
         <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
-          + Nueva Reunión
+          + Nuevo Evento
         </button>
       </div>
 
@@ -261,7 +261,7 @@ export default function MeetingsPage() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total reuniones', value: meetings.length, color: 'text-white' },
+          { label: 'Total eventos', value: meetings.length, color: 'text-white' },
           { label: 'Programadas', value: meetings.filter(m => m.status === 'SCHEDULED').length, color: 'text-blue-400' },
           { label: 'Completadas', value: meetings.filter(m => m.status === 'COMPLETED').length, color: 'text-green-400' },
           { label: 'Esta semana', value: meetings.filter(m => {
@@ -340,7 +340,7 @@ export default function MeetingsPage() {
                   {getWeekdayDateUTC5(selectedDay)}
                 </h3>
                 {dayMeetings.length === 0 && (
-                  <p className="text-gray-500 text-sm">Sin reuniones este día.</p>
+                  <p className="text-gray-500 text-sm">Sin eventos este día.</p>
                 )}
                 <div className="space-y-3">
                   {dayMeetings.map(m => (
@@ -379,7 +379,7 @@ export default function MeetingsPage() {
               <>
                 <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Esta Semana</h3>
                 {thisWeekMeetings.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Sin reuniones esta semana.</p>
+                  <p className="text-gray-500 text-sm">Sin eventos esta semana.</p>
                 ) : (
                   <div className="space-y-4">
                     {(function () {
@@ -485,8 +485,8 @@ export default function MeetingsPage() {
             ))}
             {filtered.length === 0 && (
               <div className="text-center py-16 text-gray-500">
-                <p className="text-lg mb-2">No hay reuniones</p>
-                <p className="text-sm">Crea tu primera reunión con el botón "Nueva Reunión".</p>
+                <p className="text-lg mb-2">No hay eventos</p>
+                <p className="text-sm">Crea tu primer evento con el botón "Nuevo Evento".</p>
               </div>
             )}
           </div>
@@ -498,7 +498,7 @@ export default function MeetingsPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-700">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white">{editMeeting ? 'Editar Reunión' : 'Nueva Reunión'}</h2>
+              <h2 className="text-lg font-bold text-white">{editMeeting ? 'Editar Evento' : 'Nuevo Evento'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -798,7 +798,7 @@ export default function MeetingsPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 text-gray-300 text-sm">Cancelar</button>
                 <button type="submit" disabled={saving} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-60 text-sm font-medium flex items-center gap-2">
                   {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {editMeeting ? 'Guardar Cambios' : 'Crear Reunión'}
+                  {editMeeting ? 'Guardar Cambios' : 'Crear Evento'}
                 </button>
               </div>
             </form>
@@ -815,7 +815,7 @@ export default function MeetingsPage() {
                 <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
               </div>
               <div>
-                <h3 className="text-white font-semibold">Eliminar reunión</h3>
+                <h3 className="text-white font-semibold">Eliminar evento</h3>
                 <p className="text-gray-400 text-sm">¿Eliminar <span className="text-white font-medium">{confirmDel.title}</span>?</p>
               </div>
             </div>
