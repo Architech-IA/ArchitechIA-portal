@@ -24,20 +24,25 @@ interface Meeting {
 }
 
 const EMPTY_FORM = {
-  title: '', description: '', type: 'INTERNAL',
+  title: '', description: '', type: 'INTERNAL_DAILY',
   date: '', endDate: '', location: '', link: '',
   attendees: '', status: 'SCHEDULED', notes: '', userId: '',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  INTERNAL:    'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  CLIENT:      'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  APPOINTMENT: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  OTHER:       'bg-gray-500/20 text-gray-400 border-gray-500/30',
+  INTERNAL_DAILY:    'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  INTERNAL_WORKSHOP: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  COMMERCIAL:        'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  ADVISORY:          'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  PROVIDER:          'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  INTERNAL: 'Reunión Interna', CLIENT: 'Cliente', APPOINTMENT: 'Cita', OTHER: 'Otro',
+  INTERNAL_DAILY: 'Reunión Interna - Daily',
+  INTERNAL_WORKSHOP: 'Reunión Interna - Workshop',
+  COMMERCIAL: 'Comercial',
+  ADVISORY: 'Asesoría',
+  PROVIDER: 'Proveedores',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,6 +54,8 @@ const STATUS_COLORS: Record<string, string> = {
 function translateStatus(s: string) {
   return ({ SCHEDULED: 'Programada', COMPLETED: 'Completada', CANCELLED: 'Cancelada' } as Record<string, string>)[s] || s;
 }
+
+const isInternalType = (t: string) => t === 'INTERNAL_DAILY' || t === 'INTERNAL_WORKSHOP';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -111,7 +118,7 @@ export default function MeetingsPage() {
       userId: m.userId,
     });
     setSelectedAttendees(m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
-    setExternalAttendees(m.type !== 'INTERNAL' && m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
+    setExternalAttendees(!isInternalType(m.type) && m.attendees ? m.attendees.split(',').map(a => a.trim()).filter(Boolean) : []);
     setAttendeeInput('');
     setActaFileBase64(m.actaFile || '');
     setActaFileNameState(m.actaFileName || '');
@@ -125,7 +132,7 @@ export default function MeetingsPage() {
     try {
       const url = editMeeting ? `/api/meetings/${editMeeting.id}` : '/api/meetings';
       const method = editMeeting ? 'PUT' : 'POST';
-      const body = form.type === 'INTERNAL' ? { ...form, attendees: selectedAttendees.join(', ') } : form;
+      const body = isInternalType(form.type) ? { ...form, attendees: selectedAttendees.join(', ') } : form;
       const payload = { ...body, actaFile: actaFileBase64 || null, actaFileName: actaFileNameState || null };
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) {
@@ -413,7 +420,7 @@ export default function MeetingsPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 mb-6 flex gap-3 flex-wrap items-center">
             <input type="text" placeholder="Buscar por título o asistentes..." value={search} onChange={e => setSearch(e.target.value)}
               className="flex-1 min-w-48 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500" />
-            {['', 'INTERNAL', 'CLIENT', 'APPOINTMENT', 'OTHER'].map(t => (
+            {['', 'INTERNAL_DAILY', 'INTERNAL_WORKSHOP', 'COMMERCIAL', 'ADVISORY', 'PROVIDER'].map(t => (
               <button key={t} onClick={() => setFilterType(t)}
                 className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${filterType === t ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
                 {t === '' ? 'Todas' : TYPE_LABELS[t]}
@@ -494,10 +501,11 @@ export default function MeetingsPage() {
                   <label className="block text-sm text-gray-400 mb-1">Tipo</label>
                   <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
-                    <option value="INTERNAL">Reunión Interna</option>
-                    <option value="CLIENT">Cliente</option>
-                    <option value="APPOINTMENT">Cita</option>
-                    <option value="OTHER">Otro</option>
+                    <option value="INTERNAL_DAILY">Reunión Interna - Daily</option>
+                    <option value="INTERNAL_WORKSHOP">Reunión Interna - Workshop</option>
+                    <option value="COMMERCIAL">Comercial</option>
+                    <option value="ADVISORY">Asesoría</option>
+                    <option value="PROVIDER">Proveedores</option>
                   </select>
                 </div>
               </div>
@@ -656,7 +664,7 @@ export default function MeetingsPage() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Asistentes</label>
-                {form.type === 'INTERNAL' ? (
+                {isInternalType(form.type) ? (
                   <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 space-y-2">
                     {users.filter(u => u.name !== 'Admin ArchiTechIA').map(u => (
                       <label key={u.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">

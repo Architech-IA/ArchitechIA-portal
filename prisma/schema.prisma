@@ -277,7 +277,7 @@ model Meeting {
   id            String   @id @default(cuid())
   title         String
   description   String?
-  type          String   @default("INTERNAL")
+  type        String   @default("INTERNAL_DAILY")
   date          DateTime
   endDate       DateTime?
   location      String?

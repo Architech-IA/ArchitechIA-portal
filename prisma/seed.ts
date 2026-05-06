@@ -244,10 +244,10 @@ async function main() {
   // ── Meetings ───────────────────────────────────────────────────────
   await prisma.meeting.createMany({
     data: [
-      { title: 'Sprint Planning — Portal Interno', type: 'INTERNAL', date: new Date('2025-04-22T15:00:00Z'), location: 'Oficina', attendees: 'Santiago Ortega, Daniel Martínez, Freddy Orozco', status: 'COMPLETED', notes: 'Se definieron prioridades del sprint: dashboard KPIs, filtros avanzados y pipeline Kanban.', userId: partner1.id },
-      { title: 'Demo con InnovateLab', type: 'CLIENT', date: new Date('2025-04-25T20:00:00Z'), location: 'Google Meet', link: 'https://meet.google.com/abc-defg-hij', attendees: 'Laura Fernández, Santiago Ortega', status: 'SCHEDULED', userId: partner1.id },
-      { title: 'Revisión de Arquitectura — Security Agentic AI', type: 'INTERNAL', date: new Date('2025-04-28T14:00:00Z'), location: 'Virtual', attendees: 'Freddy Orozco, Admin ArchiTechIA', status: 'SCHEDULED', notes: 'Revisar diseño de agentes, flujo de datos y requisitos de seguridad para el piloto.', userId: partner3.id },
-      { title: 'Cita Discovery — DataFlow Analytics', type: 'APPOINTMENT', date: new Date('2025-05-02T16:00:00Z'), location: 'Cliente', attendees: 'Miguel Torres, Daniel Martínez', status: 'SCHEDULED', userId: partner2.id },
+      { title: 'Sprint Planning — Portal Interno', type: 'INTERNAL_DAILY', date: new Date('2025-04-22T15:00:00Z'), location: 'Oficina', attendees: 'Santiago Ortega, Daniel Martínez, Freddy Orozco', status: 'COMPLETED', notes: 'Se definieron prioridades del sprint: dashboard KPIs, filtros avanzados y pipeline Kanban.', userId: partner1.id },
+      { title: 'Demo con InnovateLab', type: 'COMMERCIAL', date: new Date('2025-04-25T20:00:00Z'), location: 'Google Meet', link: 'https://meet.google.com/abc-defg-hij', attendees: 'Laura Fernández, Santiago Ortega', status: 'SCHEDULED', userId: partner1.id },
+      { title: 'Revisión de Arquitectura — Security Agentic AI', type: 'INTERNAL_WORKSHOP', date: new Date('2025-04-28T14:00:00Z'), location: 'Virtual', attendees: 'Freddy Orozco, Admin ArchiTechIA', status: 'SCHEDULED', notes: 'Revisar diseño de agentes, flujo de datos y requisitos de seguridad para el piloto.', userId: partner3.id },
+      { title: 'Cita Discovery — DataFlow Analytics', type: 'ADVISORY', date: new Date('2025-05-02T16:00:00Z'), location: 'Cliente', attendees: 'Miguel Torres, Daniel Martínez', status: 'SCHEDULED', userId: partner2.id },
     ],
   });
   console.log('✓ Meetings creados');
