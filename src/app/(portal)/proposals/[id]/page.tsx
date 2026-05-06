@@ -164,6 +164,58 @@ export default function ProposalDetailPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleExportPDF = () => {
+    if (!proposal) return;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Propuesta</title>
+      <style>
+        body { font-family: 'Poppins', Arial, sans-serif; padding: 48px; color: #111; max-width: 800px; margin: auto; }
+        .logo { font-size: 28px; font-weight: 700; color: #f97316; margin-bottom: 24px; }
+        .title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .amount { font-size: 32px; font-weight: 700; color: #f97316; margin: 16px 0; }
+        .section { margin: 24px 0; padding: 16px 0; border-top: 1px solid #e5e7eb; }
+        .section h3 { font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .row { display: flex; gap: 16px; margin: 8px 0; }
+        .row div { flex: 1; }
+        .label { font-size: 11px; color: #9ca3af; text-transform: uppercase; }
+        .value { font-size: 14px; font-weight: 600; }
+        .footer { margin-top: 48px; border-top: 2px solid #f97316; padding-top: 16px; font-size: 11px; color: #9ca3af; }
+        @media print { body { padding: 24px; } }
+      </style></head><body>
+      <div class="logo">ArchiTechIA</div>
+      <div class="title">${proposal.title}</div>
+      <p>${proposal.description}</p>
+      <div class="amount">$ ${proposal.amount.toLocaleString()}</div>
+      <div class="section"><h3>Cliente</h3>
+        <div class="value">${proposal.lead?.companyName || 'N/A'}</div>
+        <div>Contacto: ${proposal.lead?.contactName || 'N/A'} · ${proposal.lead?.email || ''}</div>
+        ${proposal.lead?.status ? `<div>Fase actual: ${proposal.lead.status}</div>` : ''}
+      </div>
+      <div class="section"><h3>Detalles</h3>
+        <div class="row">
+          <div><div class="label">Estado</div><div class="value">${translateStatus(proposal.status)}</div></div>
+          <div><div class="label">Responsable</div><div class="value">${proposal.user.name}</div></div>
+        </div>
+        <div class="row">
+          <div><div class="label">Fecha envío</div><div class="value">${proposal.sentDate ? new Date(proposal.sentDate).toLocaleDateString('es-ES') : '-'}</div></div>
+          <div><div class="label">Fecha aceptación</div><div class="value">${proposal.acceptedDate ? new Date(proposal.acceptedDate).toLocaleDateString('es-ES') : '-'}</div></div>
+        </div>
+      </div>
+      ${proposal.tasks?.length > 0 ? `<div class="section"><h3>Tareas (${proposal.tasks.filter(t => t.completed).length}/${proposal.tasks.length})</h3>
+        ${proposal.tasks.map(t => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+          <span>${t.completed ? '☑' : '☐'}</span>
+          <span style="${t.completed ? 'text-decoration:line-through;color:#9ca3af' : ''}">${t.title}</span>
+        </div>`).join('')}</div>` : ''}
+      <div class="footer">
+        <div>ArchiTechIA — Automatización IA & Agentic AI</div>
+        <div>Documento generado el ${new Date().toLocaleDateString('es-ES')}</div>
+      </div>
+      </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 500);
+  };
+
   const handleAddStageDoc = async () => {
     if (!stageNewDocName.trim() || !stageNewDocUrl.trim() || !proposal) return;
     setAddingDoc(true);
@@ -249,6 +301,11 @@ export default function ProposalDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={handleExportPDF}
+              className="px-3 py-1.5 text-sm rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-white transition-colors flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+              PDF
+            </button>
             <span className={`px-3 py-1.5 text-sm font-semibold rounded-full border ${STATUS_OPTIONS.find(o => o.value === proposal.status)?.cls}`}>
               {translateStatus(proposal.status)}
             </span>
