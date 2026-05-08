@@ -595,7 +595,6 @@ export default function ProposalDetailPage() {
         </div>
       )}
 
-      {/* Comentarios */}
       {tab === 'comentarios' && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
           <CommentsSection entityType="proposal" entityId={proposal.id} />
