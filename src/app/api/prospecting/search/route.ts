@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { prisma } from '@/lib/prisma'
 
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText'
 const FIELD_MASK = [
@@ -182,18 +183,32 @@ export async function POST(request: NextRequest) {
     }
 
     const places = (data.places ?? []).map((p: any) => ({
-      placeId:     p.id ?? '',
-      name:        p.displayName?.text ?? '',
-      address:     p.formattedAddress ?? '',
-      phone:       p.internationalPhoneNumber ?? '',
-      website:     p.websiteUri ?? '',
-      rating:      p.rating ?? null,
+      placeId:      p.id ?? '',
+      name:         p.displayName?.text ?? '',
+      address:      p.formattedAddress ?? '',
+      phone:        p.internationalPhoneNumber ?? '',
+      website:      p.websiteUri ?? '',
+      rating:       p.rating ?? null,
       totalRatings: p.userRatingCount ?? 0,
-      status:      p.businessStatus ?? 'OPERATIONAL',
-      types:       p.types ?? [],
-      lat:         p.location?.latitude ?? null,
-      lng:         p.location?.longitude ?? null,
+      status:       p.businessStatus ?? 'OPERATIONAL',
+      types:        p.types ?? [],
+      lat:          p.location?.latitude ?? null,
+      lng:          p.location?.longitude ?? null,
     }))
+
+    // Log the API call
+    const tokenData = token as any
+    await prisma.prospectingLog.create({
+      data: {
+        userId:       tokenData.sub ?? 'unknown',
+        userName:     tokenData.name ?? tokenData.email ?? 'unknown',
+        city:         locationLabel,
+        category,
+        radius:       Number(radius),
+        resultsCount: places.length,
+        fromMap:      lat !== undefined && lng !== undefined,
+      },
+    }).catch(() => {}) // no bloquear si falla el log
 
     return NextResponse.json({ places, total: places.length, query })
   } catch (err) {

@@ -40,15 +40,35 @@ function Bar({ value, max, color = 'bg-orange-500' }: { value: number; max: numb
   );
 }
 
+interface ProspectingStats {
+  total: number;
+  thisMonth: number;
+  totalResults: number;
+  costUSD: number;
+  thisMonthCost: number;
+  creditoRestante: number;
+  leadsCreated: number;
+  fromMap: number;
+  topCategories: { category: string; count: number }[];
+  topCities: { city: string; count: number }[];
+  byUser: { name: string; count: number }[];
+  recentLogs: { id: string; userName: string; city: string; category: string; results: number; fromMap: boolean; createdAt: string }[];
+}
+
 export default function ReportesPage() {
-  const [data, setData]     = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]             = useState<ReportData | null>(null);
+  const [prospecting, setProspecting] = useState<ProspectingStats | null>(null);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    fetch('/api/reportes')
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch('/api/reportes').then(r => r.json()),
+      fetch('/api/prospecting/stats').then(r => r.json()),
+    ]).then(([d, p]) => {
+      setData(d);
+      setProspecting(p);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   if (loading) return (
@@ -206,6 +226,130 @@ export default function ReportesPage() {
           ))}
         </div>
       </div>
+
+      {/* Lead Prospector — Google Places API */}
+      {prospecting && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold text-white">Lead Prospector · Google Places API</h2>
+            <p className="text-gray-400 text-sm mt-1">Uso de la API de búsqueda de negocios</p>
+          </div>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Solicitudes totales',   value: prospecting.total,                     color: 'text-white',       sub: 'llamadas a Google Places' },
+              { label: 'Este mes',              value: prospecting.thisMonth,                  color: 'text-orange-400',  sub: `$${prospecting.thisMonthCost} USD gastados` },
+              { label: 'Crédito restante',      value: `$${prospecting.creditoRestante}`,      color: 'text-green-400',   sub: 'de $200 gratis/mes' },
+              { label: 'Leads generados',       value: prospecting.leadsCreated,               color: 'text-blue-400',    sub: 'desde Google Places' },
+            ].map(k => (
+              <div key={k.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <p className="text-xs text-gray-400 mb-1">{k.label}</p>
+                <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                <p className="text-xs text-gray-500 mt-1">{k.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Top categorías */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4">Top categorías buscadas</h3>
+              {prospecting.topCategories.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-4">Sin búsquedas aún</p>
+              ) : (
+                <div className="space-y-3">
+                  {prospecting.topCategories.map(c => (
+                    <div key={c.category}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-300 truncate max-w-[160px]">{c.category}</span>
+                        <span className="text-gray-500">{c.count}</span>
+                      </div>
+                      <Bar value={c.count} max={prospecting.topCategories[0].count} color="bg-orange-500" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Top ciudades */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4">Top ciudades buscadas</h3>
+              {prospecting.topCities.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-4">Sin búsquedas aún</p>
+              ) : (
+                <div className="space-y-3">
+                  {prospecting.topCities.map(c => (
+                    <div key={c.city}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-300">{c.city}</span>
+                        <span className="text-gray-500">{c.count}</span>
+                      </div>
+                      <Bar value={c.count} max={prospecting.topCities[0].count} color="bg-blue-500" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Por usuario */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4">Búsquedas por usuario</h3>
+              {prospecting.byUser.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-4">Sin búsquedas aún</p>
+              ) : (
+                <div className="space-y-3">
+                  {prospecting.byUser.map(u => (
+                    <div key={u.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-300 truncate max-w-[140px]">{u.name}</span>
+                        <span className="text-gray-500">{u.count} búsquedas</span>
+                      </div>
+                      <Bar value={u.count} max={prospecting.byUser[0].count} color="bg-green-500" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Búsquedas recientes */}
+          {prospecting.recentLogs.length > 0 && (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-white mb-4">Últimas búsquedas</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-500 uppercase border-b border-gray-800">
+                      <th className="text-left pb-2">Usuario</th>
+                      <th className="text-left pb-2">Ciudad</th>
+                      <th className="text-left pb-2">Categoría</th>
+                      <th className="text-center pb-2">Resultados</th>
+                      <th className="text-center pb-2">Mapa</th>
+                      <th className="text-right pb-2">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {prospecting.recentLogs.map(l => (
+                      <tr key={l.id}>
+                        <td className="py-2 text-gray-300">{l.userName}</td>
+                        <td className="py-2 text-gray-400">{l.city}</td>
+                        <td className="py-2 text-gray-400 max-w-[200px] truncate">{l.category}</td>
+                        <td className="py-2 text-center text-orange-400 font-mono">{l.results}</td>
+                        <td className="py-2 text-center">{l.fromMap ? '🗺️' : '—'}</td>
+                        <td className="py-2 text-right text-xs text-gray-500">
+                          {new Date(l.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

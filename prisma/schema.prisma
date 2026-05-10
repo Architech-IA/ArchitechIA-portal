@@ -366,3 +366,16 @@ model Notification {
   read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
+
+model ProspectingLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userName     String
+  city         String
+  category     String
+  radius       Int
+  resultsCount Int      @default(0)
+  leadsCreated Int      @default(0)
+  fromMap      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
