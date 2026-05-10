@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
-  Search, MapPin, Tag, Star, Phone, Globe, ArrowRight,
+  Search, MapPin, Star, Phone, Globe, ArrowRight,
   CheckSquare, Square, Loader2, UserPlus, AlertCircle,
   CheckCircle2, Map, X,
 } from 'lucide-react'
+import CategorySelector from './CategorySelector'
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false })
 
@@ -31,23 +32,6 @@ interface Suggestion {
 interface Props {
   onLeadsCreated?: () => void
 }
-
-const CATEGORIES = [
-  'Empresas de tecnología',
-  'Agencias de marketing digital',
-  'Constructoras',
-  'Clínicas y hospitales',
-  'Colegios y universidades',
-  'Restaurantes y hoteles',
-  'Firmas de abogados',
-  'Contadores y auditores',
-  'Logística y transporte',
-  'Manufactura e industria',
-  'Comercio al por mayor',
-  'Inmobiliarias',
-  'Aseguradoras',
-  'ONGs y fundaciones',
-]
 
 const RADIUS_OPTIONS = [
   { value: 1000,  label: '1 km'  },
@@ -74,7 +58,6 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   const [showSugg, setShowSugg]     = useState(false)
   const [loadingSugg, setLoadingSugg] = useState(false)
   const [category, setCategory]     = useState('')
-  const [customCategory, setCustomCategory] = useState('')
   const [radius, setRadius]         = useState(5000)
   const [maxResults, setMaxResults] = useState(20)
   const [places, setPlaces]         = useState<Place[]>([])
@@ -90,7 +73,7 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const activeCategory = customCategory.trim() || category
+  const activeCategory = category
 
   // Autocomplete debounced
   useEffect(() => {
@@ -310,26 +293,8 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
 
           {/* Category */}
           <div className="space-y-1.5 lg:col-span-2">
-            <label className="text-xs text-gray-400 flex items-center gap-1">
-              <Tag size={11} /> Categoría
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={category}
-                onChange={e => { setCategory(e.target.value); setCustomCategory('') }}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500"
-              >
-                <option value="">Seleccionar...</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <input
-                type="text"
-                placeholder="O escribe una..."
-                value={customCategory}
-                onChange={e => { setCustomCategory(e.target.value); setCategory('') }}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
-              />
-            </div>
+            <label className="text-xs text-gray-400">Sector y categoría</label>
+            <CategorySelector value={category} onChange={setCategory} />
           </div>
 
           {/* Radius */}
