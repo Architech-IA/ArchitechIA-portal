@@ -169,28 +169,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Meta mensual + Top socios */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Meta mensual de ingresos */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Meta Mensual</h3>
-          <div className="flex items-end justify-between mb-2">
-            <p className="text-2xl font-bold text-white">${data?.ingresosMes.toLocaleString()}</p>
-            <p className="text-sm text-gray-400">de ${data?.metaMensual.toLocaleString()}</p>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-            <div
-              className={`h-3 rounded-full transition-all ${metaPct >= 100 ? 'bg-green-500' : metaPct >= 70 ? 'bg-orange-500' : 'bg-red-500'}`}
-              style={{ width: `${metaPct}%` }}
-            />
-          </div>
-          <p className={`text-sm font-semibold ${metaPct >= 100 ? 'text-green-400' : metaPct >= 70 ? 'text-orange-400' : 'text-red-400'}`}>
-            {metaPct}% completado
-          </p>
-        </div>
-
-      </div>
 
       {/* Embudo de ventas + Tendencias */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
