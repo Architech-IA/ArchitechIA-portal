@@ -374,50 +374,20 @@ export default function LeadsPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setActiveTab('lista')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'lista'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Lista
+        <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'lista' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          Leads
         </button>
-        <button
-          onClick={() => setActiveTab('pipeline')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'pipeline'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Pipeline
-        </button>
-        <button
-          onClick={() => setActiveTab('prospector')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
-            activeTab === 'prospector'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <button onClick={() => setActiveTab('prospector')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'prospector' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           Prospector
         </button>
-        <button
-          onClick={() => setActiveTab('clientes')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}
-        >
+        <button onClick={() => setActiveTab('clientes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           Clientes
         </button>
-        <button
-          onClick={() => setActiveTab('niches')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}
-        >
-          Niches
+        <button onClick={() => setActiveTab('niches')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          Mercado
+        </button>
+        <button onClick={() => setActiveTab('pipeline')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'pipeline' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          Timeline
         </button>
       </div>
 
