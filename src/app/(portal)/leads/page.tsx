@@ -555,7 +555,6 @@ export default function LeadsPage() {
                         {col.label}{sortIcon(col.key)}
                       </th>
                     ))}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Repo</th>
                   </tr>
                 </thead>
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
@@ -617,13 +616,15 @@ export default function LeadsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {lead.repository ? (
-                            <a href={lead.repository} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition-colors" title={lead.repository}>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                          <p className="text-sm text-gray-400">{lead.user.name}</p>
+                          {lead.repository && (
+                            <a href={lead.repository} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[10px] text-orange-400 hover:text-orange-300 transition-colors mt-0.5">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                              Repositorio
                             </a>
-                          ) : <span className="text-gray-600">—</span>}
+                          )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
                       </tr>
                     ))
                   )}
