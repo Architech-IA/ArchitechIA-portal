@@ -45,7 +45,7 @@ const ESTADO_COLORS: Record<string, string> = {
 // ── Componente principal ────────────────────────────────────────────────────────
 export default function FinanzasPage() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [registros, setRegistros]   = useState<Registro[]>([]);
   const [loading, setLoading]       = useState(true);

@@ -63,7 +63,7 @@ function translateRole(r: string) {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [projects, setProjects]       = useState<Project[]>([]);
   const [loading, setLoading]         = useState(true);

@@ -60,7 +60,7 @@ type SortKey = 'companyName' | 'scope' | 'contactName' | 'email' | 'status' | 'e
 
 export default function LeadsPage() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [leads, setLeads]         = useState<Lead[]>([]);
   const [loading, setLoading]     = useState(true);

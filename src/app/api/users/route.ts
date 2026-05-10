@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
 
+const SUPERADMIN_EMAIL = 'admin@architechia.co'
+
 async function requireAdmin(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if ((token as { role?: string })?.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  const role = (token as { role?: string })?.role
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    return { error: NextResponse.json({ error: 'No autorizado' }, { status: 403 }), token: null }
   }
-  return null;
+  return { error: null, token }
 }
 
 export async function GET() {
@@ -22,6 +25,11 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { name, email, password, role } = body;
 
+  // Nadie puede crear otro SUPERADMIN
+  if (role === 'SUPERADMIN') {
+    return NextResponse.json({ error: 'El rol SUPERADMIN es único y no puede asignarse' }, { status: 403 });
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json({ error: 'El usuario ya existe' }, { status: 400 });
@@ -35,14 +43,26 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await requireAdmin(request);
-  if (authError) return authError;
+  const { error, token } = await requireAdmin(request);
+  if (error) return error;
 
   const { id, name, email, role } = await request.json();
+
+  // Proteger al SUPERADMIN
+  const target = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } });
+  if (target?.role === 'SUPERADMIN') {
+    return NextResponse.json({ error: 'El Super Admin no puede ser modificado' }, { status: 403 });
+  }
+
+  // Nadie puede asignar SUPERADMIN
+  if (role === 'SUPERADMIN') {
+    return NextResponse.json({ error: 'El rol SUPERADMIN no puede asignarse' }, { status: 403 });
+  }
+
   try {
     const user = await prisma.user.update({
       where: { id },
-      data: { name, email, role },
+      data:  { name, email, role },
       select: { id: true, name: true, email: true, role: true, avatar: true, createdAt: true },
     });
     return NextResponse.json(user);
@@ -52,10 +72,17 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await requireAdmin(request);
-  if (authError) return authError;
+  const { error, token } = await requireAdmin(request);
+  if (error) return error;
 
   const { id } = await request.json();
+
+  // Proteger al SUPERADMIN
+  const target = await prisma.user.findUnique({ where: { id }, select: { email: true, role: true } });
+  if (target?.role === 'SUPERADMIN' || target?.email === SUPERADMIN_EMAIL) {
+    return NextResponse.json({ error: 'El Super Admin no puede ser eliminado' }, { status: 403 });
+  }
+
   try {
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ ok: true });

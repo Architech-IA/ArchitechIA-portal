@@ -10,13 +10,14 @@ interface ProfileData {
 }
 
 const ROLE_LABELS: Record<string, { label: string; cls: string }> = {
-  ADMIN:                     { label: 'Admin',                  cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  GERENTE_COMERCIAL:         { label: 'Gerente Comercial',      cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  GERENTE_ADMINISTRATIVO:    { label: 'Gerente Administrativo', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  GERENTE_OPERACIONES:       { label: 'Gerente Operaciones',    cls: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-  ARQUITECTO_SOLUCIONES:     { label: 'Arquitecto Soluciones',  cls: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
-  PARTNER:                   { label: 'Socio',                  cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  COLLABORATOR:              { label: 'Colaborador',            cls: 'bg-gray-700 text-gray-400 border-gray-600' },
+  SUPERADMIN:             { label: 'Super Admin',          cls: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  ADMIN:                  { label: 'Admin',                cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  GERENTE_COMERCIAL:      { label: 'Gerente Comercial',    cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30'       },
+  GERENTE_ADMINISTRATIVO: { label: 'Gerente Administrativo', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  GERENTE_OPERACIONES:    { label: 'Gerente Operaciones',  cls: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  ARQUITECTO_SOLUCIONES:  { label: 'Arquitecto Soluciones', cls: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'     },
+  PARTNER:                { label: 'Socio',                cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30'       },
+  COLLABORATOR:           { label: 'Colaborador',          cls: 'bg-gray-700 text-gray-400 border-gray-600'             },
 };
 
 const ACTIVITY_ICONS: Record<string, string> = {
@@ -48,7 +49,9 @@ export default function ProfilePage() {
   const [changing, setChanging] = useState(false);
 
   // ── Admin: gestionar equipo ──
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const currentRole  = (session?.user as { role?: string })?.role ?? ''
+  const isAdmin      = ['ADMIN', 'SUPERADMIN'].includes(currentRole)
+  const isSuperAdmin = currentRole === 'SUPERADMIN'
   const [tab, setTab] = useState<'perfil' | 'equipo'>('perfil');
   const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string; role: string; avatar: string | null }[]>([]);
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -189,18 +192,30 @@ export default function ProfilePage() {
                       <option value="GERENTE_ADMINISTRATIVO">Gerente Administrativo</option>
                       <option value="GERENTE_OPERACIONES">Gerente Operaciones</option>
                       <option value="ARQUITECTO_SOLUCIONES">Arquitecto Soluciones</option>
+                      <option value="PARTNER">Socio</option>
+                      <option value="COLLABORATOR">Colaborador</option>
                     </select>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-white">{u.name}</p>
-                    <p className="text-xs text-gray-400">{u.email} · <span className={u.role === 'ADMIN' ? 'text-orange-400' : u.role === 'PARTNER' ? 'text-blue-400' : 'text-gray-500'}>{ROLE_LABELS[u.role]?.label || u.role}</span></p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-white">{u.name}</p>
+                      {u.role === 'SUPERADMIN' && (
+                        <span className="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded-full">★ Super Admin</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {u.email} · <span className={ROLE_LABELS[u.role]?.cls?.split(' ')[1] ?? 'text-gray-500'}>{ROLE_LABELS[u.role]?.label || u.role}</span>
+                    </p>
                   </>
                 )}
                 {userFormError && editingUser === u.id && <p className="text-xs text-red-400 mt-1">{userFormError}</p>}
               </div>
               <div className="flex gap-1">
-                {editingUser === u.id ? (
+                {u.role === 'SUPERADMIN' ? (
+                  // SUPERADMIN no se puede editar ni eliminar desde aquí
+                  <span className="text-[10px] text-gray-600 px-3 py-1">Protegido</span>
+                ) : editingUser === u.id ? (
                   <>
                     <button onClick={async () => {
                       if (!userForm.name.trim() || !userForm.email.trim()) { setUserFormError('Nombre y email requeridos'); return; }
@@ -217,10 +232,10 @@ export default function ProfilePage() {
                   <>
                     <button onClick={() => { setEditingUser(u.id); setUserForm({ name: u.name, email: u.email, role: u.role }); setUserFormError(''); }}
                       className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg">Editar</button>
-                    {u.role !== 'ADMIN' && (
+                    {!['ADMIN', 'SUPERADMIN'].includes(u.role) || isSuperAdmin ? (
                       <button onClick={async () => { await fetch(`/api/users`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: u.id }) }); fetchUsers(); }}
                         className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg">Eliminar</button>
-                    )}
+                    ) : null}
                   </>
                 )}
               </div>

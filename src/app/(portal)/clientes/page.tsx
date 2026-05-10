@@ -30,7 +30,7 @@ const Skeleton = () => (
 
 export default function ClientesPage() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [clientes, setClientes]       = useState<Cliente[]>([]);
   const [loading, setLoading]         = useState(true);

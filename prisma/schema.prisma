@@ -156,6 +156,7 @@ model Activity {
 }
 
 enum Role {
+  SUPERADMIN
   ADMIN
   GERENTE_COMERCIAL
   GERENTE_ADMINISTRATIVO

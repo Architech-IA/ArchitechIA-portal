@@ -59,7 +59,7 @@ function formFromProducto(p: Producto) {
 
 export default function ProductosPage() {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN';
+  const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [productos, setProductos]   = useState<Producto[]>([]);
   const [loading, setLoading]       = useState(true);
