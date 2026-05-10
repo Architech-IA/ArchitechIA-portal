@@ -15,17 +15,46 @@ interface Place {
   types: string[]
 }
 
-const CITIES = [
-  { value: 'bogota',       label: 'Bogotá'       },
-  { value: 'medellin',     label: 'Medellín'     },
-  { value: 'cali',         label: 'Cali'         },
-  { value: 'barranquilla', label: 'Barranquilla' },
-  { value: 'cartagena',    label: 'Cartagena'    },
-  { value: 'bucaramanga',  label: 'Bucaramanga'  },
-  { value: 'pereira',      label: 'Pereira'      },
-  { value: 'manizales',    label: 'Manizales'    },
-  { value: 'cucuta',       label: 'Cúcuta'       },
-  { value: 'ibague',       label: 'Ibagué'       },
+const MUNICIPIOS = [
+  // Principales
+  'Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Cúcuta',
+  'Bucaramanga', 'Pereira', 'Santa Marta', 'Ibagué', 'Pasto', 'Manizales',
+  'Neiva', 'Villavicencio', 'Armenia', 'Valledupar', 'Montería', 'Sincelejo',
+  'Popayán', 'Tunja', 'Florencia', 'Riohacha', 'Quibdó', 'Mocoa', 'Arauca',
+  'Yopal', 'Leticia', 'San José del Guaviare', 'Puerto Carreño', 'Inírida', 'Mitú',
+  // Antioquia
+  'Bello', 'Itagüí', 'Envigado', 'Rionegro', 'Sabaneta', 'Copacabana',
+  'Apartadó', 'Turbo', 'Caucasia', 'Caldas', 'La Estrella', 'Girardota', 'Barbosa',
+  // Valle del Cauca
+  'Palmira', 'Buenaventura', 'Tuluá', 'Buga', 'Cartago', 'Jamundí',
+  // Cundinamarca
+  'Soacha', 'Zipaquirá', 'Facatativá', 'Fusagasugá', 'Girardot', 'Chía', 'Mosquera', 'Madrid',
+  // Santander
+  'Floridablanca', 'Piedecuesta', 'Barrancabermeja', 'San Gil',
+  // Atlántico
+  'Soledad', 'Malambo',
+  // Bolívar
+  'Magangué',
+  // Boyacá
+  'Sogamoso', 'Duitama',
+  // Tolima
+  'Espinal', 'Honda',
+  // Nariño
+  'Tumaco',
+  // Córdoba
+  'Lorica', 'Cereté',
+  // Risaralda
+  'Dosquebradas',
+  // Cauca
+  'Santander de Quilichao',
+  // Cesar
+  'Aguachica',
+  // Huila
+  'Pitalito', 'Garzón',
+  // Meta
+  'Acacías',
+  // La Guajira
+  'Maicao',
 ]
 
 const CATEGORIES = [
@@ -64,7 +93,7 @@ function Stars({ rating }: { rating: number | null }) {
 }
 
 export default function ProspectingPage() {
-  const [city, setCity]             = useState('bogota')
+  const [city, setCity]             = useState('Bogotá')
   const [category, setCategory]     = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [radius, setRadius]         = useState(5000)
@@ -179,15 +208,18 @@ export default function ProspectingPage() {
           {/* City */}
           <div className="space-y-1.5">
             <label className="text-xs text-gray-400 flex items-center gap-1">
-              <MapPin size={11} /> Ciudad
+              <MapPin size={11} /> Ciudad / Municipio
             </label>
-            <select
+            <input
+              list="municipios-list"
               value={city}
               onChange={e => setCity(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              {CITIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+              placeholder="Ej: Bogotá, Bello, Palmira..."
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+            />
+            <datalist id="municipios-list">
+              {MUNICIPIOS.map(m => <option key={m} value={m} />)}
+            </datalist>
           </div>
 
           {/* Category */}
