@@ -169,7 +169,7 @@ export default function ProfilePage() {
 
       {tab === 'equipo' && isAdmin ? (
         <div className="space-y-4">
-          {allUsers.map(u => (
+          {allUsers.filter(u => u.role !== 'SUPERADMIN').map(u => (
             <div key={u.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {u.avatar ? (
