@@ -13,6 +13,7 @@ interface Lead {
   phone: string | null;
   status: string;
   source: string;
+  tipo: string | null;
   scope: string | null;
   repository: string | null;
   estimatedValue: number;
