@@ -5,7 +5,7 @@ import { logActivity } from '@/lib/activity';
 
 async function isAdmin(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  return (token as { role?: string })?.role === 'ADMIN';
+  const role = (token as { role?: string })?.role; return role === 'ADMIN' || role === 'SUPERADMIN';
 }
 
 export async function PUT(
