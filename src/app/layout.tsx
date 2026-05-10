@@ -13,7 +13,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "ArchiTechIA - Portal Interno",
   description: "Portal de gestión interna de ArchiTechIA",
-  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
+  icons: {
+    icon:     '/logo.png',
+    shortcut: '/logo.png',
+    apple:    '/logo.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
