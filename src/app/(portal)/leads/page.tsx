@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { StickyNote, Pencil, Trash2, LayoutDashboard } from 'lucide-react';
 import PipelineView from '@/components/PipelineView';
-import ProposalsTab from '@/components/ProposalsTab';
 import ProspectorTab from '@/components/ProspectorTab';
 
 interface Lead {
@@ -81,7 +80,7 @@ export default function LeadsPage() {
   const [noteText, setNoteText]       = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
-  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'propuestas' | 'prospector'>('lista');
+  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'prospector'>('lista');
   const [prospectorView, setProspectorView] = useState<'search' | 'table'>('search');
 
   // ── Filtros avanzados ──
@@ -471,16 +470,6 @@ export default function LeadsPage() {
           Pipeline
         </button>
         <button
-          onClick={() => setActiveTab('propuestas')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'propuestas'
-              ? 'bg-orange-600 text-white'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Propuestas
-        </button>
-        <button
           onClick={() => setActiveTab('prospector')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
             activeTab === 'prospector'
@@ -671,6 +660,9 @@ export default function LeadsPage() {
                         onChange={toggleSelectAll}
                         className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
                     </th>
+                    {isAdmin && (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
+                    )}
                     {([
                       { key: 'companyName' as SortKey,     label: 'Empresa' },
                       { key: 'scope' as SortKey,           label: 'Alcance' },
@@ -689,9 +681,6 @@ export default function LeadsPage() {
                       </th>
                     ))}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Repo</th>
-                    {isAdmin && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
-                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
@@ -728,6 +717,16 @@ export default function LeadsPage() {
                             onChange={() => toggleSelect(lead.id)}
                             className="rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
                         </td>
+                        {isAdmin && (
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => router.push(`/leads/${lead.id}/hub`)} title="HUB" className="text-orange-400 hover:text-orange-300 transition-colors"><LayoutDashboard size={15} /></button>
+                              <button onClick={() => openNotes(lead)} title="Notas" className="text-blue-400 hover:text-blue-300 transition-colors"><StickyNote size={14} /></button>
+                              <button onClick={() => openEdit(lead)} title="Editar" className="text-gray-400 hover:text-white transition-colors"><Pencil size={14} /></button>
+                              <button onClick={() => setConfirmDel(lead)} title="Eliminar" className="text-red-500/60 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                            </div>
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{lead.companyName}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.scope || '—'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.contactName}</td>
@@ -756,40 +755,6 @@ export default function LeadsPage() {
                           ) : <span className="text-gray-600">—</span>}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
-                        {isAdmin && (
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => router.push(`/leads/${lead.id}/hub`)}
-                                title="HUB del lead"
-                                className="text-orange-400 hover:text-orange-300 transition-colors"
-                              >
-                                <LayoutDashboard size={16} />
-                              </button>
-                              <button
-                                onClick={() => openNotes(lead)}
-                                title="Notas"
-                                className="text-blue-400 hover:text-blue-300 transition-colors"
-                              >
-                                <StickyNote size={15} />
-                              </button>
-                              <button
-                                onClick={() => openEdit(lead)}
-                                title="Editar"
-                                className="text-gray-400 hover:text-white transition-colors"
-                              >
-                                <Pencil size={15} />
-                              </button>
-                              <button
-                                onClick={() => setConfirmDel(lead)}
-                                title="Eliminar"
-                                className="text-red-500/60 hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
-                        )}
                       </tr>
                     ))
                   )}
@@ -842,7 +807,6 @@ export default function LeadsPage() {
 
       {activeTab === 'pipeline' && <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />}
 
-      {activeTab === 'propuestas' && <ProposalsTab isAdmin={isAdmin} />}
 
       {activeTab === 'prospector' && (
         <ProspectorTab
