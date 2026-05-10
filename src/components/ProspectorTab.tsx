@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import dynamic from 'next/dynamic'
 import {
   Search, MapPin, Star, Phone, Globe, ArrowRight,
@@ -83,7 +84,11 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
   const [savedResults, setSavedResults] = useState<SavedResult[]>([])
   const [loadingTable, setLoadingTable] = useState(false)
   const [savingToTable, setSavingToTable] = useState(false)
-  const [tableFilter, setTableFilter] = useState('')
+  const [tableFilter, setTableFilter]     = useState('')
+  const [confirmConvert, setConfirmConvert] = useState<SavedResult | null>(null)
+  const [convertingOne, setConvertingOne]   = useState(false)
+
+  const { data: session } = useSession()
   const [places, setPlaces]         = useState<Place[]>([])
   const [selected, setSelected]     = useState<Set<string>>(new Set())
   const [loading, setLoading]       = useState(false)
@@ -182,6 +187,49 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
       body: JSON.stringify({ id }),
     })
     setSavedResults(prev => prev.filter(r => r.id !== id))
+  }
+
+  const convertOneToLead = async (record: SavedResult) => {
+    setConvertingOne(true)
+    try {
+      const place = {
+        placeId:      record.placeId,
+        name:         record.name,
+        address:      record.address ?? '',
+        phone:        record.phone   ?? '',
+        website:      record.website ?? '',
+        rating:       record.rating,
+        totalRatings: record.totalRatings,
+        types:        record.types ? JSON.parse(record.types) : [],
+      }
+
+      const res = await fetch('/api/prospecting/convert', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ places: [place] }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      // Marcar como convertido en la tabla
+      await fetch('/api/prospecting/table', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: record.id, convertedToLead: true }),
+      })
+      setSavedResults(prev => prev.map(r => r.id === record.id ? { ...r, convertedToLead: true } : r))
+
+      const msg = data.created > 0
+        ? `✓ ${record.name} pasó a Lista como "Identificación" — responsable: ${(session?.user as any)?.name ?? 'tú'}`
+        : `${record.name} ya existía en la Lista`
+      showToast(data.created > 0 ? 'success' : 'info' as any, msg)
+      onLeadsCreated?.()
+    } catch (e: any) {
+      showToast('error', e.message || 'Error al convertir')
+    } finally {
+      setConvertingOne(false)
+      setConfirmConvert(null)
+    }
   }
 
   const markConverted = async (id: string, value: boolean) => {
@@ -573,6 +621,63 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
 
       </>)}
 
+      {/* Confirm convert popup */}
+      {confirmConvert && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                <UserPlus size={18} className="text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Pasar a Identificación</h3>
+                <p className="text-gray-400 text-sm mt-0.5">Esto creará un lead en la Lista</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-5 space-y-2">
+              <p className="text-white font-medium">{confirmConvert.name}</p>
+              {confirmConvert.address && <p className="text-xs text-gray-500">{confirmConvert.address}</p>}
+              <div className="flex flex-wrap gap-3 pt-1">
+                {confirmConvert.phone && (
+                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <Phone size={10} /> {confirmConvert.phone}
+                  </span>
+                )}
+                {confirmConvert.website && (
+                  <span className="text-xs text-orange-400 flex items-center gap-1">
+                    <Globe size={10} /> {confirmConvert.website.replace(/^https?:\/\//, '').slice(0, 30)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-2.5 mb-5 text-xs text-blue-300 flex items-center gap-2">
+              <CheckCircle2 size={13} />
+              Responsable: <span className="font-medium">{(session?.user as any)?.name ?? session?.user?.email ?? 'tú'}</span>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmConvert(null)}
+                disabled={convertingOne}
+                className="flex-1 px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => convertOneToLead(confirmConvert)}
+                disabled={convertingOne}
+                className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {convertingOne ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Prospector Table ── */}
       {view === 'table' && (
         <div className="space-y-4">
@@ -673,13 +778,24 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                           </button>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => deleteFromTable(r.id)}
-                            className="text-gray-600 hover:text-red-400 transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            {!r.convertedToLead && (
+                              <button
+                                onClick={() => setConfirmConvert(r)}
+                                className="text-gray-600 hover:text-orange-400 transition-colors"
+                                title="Pasar a Identificación"
+                              >
+                                <CheckCircle2 size={15} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deleteFromTable(r.id)}
+                              className="text-gray-600 hover:text-red-400 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
