@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
   const body: Record<string, unknown> = {
     textQuery: query,
     languageCode: 'es',
-    maxResultCount: Math.min(maxResults, 20),
+    maxResultCount: Math.min(maxResults, 50),
   }
 
   if (resolvedCoords) {

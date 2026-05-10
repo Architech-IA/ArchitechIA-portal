@@ -367,6 +367,26 @@ model Notification {
   createdAt   DateTime @default(now())
 }
 
+model ProspectorResult {
+  id           String   @id @default(cuid())
+  placeId      String   @unique
+  name         String
+  address      String?
+  phone        String?
+  website      String?
+  rating       Float?
+  totalRatings Int      @default(0)
+  types        String?
+  city         String
+  category     String
+  lat          Float?
+  lng          Float?
+  convertedToLead Boolean @default(false)
+  savedById    String
+  savedByName  String
+  createdAt    DateTime @default(now())
+}
+
 model ProspectingLog {
   id           String   @id @default(cuid())
   userId       String

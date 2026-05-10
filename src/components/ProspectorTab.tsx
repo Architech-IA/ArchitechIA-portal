@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic'
 import {
   Search, MapPin, Star, Phone, Globe, ArrowRight,
   CheckSquare, Square, Loader2, UserPlus, AlertCircle,
-  CheckCircle2, Map, X,
+  CheckCircle2, Map, X, Table2, Trash2, ExternalLink,
+  RefreshCw,
 } from 'lucide-react'
 import CategorySelector from './CategorySelector'
 
@@ -31,6 +32,23 @@ interface Suggestion {
 
 interface Props {
   onLeadsCreated?: () => void
+}
+
+interface SavedResult {
+  id: string
+  placeId: string
+  name: string
+  address: string | null
+  phone: string | null
+  website: string | null
+  rating: number | null
+  totalRatings: number
+  types: string | null
+  city: string
+  category: string
+  convertedToLead: boolean
+  savedByName: string
+  createdAt: string
 }
 
 const RADIUS_OPTIONS = [
@@ -60,6 +78,11 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   const [category, setCategory]     = useState('')
   const [radius, setRadius]         = useState(5000)
   const [maxResults, setMaxResults] = useState(20)
+  const [view, setView]             = useState<'search' | 'table'>('search')
+  const [savedResults, setSavedResults] = useState<SavedResult[]>([])
+  const [loadingTable, setLoadingTable] = useState(false)
+  const [savingToTable, setSavingToTable] = useState(false)
+  const [tableFilter, setTableFilter] = useState('')
   const [places, setPlaces]         = useState<Place[]>([])
   const [selected, setSelected]     = useState<Set<string>>(new Set())
   const [loading, setLoading]       = useState(false)
@@ -92,6 +115,8 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
     }, 300)
   }, [city])
 
+  useEffect(() => { if (view === 'table') loadTable() }, [view, loadTable])
+
   // Cerrar sugerencias al click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -115,6 +140,56 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
     setCoords({ lat, lng })
     setShowMap(false)
   }, [])
+
+  const loadTable = useCallback(async () => {
+    setLoadingTable(true)
+    try {
+      const r = await fetch('/api/prospecting/table')
+      if (r.ok) setSavedResults(await r.json())
+    } catch {}
+    finally { setLoadingTable(false) }
+  }, [])
+
+  const saveToTable = async () => {
+    const toSave = places.filter(p => selected.has(p.placeId))
+    if (!toSave.length) return
+    setSavingToTable(true)
+    try {
+      const r = await fetch('/api/prospecting/table', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ places: toSave, city, category }),
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error)
+      showToast('success', `${data.saved} registro(s) guardados en Prospector Table`)
+      setSelected(new Set())
+      setView('table')
+      loadTable()
+    } catch (e: any) {
+      showToast('error', e.message || 'Error al guardar')
+    } finally {
+      setSavingToTable(false)
+    }
+  }
+
+  const deleteFromTable = async (id: string) => {
+    await fetch('/api/prospecting/table', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setSavedResults(prev => prev.filter(r => r.id !== id))
+  }
+
+  const markConverted = async (id: string, value: boolean) => {
+    await fetch('/api/prospecting/table', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, convertedToLead: value }),
+    })
+    setSavedResults(prev => prev.map(r => r.id === id ? { ...r, convertedToLead: value } : r))
+  }
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -194,8 +269,40 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
     }
   }
 
+  const filteredSaved = savedResults.filter(r =>
+    !tableFilter ||
+    r.name.toLowerCase().includes(tableFilter.toLowerCase()) ||
+    r.city.toLowerCase().includes(tableFilter.toLowerCase()) ||
+    r.category.toLowerCase().includes(tableFilter.toLowerCase())
+  )
+
   return (
     <div className="space-y-5">
+
+      {/* View tabs */}
+      <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setView('search')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            view === 'search' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Search size={13} /> Buscar
+        </button>
+        <button
+          onClick={() => setView('table')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            view === 'table' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Table2 size={13} /> Prospector Table
+          {savedResults.length > 0 && (
+            <span className="bg-orange-500/30 text-orange-300 text-[10px] px-1.5 py-0.5 rounded-full">
+              {savedResults.length}
+            </span>
+          )}
+        </button>
+      </div>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm shadow-xl ${
@@ -207,6 +314,8 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
           {toast.msg}
         </div>
       )}
+
+      {view === 'search' && (<>
 
       {/* Map modal */}
       {showMap && (
@@ -313,7 +422,7 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <label className="text-xs text-gray-400">Máx. resultados:</label>
-            {[10, 20].map(n => (
+            {[10, 20, 50].map(n => (
               <button
                 key={n}
                 onClick={() => setMaxResults(n)}
@@ -357,14 +466,24 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
                 {selected.size === places.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
               </button>
               {selected.size > 0 && (
-                <button
-                  onClick={convertToLeads}
-                  disabled={converting}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  {converting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-                  Agregar {selected.size} a Lista
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={saveToTable}
+                    disabled={savingToTable}
+                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-600"
+                  >
+                    {savingToTable ? <Loader2 size={14} className="animate-spin" /> : <Table2 size={14} />}
+                    Prospector Table
+                  </button>
+                  <button
+                    onClick={convertToLeads}
+                    disabled={converting}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {converting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                    Agregar {selected.size} a Lista
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -449,6 +568,127 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
           <p className="text-xs mt-1">Prueba con otro término o amplía el radio</p>
         </div>
       )}
+
+      </>)}
+
+      {/* ── Prospector Table ── */}
+      {view === 'table' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Filtrar por nombre, ciudad, categoría..."
+                  value={tableFilter}
+                  onChange={e => setTableFilter(e.target.value)}
+                  className="pl-8 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 w-72"
+                />
+              </div>
+              <span className="text-xs text-gray-500">{filteredSaved.length} registros</span>
+            </div>
+            <button
+              onClick={loadTable}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              <RefreshCw size={13} className={loadingTable ? 'animate-spin' : ''} />
+              Actualizar
+            </button>
+          </div>
+
+          {loadingTable ? (
+            <div className="flex items-center justify-center py-16 gap-2 text-gray-500">
+              <Loader2 size={16} className="animate-spin" /> Cargando tabla...
+            </div>
+          ) : filteredSaved.length === 0 ? (
+            <div className="text-center py-16 text-gray-600">
+              <Table2 size={32} className="mx-auto mb-3 opacity-20" />
+              <p className="text-sm">{savedResults.length === 0 ? 'Tabla vacía' : 'Sin resultados para ese filtro'}</p>
+              <p className="text-xs mt-1">Busca negocios y usa "Prospector Table" para guardarlos aquí</p>
+            </div>
+          ) : (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-800">
+                    <tr className="text-xs text-gray-400 uppercase">
+                      <th className="text-left px-4 py-3">Negocio</th>
+                      <th className="text-left px-4 py-3">Contacto</th>
+                      <th className="text-left px-4 py-3">Ciudad</th>
+                      <th className="text-left px-4 py-3">Categoría</th>
+                      <th className="text-center px-4 py-3">Rating</th>
+                      <th className="text-center px-4 py-3">Estado</th>
+                      <th className="text-center px-4 py-3">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {filteredSaved.map(r => (
+                      <tr key={r.id} className={`hover:bg-gray-800/50 transition-colors ${r.convertedToLead ? 'opacity-50' : ''}`}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-white">{r.name}</p>
+                          {r.address && <p className="text-xs text-gray-500 truncate max-w-[200px]">{r.address}</p>}
+                        </td>
+                        <td className="px-4 py-3 space-y-1">
+                          {r.phone && (
+                            <p className="text-xs text-gray-400 flex items-center gap-1">
+                              <Phone size={10} className="text-gray-600" /> {r.phone}
+                            </p>
+                          )}
+                          {r.website && (
+                            <a href={r.website} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-orange-400 hover:underline flex items-center gap-1">
+                              <ExternalLink size={10} />
+                              {r.website.replace(/^https?:\/\//, '').slice(0, 25)}
+                            </a>
+                          )}
+                          {!r.phone && !r.website && <span className="text-xs text-gray-600">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400">{r.city}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-full">
+                            {r.category.length > 25 ? r.category.slice(0, 25) + '…' : r.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {r.rating
+                            ? <span className="text-xs text-yellow-400 flex items-center justify-center gap-1">
+                                <Star size={10} className="fill-yellow-400" /> {r.rating}
+                              </span>
+                            : <span className="text-xs text-gray-600">—</span>
+                          }
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => markConverted(r.id, !r.convertedToLead)}
+                            className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${
+                              r.convertedToLead
+                                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                                : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-orange-500/30 hover:text-orange-400'
+                            }`}
+                          >
+                            {r.convertedToLead ? '✓ Convertido' : 'Pendiente'}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => deleteFromTable(r.id)}
+                            className="text-gray-600 hover:text-red-400 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }
