@@ -17,6 +17,7 @@ interface Lead {
   phone: string | null;
   status: string;
   source: string;
+  tipo: string | null;
   scope: string | null;
   repository: string | null;
   estimatedValue: number;
@@ -27,7 +28,7 @@ interface Lead {
 
 const EMPTY_FORM = {
   companyName: '', contactName: '', email: '', phone: '',
-  status: 'NEW', source: '', scope: '', repository: '', estimatedValue: '', notes: '', userId: '',
+  status: 'NEW', source: '', tipo: '', scope: '', repository: '', estimatedValue: '', notes: '', userId: '',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -130,6 +131,7 @@ export default function LeadsPage() {
       phone:          lead.phone || '',
       status:         lead.status,
       source:         lead.source,
+      tipo:           lead.tipo || '',
       scope:          lead.scope || '',
       repository:     lead.repository || '',
       estimatedValue: String(lead.estimatedValue),
@@ -584,9 +586,16 @@ export default function LeadsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.contactName}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.email}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[lead.status] || 'bg-gray-800 text-gray-400'}`}>
-                            {translateStatus(lead.status)}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full w-fit ${STATUS_COLORS[lead.status] || 'bg-gray-800 text-gray-400'}`}>
+                              {translateStatus(lead.status)}
+                            </span>
+                            {lead.tipo && (
+                              <span className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-400 rounded-full w-fit">
+                                {lead.tipo}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.source}</td>
@@ -717,7 +726,18 @@ export default function LeadsPage() {
                   <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
+                  <select value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                    <option value="">Seleccionar...</option>
+                    <option value="Desarrollos">Desarrollos</option>
+                    <option value="Productos">Productos</option>
+                    <option value="Servicios Gestionados">Servicios Gestionados</option>
+                    <option value="Soporte">Soporte</option>
+                    <option value="Consultoría">Consultoría</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Estado</label>
                   <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
@@ -732,6 +752,8 @@ export default function LeadsPage() {
                     <option value="LOST">Resultado</option>
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Fuente</label>
                   <input type="text" required value={formData.source} onChange={e => setFormData({...formData, source: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />

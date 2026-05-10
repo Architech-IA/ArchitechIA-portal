@@ -12,11 +12,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { companyName, contactName, email, phone, status, source, estimatedValue, scope, repository, notes, userId } = body;
+  const { companyName, contactName, email, phone, status, source, estimatedValue, scope, repository, notes, userId, tipo } = body;
 
   const lead = await prisma.lead.create({
     data: { companyName, contactName, email, phone, status, source,
-      estimatedValue: parseFloat(estimatedValue) || 0, scope: scope || null, repository: repository || null, notes, userId },
+      estimatedValue: parseFloat(estimatedValue) || 0, scope: scope || null, repository: repository || null, notes, userId, tipo: tipo || null },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 

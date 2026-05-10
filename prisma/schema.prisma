@@ -41,6 +41,7 @@ model Lead {
   status        LeadStatus @default(NEW)
   source        String    // LinkedIn, Web, Referido, etc.
   estimatedValue Float    @default(0)
+  tipo          String?
   scope         String?
   repository    String?
   notes         String?

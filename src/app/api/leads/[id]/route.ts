@@ -35,14 +35,14 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const { companyName, contactName, email, phone, status, source, estimatedValue, scope, repository, notes, userId } = body;
+  const { companyName, contactName, email, phone, status, source, estimatedValue, scope, repository, notes, userId, tipo } = body;
 
   try {
     const prev = await prisma.lead.findUnique({ where: { id }, select: { status: true } });
     const lead = await prisma.lead.update({
       where: { id },
       data: { companyName, contactName, email, phone: phone || null, status, source,
-        estimatedValue: parseFloat(estimatedValue) || 0, scope: scope || null, repository: repository || null, notes: notes || null, userId },
+        estimatedValue: parseFloat(estimatedValue) || 0, scope: scope || null, repository: repository || null, notes: notes || null, userId, tipo: tipo || null },
       include: { user: { select: { id: true, name: true, email: true } } },
     });
 
