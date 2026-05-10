@@ -60,11 +60,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Logo + toggle */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
           {!isCollapsed ? (
-            <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent tracking-tight">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent tracking-tight text-center w-full">
               ArchiTechIA
             </h1>
           ) : (
-            <img src="/logo.png" alt="ArchiTechIA" className="w-10 h-10 object-contain mx-auto" />
+            <img src="/logo.png" alt="ArchiTechIA" style={{ width: '3.75rem', height: '3.75rem' }} className="object-contain mx-auto" />
           )}
           {!isCollapsed && !isMobile && (
             <button onClick={toggleCollapse} title="Colapsar sidebar"
