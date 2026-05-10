@@ -32,6 +32,7 @@ interface Suggestion {
 
 interface Props {
   onLeadsCreated?: () => void
+  initialView?: 'search' | 'table'
 }
 
 interface SavedResult {
@@ -69,7 +70,7 @@ function Stars({ rating }: { rating: number | null }) {
   )
 }
 
-export default function ProspectorTab({ onLeadsCreated }: Props) {
+export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }: Props) {
   const [city, setCity]             = useState('')
   const [coords, setCoords]         = useState<{ lat: number; lng: number } | null>(null)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -78,7 +79,7 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   const [category, setCategory]     = useState('')
   const [radius, setRadius]         = useState(5000)
   const [maxResults, setMaxResults] = useState(20)
-  const [view, setView]             = useState<'search' | 'table'>('search')
+  const [view, setView]             = useState<'search' | 'table'>(initialView)
   const [savedResults, setSavedResults] = useState<SavedResult[]>([])
   const [loadingTable, setLoadingTable] = useState(false)
   const [savingToTable, setSavingToTable] = useState(false)
@@ -115,8 +116,6 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
     }, 300)
   }, [city])
 
-  useEffect(() => { if (view === 'table') loadTable() }, [view, loadTable])
-
   // Cerrar sugerencias al click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -149,6 +148,9 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
     } catch {}
     finally { setLoadingTable(false) }
   }, [])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (view === 'table') loadTable() }, [view])
 
   const saveToTable = async () => {
     const toSave = places.filter(p => selected.has(p.placeId))
