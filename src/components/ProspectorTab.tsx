@@ -14,6 +14,7 @@ import CategorySelector from './CategorySelector'
 
 const MapPicker    = dynamic(() => import('./MapPicker'),    { ssr: false })
 const ResultsMap   = dynamic(() => import('./ResultsMap'),   { ssr: false })
+const MiniMap      = dynamic(() => import('./MiniMap'),      { ssr: false })
 
 interface Place {
   placeId: string
@@ -76,6 +77,8 @@ interface SavedResult {
   category: string
   convertedToLead: boolean
   savedByName: string
+  lat: number | null
+  lng: number | null
   createdAt: string
   updatedAt: string
 }
@@ -809,17 +812,16 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
         const scoreBg    = score >= 70 ? 'bg-green-500/10 border-green-500/20' : score >= 40 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20'
         const scoreLabel = score >= 70 ? 'Alta oportunidad' : score >= 40 ? 'Oportunidad media' : 'Oportunidad baja'
 
-        // WhatsApp: número móvil colombiano (empieza con 3xx)
         const hasWhatsApp = !!r.phone && /(\+?57\s?)?3\d{9}/.test(r.phone.replace(/\s/g, ''))
-        // Redes sociales: no disponible desde Google Places
-        const hasSocial = false
 
         const criteria: { label: string; ok: boolean; neg: string; unknown?: boolean }[] = [
-          { label: 'Tiene teléfono',       ok: !!r.phone,    neg: 'No tiene teléfono'    },
-          { label: 'Tiene página web',     ok: !!r.website,  neg: 'No tiene página web'  },
-          { label: 'Calificado en Google', ok: !!r.rating,   neg: 'Sin calificación'     },
-          { label: 'WhatsApp disponible',  ok: hasWhatsApp,  neg: 'WhatsApp no detectado', unknown: !r.phone },
-          { label: 'Redes sociales',       ok: hasSocial,    neg: 'Sin datos de redes',   unknown: true },
+          { label: 'Tiene teléfono',       ok: !!r.phone,    neg: 'No tiene teléfono'         },
+          { label: 'Tiene página web',     ok: !!r.website,  neg: 'No tiene página web'        },
+          { label: 'Calificado en Google', ok: !!r.rating,   neg: 'Sin calificación'           },
+          { label: 'WhatsApp disponible',  ok: hasWhatsApp,  neg: 'WhatsApp no detectado',     unknown: !r.phone },
+          { label: 'Correo electrónico',   ok: false,        neg: 'Sin datos de correo',       unknown: true },
+          { label: 'App móvil',            ok: false,        neg: 'Sin datos de app',          unknown: true },
+          { label: 'Redes sociales',       ok: false,        neg: 'Sin datos de redes',        unknown: true },
         ]
 
         return (
@@ -875,10 +877,23 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                         <span className="text-xs text-gray-600">({r.totalRatings} reseñas)</span>
                       </div>
                     )}
+                  {/* Mini mapa interactivo */}
+                  {r.lat && r.lng ? (
+                    <div className="rounded-lg overflow-hidden border border-gray-700" style={{ height: '140px' }}>
+                      <MiniMap lat={r.lat} lng={r.lng} name={r.name} />
+                    </div>
+                  ) : (
                     <a href={`https://www.google.com/maps/place/?q=place_id:${r.placeId}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors">
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                       Ver en Google Maps
                     </a>
+                  )}
+                  {r.lat && r.lng && (
+                    <a href={`https://www.google.com/maps/place/?q=place_id:${r.placeId}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                      Abrir en Google Maps
+                    </a>
+                  )}
                   </div>
 
                   {r.types && JSON.parse(r.types).length > 0 && (
