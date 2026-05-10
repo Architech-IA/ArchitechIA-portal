@@ -186,7 +186,6 @@ export default function LeadsPage() {
       const res = await fetch(`/api/leads/${confirmDel.id}`, { method: 'DELETE' });
       if (res.ok) {
         setLeads(leads.filter(l => l.id !== confirmDel.id));
-        setSelected(prev => { const n = new Set(prev); n.delete(confirmDel.id); return n; });
         setConfirmDel(null);
       } else {
         const data = await res.json();
