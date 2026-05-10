@@ -268,8 +268,8 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
       setSavedResults(prev => prev.map(r => r.id === record.id ? { ...r, convertedToLead: true } : r))
 
       const msg = data.created > 0
-        ? `✓ ${record.name} pasó a Lista como "Identificación" — responsable: ${(session?.user as any)?.name ?? 'tú'}`
-        : `${record.name} ya existía en la Lista`
+        ? `✓ ${record.name} pasó a Clientes — responsable: ${(session?.user as any)?.name ?? 'tú'}`
+        : `${record.name} ya existía en Clientes`
       showToast(data.created > 0 ? 'success' : 'info' as any, msg)
       onLeadsCreated?.()
     } catch (e: any) {
@@ -388,7 +388,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      const msg = `${data.created} lead(s) agregados como "Identificación"${data.skipped > 0 ? ` · ${data.skipped} ya existían` : ''}`
+      const msg = `${data.created} negocio(s) agregados a Clientes${data.skipped > 0 ? ` · ${data.skipped} ya existían en Clientes` : ''}`
       showToast('success', msg)
       setSelected(new Set())
       onLeadsCreated?.()
@@ -694,7 +694,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                     {converting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-                    Agregar {selected.size} a Lista
+                    Convertir {selected.size} a Clientes
                   </button>
                 </div>
               )}
@@ -776,7 +776,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
 
                 {selected.has(place.placeId) && (
                   <div className="ml-6 mt-2 flex items-center gap-1 text-[10px] text-orange-400">
-                    <ArrowRight size={10} /> Se agregará a Lista como "Identificación"
+                    <ArrowRight size={10} /> Se agregará a Clientes
                   </div>
                 )}
               </div>
@@ -974,8 +974,8 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                 <UserPlus size={18} className="text-orange-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold">Pasar a Identificación</h3>
-                <p className="text-gray-400 text-sm mt-0.5">Esto creará un lead en la Lista</p>
+                <h3 className="text-white font-semibold">Convertir a Cliente</h3>
+                <p className="text-gray-400 text-sm mt-0.5">Esto creará un registro en la tabla de Clientes</p>
               </div>
             </div>
 
@@ -1230,7 +1230,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                               <button
                                 onClick={() => setConfirmConvert(r)}
                                 className="text-gray-600 hover:text-orange-400 transition-colors"
-                                title="Pasar a Identificación"
+                                title="Convertir a Cliente"
                               >
                                 <CheckCircle2 size={15} />
                               </button>
