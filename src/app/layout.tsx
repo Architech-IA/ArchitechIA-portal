@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   title: "ArchiTechIA - Portal Interno",
   description: "Portal de gestión interna de ArchiTechIA",
   icons: {
-    icon:     '/logo.png',
-    shortcut: '/logo.png',
-    apple:    '/logo.png',
+    icon:     [{ url: '/favicon.png', type: 'image/png' }],
+    shortcut: '/favicon.png',
+    apple:    '/favicon.png',
   },
 };
 
