@@ -230,9 +230,26 @@ export default function ReportesPage() {
       {/* Lead Prospector — Google Places API */}
       {prospecting && (
         <div className="space-y-4">
-          <div>
-            <h2 className="text-xl font-bold text-white">Lead Prospector · Google Places API</h2>
-            <p className="text-gray-400 text-sm mt-1">Uso de la API de búsqueda de negocios</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Lead Prospector · Google Places API</h2>
+              <p className="text-gray-400 text-sm mt-1">Uso de la API de búsqueda de negocios</p>
+            </div>
+            <a
+              href="https://console.cloud.google.com/apis/api/places.googleapis.com/metrics"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-orange-500/50 text-gray-300 hover:text-white rounded-lg text-sm transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10S17.523 22 12 22 2 17.523 2 12 6.477 2 12 2z" opacity=".3"/>
+                <path d="M12 5l-1.5 4.5H6l3.75 2.75L8.25 17 12 14.25 15.75 17l-1.5-4.75L18 9.5h-4.5L12 5z"/>
+              </svg>
+              Ver métricas en Google Cloud
+              <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
           </div>
 
           {/* KPIs */}
