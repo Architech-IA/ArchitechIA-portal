@@ -809,12 +809,17 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
         const scoreBg    = score >= 70 ? 'bg-green-500/10 border-green-500/20' : score >= 40 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20'
         const scoreLabel = score >= 70 ? 'Alta oportunidad' : score >= 40 ? 'Oportunidad media' : 'Oportunidad baja'
 
-        const criteria = [
-          { label: 'Tiene teléfono',                ok: !!r.phone,        neg: 'No tiene teléfono' },
-          { label: 'Tiene página web',              ok: !!r.website,      neg: 'No tiene página web' },
-          { label: 'Calificado en Google',          ok: !!r.rating,       neg: 'Sin calificación en Google' },
-          { label: `Rating ≥ 4★ (${r.rating ?? 0})`, ok: (r.rating ?? 0) >= 4, neg: `Rating bajo (${r.rating ?? 0}/5)` },
-          { label: `+10 reseñas (${r.totalRatings})`,  ok: r.totalRatings >= 10, neg: `Pocas reseñas (${r.totalRatings})` },
+        // WhatsApp: número móvil colombiano (empieza con 3xx)
+        const hasWhatsApp = !!r.phone && /(\+?57\s?)?3\d{9}/.test(r.phone.replace(/\s/g, ''))
+        // Redes sociales: no disponible desde Google Places
+        const hasSocial = false
+
+        const criteria: { label: string; ok: boolean; neg: string; unknown?: boolean }[] = [
+          { label: 'Tiene teléfono',       ok: !!r.phone,    neg: 'No tiene teléfono'    },
+          { label: 'Tiene página web',     ok: !!r.website,  neg: 'No tiene página web'  },
+          { label: 'Calificado en Google', ok: !!r.rating,   neg: 'Sin calificación'     },
+          { label: 'WhatsApp disponible',  ok: hasWhatsApp,  neg: 'WhatsApp no detectado', unknown: !r.phone },
+          { label: 'Redes sociales',       ok: hasSocial,    neg: 'Sin datos de redes',   unknown: true },
         ]
 
         return (
@@ -922,14 +927,20 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest">Calificación</p>
                     {criteria.map((c, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${c.ok ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                          {c.ok
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          c.unknown ? 'bg-gray-700' : c.ok ? 'bg-green-500/20' : 'bg-red-500/20'
+                        }`}>
+                          {c.unknown
+                            ? <span className="text-gray-500 text-[9px] font-bold">?</span>
+                            : c.ok
                             ? <CheckCircle2 size={10} className="text-green-400" />
                             : <X size={10} className="text-red-400" />
                           }
                         </div>
-                        <p className={`text-xs leading-tight ${c.ok ? 'text-gray-300' : 'text-gray-500'}`}>
-                          {c.ok ? c.label : c.neg}
+                        <p className={`text-xs leading-tight ${
+                          c.unknown ? 'text-gray-600' : c.ok ? 'text-gray-300' : 'text-gray-500'
+                        }`}>
+                          {c.unknown ? c.neg : c.ok ? c.label : c.neg}
                         </p>
                       </div>
                     ))}
