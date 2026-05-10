@@ -51,6 +51,7 @@ interface SavedResult {
   convertedToLead: boolean
   savedByName: string
   createdAt: string
+  updatedAt: string
 }
 
 const RADIUS_OPTIONS = [
@@ -865,6 +866,9 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                       <th className="text-left px-4 py-3">Categoría</th>
                       <th className="text-center px-4 py-3">Rating</th>
                       <th className="text-center px-4 py-3">Estado</th>
+                      <th className="text-left px-4 py-3">Guardado por</th>
+                      <th className="text-left px-4 py-3">Fecha creación</th>
+                      <th className="text-left px-4 py-3">Últ. modificación</th>
                       <th className="text-center px-4 py-3">Acciones</th>
                     </tr>
                   </thead>
@@ -923,6 +927,15 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                           }`}>
                             {r.convertedToLead ? '✓ Convertido' : 'Pendiente'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                          {r.savedByName}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                          {new Date(r.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                          {new Date(r.updatedAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
