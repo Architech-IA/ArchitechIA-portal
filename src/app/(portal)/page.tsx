@@ -383,27 +383,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Actividad reciente */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Actividad Reciente</h3>
-        <div className="space-y-3">
-          {data?.recentActivities.map(activity => (
-            <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-800">
-              <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-semibold text-orange-500">{activity.user.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-300">
-                  <span className="font-medium text-white">{activity.user.name}</span> {activity.description}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {new Date(activity.createdAt).toLocaleString('es-ES')} · <span className="text-orange-500">{activity.entityType}</span>
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
