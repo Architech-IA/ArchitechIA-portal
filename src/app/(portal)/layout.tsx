@@ -62,7 +62,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5">
               <img src="/logo.png" alt="ArchiTechIA" className="w-9 h-9 object-contain flex-shrink-0" />
-              <img src="/namehd.png" alt="ArchiTechIA" className="h-8 object-contain" />
+              <img src="/namehd.png" alt="ArchiTechIA" className="h-12 object-contain" />
             </div>
           ) : (
             <img src="/logo.png" alt="ArchiTechIA" className="w-8 h-8 object-contain mx-auto" />
