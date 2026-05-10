@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { StickyNote, Pencil, Trash2, LayoutDashboard } from 'lucide-react';
 import PipelineView from '@/components/PipelineView';
+import ClientesTab from '@/components/ClientesTab';
+import NichesTab from '@/components/NichesTab';
 import ProspectorTab from '@/components/ProspectorTab';
 
 interface Lead {
@@ -80,7 +82,7 @@ export default function LeadsPage() {
   const [noteText, setNoteText]       = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
-  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'prospector'>('lista');
+  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'prospector' | 'clientes' | 'niches'>('lista');
   const [prospectorView, setProspectorView] = useState<'search' | 'table'>('search');
 
   // ── Filtros avanzados ──
@@ -405,6 +407,18 @@ export default function LeadsPage() {
           </svg>
           Prospector
         </button>
+        <button
+          onClick={() => setActiveTab('clientes')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}
+        >
+          Clientes
+        </button>
+        <button
+          onClick={() => setActiveTab('niches')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}
+        >
+          Niches
+        </button>
       </div>
 
       {activeTab === 'lista' && (
@@ -687,6 +701,10 @@ export default function LeadsPage() {
           }}
         />
       )}
+
+      {activeTab === 'clientes' && <ClientesTab />}
+
+      {activeTab === 'niches' && <NichesTab />}
 
       {/* Modal crear / editar */}
       {showModal && (
