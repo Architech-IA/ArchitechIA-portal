@@ -85,6 +85,10 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
   const [loadingTable, setLoadingTable] = useState(false)
   const [savingToTable, setSavingToTable] = useState(false)
   const [tableFilter, setTableFilter]     = useState('')
+  const [filterCity, setFilterCity]       = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterStatus, setFilterStatus]   = useState('')
+  const [filterRatingMin, setFilterRatingMin] = useState(0)
   const [confirmConvert, setConfirmConvert] = useState<SavedResult | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<SavedResult | null>(null)
   const [convertingOne, setConvertingOne]   = useState(false)
@@ -327,12 +331,23 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
     }
   }
 
-  const filteredSaved = savedResults.filter(r =>
-    !tableFilter ||
-    r.name.toLowerCase().includes(tableFilter.toLowerCase()) ||
-    r.city.toLowerCase().includes(tableFilter.toLowerCase()) ||
-    r.category.toLowerCase().includes(tableFilter.toLowerCase())
-  )
+  const uniqueCities      = [...new Set(savedResults.map(r => r.city))].sort()
+  const uniqueCategories  = [...new Set(savedResults.map(r => r.category))].sort()
+
+  const filteredSaved = savedResults.filter(r => {
+    if (tableFilter) {
+      const q = tableFilter.toLowerCase()
+      if (!r.name.toLowerCase().includes(q) &&
+          !r.city.toLowerCase().includes(q) &&
+          !r.category.toLowerCase().includes(q)) return false
+    }
+    if (filterCity     && r.city     !== filterCity)     return false
+    if (filterCategory && r.category !== filterCategory) return false
+    if (filterStatus === 'pendiente'  && r.convertedToLead)  return false
+    if (filterStatus === 'convertido' && !r.convertedToLead) return false
+    if (filterRatingMin > 0 && (r.rating ?? 0) < filterRatingMin) return false
+    return true
+  })
 
   return (
     <div className="space-y-5">
@@ -731,27 +746,101 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
       {/* ── Prospector Table ── */}
       {view === 'table' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+
+          {/* Filter bar */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+            {/* Row 1: text + refresh */}
             <div className="flex items-center gap-3">
-              <div className="relative">
+              <div className="relative flex-1">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Filtrar por nombre, ciudad, categoría..."
+                  placeholder="Buscar por nombre..."
                   value={tableFilter}
                   onChange={e => setTableFilter(e.target.value)}
-                  className="pl-8 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 w-72"
+                  className="w-full pl-8 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
                 />
               </div>
-              <span className="text-xs text-gray-500">{filteredSaved.length} registros</span>
+              <span className="text-xs text-gray-500 flex-shrink-0">{filteredSaved.length} registros</span>
+              <button onClick={loadTable} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors flex-shrink-0">
+                <RefreshCw size={13} className={loadingTable ? 'animate-spin' : ''} /> Actualizar
+              </button>
             </div>
-            <button
-              onClick={loadTable}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-            >
-              <RefreshCw size={13} className={loadingTable ? 'animate-spin' : ''} />
-              Actualizar
-            </button>
+
+            {/* Row 2: selectboxes */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wider">Ciudad</label>
+                <select
+                  value={filterCity}
+                  onChange={e => setFilterCity(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">Todas</option>
+                  {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wider">Categoría</label>
+                <select
+                  value={filterCategory}
+                  onChange={e => setFilterCategory(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">Todas</option>
+                  {uniqueCategories.map(c => <option key={c} value={c}>{c.length > 30 ? c.slice(0,30)+'…' : c}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wider">Estado</label>
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="convertido">Convertido</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wider">
+                  Rating mínimo: <span className="text-orange-400">{filterRatingMin > 0 ? `${filterRatingMin}★` : 'Todos'}</span>
+                </label>
+                <input
+                  type="range"
+                  min={0} max={5} step={0.5}
+                  value={filterRatingMin}
+                  onChange={e => setFilterRatingMin(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-full appearance-none cursor-pointer accent-orange-500"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600">
+                  <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Active filters + clear */}
+            {(filterCity || filterCategory || filterStatus || filterRatingMin > 0 || tableFilter) && (
+              <div className="flex items-center justify-between pt-1 border-t border-gray-800">
+                <div className="flex flex-wrap gap-2">
+                  {tableFilter   && <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">"{tableFilter}"</span>}
+                  {filterCity    && <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">{filterCity}</span>}
+                  {filterCategory && <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">{filterCategory.slice(0,25)}</span>}
+                  {filterStatus  && <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full capitalize">{filterStatus}</span>}
+                  {filterRatingMin > 0 && <span className="text-[10px] bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">≥ {filterRatingMin}★</span>}
+                </div>
+                <button
+                  onClick={() => { setTableFilter(''); setFilterCity(''); setFilterCategory(''); setFilterStatus(''); setFilterRatingMin(0) }}
+                  className="text-[10px] text-gray-500 hover:text-white transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
           </div>
 
           {loadingTable ? (
@@ -827,16 +916,13 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                           }
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => markConverted(r.id, !r.convertedToLead)}
-                            className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${
-                              r.convertedToLead
-                                ? 'bg-green-500/10 text-green-400 border-green-500/30'
-                                : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-orange-500/30 hover:text-orange-400'
-                            }`}
-                          >
+                          <span className={`text-[10px] px-2 py-1 rounded-full border ${
+                            r.convertedToLead
+                              ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                              : 'bg-gray-800 text-gray-500 border-gray-700'
+                          }`}>
                             {r.convertedToLead ? '✓ Convertido' : 'Pendiente'}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
