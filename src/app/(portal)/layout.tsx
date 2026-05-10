@@ -60,7 +60,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Logo + toggle */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
           {!isCollapsed ? (
-            <img src="/namehd.png" alt="ArchiTechIA" className="h-24 object-contain" />
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="ArchiTechIA" className="w-8 h-8 object-contain flex-shrink-0" />
+              <div>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent tracking-tight leading-tight">
+                  ArchiTechIA
+                </h1>
+                <p className="text-[10px] text-gray-500 tracking-widest uppercase">Portal Interno</p>
+              </div>
+            </div>
           ) : (
             <img src="/logo.png" alt="ArchiTechIA" className="w-8 h-8 object-contain mx-auto" />
           )}
