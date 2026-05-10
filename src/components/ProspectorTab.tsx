@@ -569,39 +569,6 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                 </div>
               </div>
             )}
-            <div className="flex gap-2">
-              <div ref={suggRef} className="relative flex-1">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={city}
-                  onChange={e => { setCity(e.target.value); setCoords(null) }}
-                  onFocus={() => suggestions.length > 0 && setShowSugg(true)}
-                  placeholder="Busca ciudad, municipio..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
-                />
-                {loadingSugg && (
-                  <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />
-                )}
-                {showSugg && suggestions.length > 0 && (
-                  <div className="absolute top-full mt-1 left-0 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-30 overflow-hidden">
-                    {suggestions.map(s => (
-                      <button
-                        key={s.placeId}
-                        onClick={() => selectSuggestion(s)}
-                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-700 transition-colors text-left"
-                      >
-                        <MapPin size={12} className="text-orange-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-white">{s.mainText}</p>
-                          {s.secondaryText && (
-                            <p className="text-xs text-gray-500">{s.secondaryText}</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
           </div>
 
           {/* Category */}
@@ -826,7 +793,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
         </div>
       )}
 
-      </>}
+      </>)}
 
       {/* View record popup */}
       {viewRecord && (
