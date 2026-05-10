@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+}
+
 export async function GET() {
   try {
     const [allLeads, proposals, projects, activities] = await Promise.all([
@@ -27,21 +37,21 @@ export async function GET() {
     const proposalsPending  = proposals.filter(p => ['DRAFT', 'SENT'].includes(p.status)).length
 
     return NextResponse.json({
-      online:              true,
-      leads:               totalLeads,
-      leads_won:           leadsGanados,
-      win_rate:            winRate,
-      pipeline_value:      pipelineValue,
-      proposals_total:     proposals.length,
-      proposals_accepted:  proposalsAccepted,
-      proposals_pending:   proposalsPending,
-      projects_active:     activeProjects,
-      projects_completed:  completedProjects,
-      avg_progress:        avgProgress,
-      activities:          activities,
-      updated_at:          new Date().toISOString(),
-    })
+      online:             true,
+      leads:              totalLeads,
+      leads_won:          leadsGanados,
+      win_rate:           winRate,
+      pipeline_value:     pipelineValue,
+      proposals_total:    proposals.length,
+      proposals_accepted: proposalsAccepted,
+      proposals_pending:  proposalsPending,
+      projects_active:    activeProjects,
+      projects_completed: completedProjects,
+      avg_progress:       avgProgress,
+      activities:         activities,
+      updated_at:         new Date().toISOString(),
+    }, { headers: CORS_HEADERS })
   } catch {
-    return NextResponse.json({ online: false }, { status: 200 })
+    return NextResponse.json({ online: false }, { status: 200, headers: CORS_HEADERS })
   }
 }
