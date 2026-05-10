@@ -796,132 +796,157 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
       </>)}
 
       {/* View record popup */}
-      {viewRecord && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+      {viewRecord && (() => {
+        const r = viewRecord
+        const score = Math.round(
+          (r.rating ? (r.rating / 5) * 40 : 0) +
+          (r.totalRatings ? Math.min(30, Math.log10(r.totalRatings + 1) * 15) : 0) +
+          (r.phone ? 10 : 0) +
+          (r.website ? 10 : 0) +
+          10 // asumimos OPERATIONAL
+        )
+        const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444'
+        const scoreBg    = score >= 70 ? 'bg-green-500/10 border-green-500/20' : score >= 40 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20'
+        const scoreLabel = score >= 70 ? 'Alta oportunidad' : score >= 40 ? 'Oportunidad media' : 'Oportunidad baja'
 
-            {/* Header */}
-            <div className="flex items-start justify-between px-6 py-5 border-b border-gray-700">
-              <div>
-                <h3 className="text-white font-semibold text-lg leading-tight">{viewRecord.name}</h3>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{viewRecord.category}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                    viewRecord.convertedToLead
-                      ? 'bg-green-500/10 text-green-400 border-green-500/30'
-                      : 'bg-gray-800 text-gray-500 border-gray-700'
-                  }`}>
-                    {viewRecord.convertedToLead ? '✓ Convertido' : 'Pendiente'}
-                  </span>
+        const criteria = [
+          { label: 'Tiene teléfono',                ok: !!r.phone,        neg: 'No tiene teléfono' },
+          { label: 'Tiene página web',              ok: !!r.website,      neg: 'No tiene página web' },
+          { label: 'Calificado en Google',          ok: !!r.rating,       neg: 'Sin calificación en Google' },
+          { label: `Rating ≥ 4★ (${r.rating ?? 0})`, ok: (r.rating ?? 0) >= 4, neg: `Rating bajo (${r.rating ?? 0}/5)` },
+          { label: `+10 reseñas (${r.totalRatings})`,  ok: r.totalRatings >= 10, neg: `Pocas reseñas (${r.totalRatings})` },
+        ]
+
+        return (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+
+              {/* Header */}
+              <div className="flex items-start justify-between px-6 py-5 border-b border-gray-700">
+                <div>
+                  <h3 className="text-white font-semibold text-lg leading-tight">{r.name}</h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{r.category}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${r.convertedToLead ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-gray-800 text-gray-500 border-gray-700'}`}>
+                      {r.convertedToLead ? '✓ Convertido' : 'Pendiente'}
+                    </span>
+                  </div>
                 </div>
+                <button onClick={() => setViewRecord(null)} className="text-gray-500 hover:text-white transition-colors mt-0.5">
+                  <X size={18} />
+                </button>
               </div>
-              <button onClick={() => setViewRecord(null)} className="text-gray-500 hover:text-white transition-colors mt-0.5">
-                <X size={18} />
-              </button>
-            </div>
 
-            {/* Body */}
-            <div className="px-6 py-5 space-y-5">
+              {/* Body — 2 columns */}
+              <div className="flex divide-x divide-gray-800">
 
-              {/* Contact info */}
-              <div className="space-y-2.5">
-                {viewRecord.address && (
-                  <div className="flex items-start gap-2.5 text-sm text-gray-300">
-                    <MapPin size={14} className="text-gray-500 flex-shrink-0 mt-0.5" />
-                    <span>{viewRecord.address}</span>
-                  </div>
-                )}
-                {viewRecord.phone && (
-                  <div className="flex items-center gap-2.5 text-sm text-gray-300">
-                    <Phone size={14} className="text-gray-500 flex-shrink-0" />
-                    <span>{viewRecord.phone}</span>
-                  </div>
-                )}
-                {viewRecord.website && (
-                  <div className="flex items-center gap-2.5">
-                    <Globe size={14} className="text-gray-500 flex-shrink-0" />
-                    <a href={viewRecord.website} target="_blank" rel="noopener noreferrer"
-                      className="text-sm text-orange-400 hover:underline truncate">
-                      {viewRecord.website.replace(/^https?:\/\//, '')}
+                {/* Left: contact + types + metadata */}
+                <div className="flex-1 px-6 py-5 space-y-4 min-w-0">
+                  <div className="space-y-2.5">
+                    {r.address && (
+                      <div className="flex items-start gap-2.5 text-sm text-gray-300">
+                        <MapPin size={14} className="text-gray-500 flex-shrink-0 mt-0.5" />
+                        <span>{r.address}</span>
+                      </div>
+                    )}
+                    {r.phone && (
+                      <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                        <Phone size={14} className="text-gray-500 flex-shrink-0" />
+                        <span>{r.phone}</span>
+                      </div>
+                    )}
+                    {r.website && (
+                      <div className="flex items-center gap-2.5">
+                        <Globe size={14} className="text-gray-500 flex-shrink-0" />
+                        <a href={r.website} target="_blank" rel="noopener noreferrer" className="text-sm text-orange-400 hover:underline truncate">
+                          {r.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
+                    )}
+                    {r.rating && (
+                      <div className="flex items-center gap-2.5">
+                        <Star size={14} className="text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-300">{r.rating} / 5</span>
+                        <span className="text-xs text-gray-600">({r.totalRatings} reseñas)</span>
+                      </div>
+                    )}
+                    <a href={`https://www.google.com/maps/place/?q=place_id:${r.placeId}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                      Ver en Google Maps
                     </a>
                   </div>
-                )}
-                {viewRecord.rating && (
-                  <div className="flex items-center gap-2.5">
-                    <Star size={14} className="text-yellow-400 fill-yellow-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-300">{viewRecord.rating} / 5</span>
-                    <span className="text-xs text-gray-600">({viewRecord.totalRatings} reseñas)</span>
-                  </div>
-                )}
-                <a
-                  href={`https://www.google.com/maps/place/?q=place_id:${viewRecord.placeId}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                  </svg>
-                  Ver en Google Maps
-                </a>
-              </div>
 
-              {/* Types */}
-              {viewRecord.types && JSON.parse(viewRecord.types).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {JSON.parse(viewRecord.types).slice(0, 5).map((t: string) => (
-                    <span key={t} className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">
-                      {t.replace(/_/g, ' ')}
-                    </span>
-                  ))}
-                </div>
-              )}
+                  {r.types && JSON.parse(r.types).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {JSON.parse(r.types).slice(0, 5).map((t: string) => (
+                        <span key={t} className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">{t.replace(/_/g, ' ')}</span>
+                      ))}
+                    </div>
+                  )}
 
-              {/* Metadata widget panel */}
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-800">
-                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
-                    <User size={10} /> Guardado por
+                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-800 text-center">
+                    <div className="bg-gray-800/60 rounded-lg p-2">
+                      <p className="text-[10px] text-gray-500 mb-0.5 flex items-center justify-center gap-1"><User size={9} /> Guardado</p>
+                      <p className="text-xs text-white truncate">{r.savedByName}</p>
+                    </div>
+                    <div className="bg-gray-800/60 rounded-lg p-2">
+                      <p className="text-[10px] text-gray-500 mb-0.5 flex items-center justify-center gap-1"><Calendar size={9} /> Creado</p>
+                      <p className="text-xs text-white">{new Date(r.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</p>
+                    </div>
+                    <div className="bg-gray-800/60 rounded-lg p-2">
+                      <p className="text-[10px] text-gray-500 mb-0.5 flex items-center justify-center gap-1"><Clock size={9} /> Modificado</p>
+                      <p className="text-xs text-white">{new Date(r.updatedAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</p>
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-white truncate">{viewRecord.savedByName}</p>
-                  <p className="text-[10px] text-gray-600">en {viewRecord.city}</p>
                 </div>
 
-                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
-                    <Calendar size={10} /> Fecha creación
-                  </div>
-                  <p className="text-sm font-medium text-white">
-                    {new Date(viewRecord.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
-                  <p className="text-[10px] text-gray-600">
-                    {new Date(viewRecord.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
+                {/* Right: score widget */}
+                <div className="w-52 flex-shrink-0 px-5 py-5 flex flex-col gap-4">
 
-                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
-                    <Clock size={10} /> Últ. modificación
+                  {/* Score */}
+                  <div className={`rounded-xl border p-4 text-center ${scoreBg}`}>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 flex items-center justify-center gap-1">
+                      <Zap size={9} /> Score
+                    </p>
+                    <p className="text-5xl font-bold" style={{ color: scoreColor }}>{score}</p>
+                    <p className="text-[10px] mt-1" style={{ color: scoreColor }}>{scoreLabel}</p>
+                    {/* Progress bar */}
+                    <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: scoreColor }} />
+                    </div>
+                    <p className="text-[10px] text-gray-600 mt-1">{score} / 100</p>
                   </div>
-                  <p className="text-sm font-medium text-white">
-                    {new Date(viewRecord.updatedAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
-                  <p className="text-[10px] text-gray-600">
-                    {new Date(viewRecord.updatedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+
+                  {/* Criteria */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">Calificación</p>
+                    {criteria.map((c, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${c.ok ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                          {c.ok
+                            ? <CheckCircle2 size={10} className="text-green-400" />
+                            : <X size={10} className="text-red-400" />
+                          }
+                        </div>
+                        <p className={`text-xs leading-tight ${c.ok ? 'text-gray-300' : 'text-gray-500'}`}>
+                          {c.ok ? c.label : c.neg}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-800 flex justify-end">
-              <button onClick={() => setViewRecord(null)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
-                Cerrar
-              </button>
+              {/* Footer */}
+              <div className="px-6 py-3 border-t border-gray-800 flex justify-end">
+                <button onClick={() => setViewRecord(null)} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Confirm delete popup */}
       {confirmDelete && (
