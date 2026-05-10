@@ -7,7 +7,7 @@ import {
   Search, MapPin, Star, Phone, Globe, ArrowRight,
   CheckSquare, Square, Loader2, UserPlus, AlertCircle,
   CheckCircle2, Map, X, Table2, Trash2, ExternalLink,
-  RefreshCw,
+  RefreshCw, Eye, User, Calendar, Clock,
 } from 'lucide-react'
 import CategorySelector from './CategorySelector'
 
@@ -90,6 +90,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus]   = useState('')
   const [filterRatingMin, setFilterRatingMin] = useState(0)
+  const [viewRecord, setViewRecord]         = useState<SavedResult | null>(null)
   const [confirmConvert, setConfirmConvert] = useState<SavedResult | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<SavedResult | null>(null)
   const [convertingOne, setConvertingOne]   = useState(false)
@@ -645,6 +646,134 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
 
       </>)}
 
+      {/* View record popup */}
+      {viewRecord && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-start justify-between px-6 py-5 border-b border-gray-700">
+              <div>
+                <h3 className="text-white font-semibold text-lg leading-tight">{viewRecord.name}</h3>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{viewRecord.category}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                    viewRecord.convertedToLead
+                      ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                      : 'bg-gray-800 text-gray-500 border-gray-700'
+                  }`}>
+                    {viewRecord.convertedToLead ? '✓ Convertido' : 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setViewRecord(null)} className="text-gray-500 hover:text-white transition-colors mt-0.5">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-5">
+
+              {/* Contact info */}
+              <div className="space-y-2.5">
+                {viewRecord.address && (
+                  <div className="flex items-start gap-2.5 text-sm text-gray-300">
+                    <MapPin size={14} className="text-gray-500 flex-shrink-0 mt-0.5" />
+                    <span>{viewRecord.address}</span>
+                  </div>
+                )}
+                {viewRecord.phone && (
+                  <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                    <Phone size={14} className="text-gray-500 flex-shrink-0" />
+                    <span>{viewRecord.phone}</span>
+                  </div>
+                )}
+                {viewRecord.website && (
+                  <div className="flex items-center gap-2.5">
+                    <Globe size={14} className="text-gray-500 flex-shrink-0" />
+                    <a href={viewRecord.website} target="_blank" rel="noopener noreferrer"
+                      className="text-sm text-orange-400 hover:underline truncate">
+                      {viewRecord.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
+                {viewRecord.rating && (
+                  <div className="flex items-center gap-2.5">
+                    <Star size={14} className="text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                    <span className="text-sm text-gray-300">{viewRecord.rating} / 5</span>
+                    <span className="text-xs text-gray-600">({viewRecord.totalRatings} reseñas)</span>
+                  </div>
+                )}
+                <a
+                  href={`https://www.google.com/maps/place/?q=place_id:${viewRecord.placeId}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                  Ver en Google Maps
+                </a>
+              </div>
+
+              {/* Types */}
+              {viewRecord.types && JSON.parse(viewRecord.types).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {JSON.parse(viewRecord.types).slice(0, 5).map((t: string) => (
+                    <span key={t} className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">
+                      {t.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Metadata widget panel */}
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-800">
+                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
+                    <User size={10} /> Guardado por
+                  </div>
+                  <p className="text-sm font-medium text-white truncate">{viewRecord.savedByName}</p>
+                  <p className="text-[10px] text-gray-600">en {viewRecord.city}</p>
+                </div>
+
+                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
+                    <Calendar size={10} /> Fecha creación
+                  </div>
+                  <p className="text-sm font-medium text-white">
+                    {new Date(viewRecord.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                  <p className="text-[10px] text-gray-600">
+                    {new Date(viewRecord.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+
+                <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider">
+                    <Clock size={10} /> Últ. modificación
+                  </div>
+                  <p className="text-sm font-medium text-white">
+                    {new Date(viewRecord.updatedAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                  <p className="text-[10px] text-gray-600">
+                    {new Date(viewRecord.updatedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-800 flex justify-end">
+              <button onClick={() => setViewRecord(null)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm delete popup */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
@@ -866,9 +995,6 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                       <th className="text-left px-4 py-3">Categoría</th>
                       <th className="text-center px-4 py-3">Rating</th>
                       <th className="text-center px-4 py-3">Estado</th>
-                      <th className="text-left px-4 py-3">Guardado por</th>
-                      <th className="text-left px-4 py-3">Fecha creación</th>
-                      <th className="text-left px-4 py-3">Últ. modificación</th>
                       <th className="text-center px-4 py-3">Acciones</th>
                     </tr>
                   </thead>
@@ -928,17 +1054,15 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                             {r.convertedToLead ? '✓ Convertido' : 'Pendiente'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                          {r.savedByName}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                          {new Date(r.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                          {new Date(r.updatedAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setViewRecord(r)}
+                              className="text-gray-600 hover:text-blue-400 transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Eye size={15} />
+                            </button>
                             {!r.convertedToLead && (
                               <button
                                 onClick={() => setConfirmConvert(r)}
