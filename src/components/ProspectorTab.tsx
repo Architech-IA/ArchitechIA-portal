@@ -826,7 +826,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
         </div>
       )}
 
-      </>)}
+      </>}
 
       {/* View record popup */}
       {viewRecord && (
