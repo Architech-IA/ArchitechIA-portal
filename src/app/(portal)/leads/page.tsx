@@ -379,17 +379,17 @@ export default function LeadsPage() {
         <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'lista' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           Leads
         </button>
-        <button onClick={() => setActiveTab('prospector')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'prospector' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Prospector
-        </button>
         <button onClick={() => setActiveTab('clientes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           Clientes
         </button>
-        <button onClick={() => setActiveTab('niches')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Mercado
+        <button onClick={() => setActiveTab('prospector')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'prospector' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          Prospector
         </button>
         <button onClick={() => setActiveTab('pipeline')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'pipeline' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           Timeline
+        </button>
+        <button onClick={() => setActiveTab('niches')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+          Mercado
         </button>
       </div>
 
