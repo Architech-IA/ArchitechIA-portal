@@ -62,13 +62,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="ArchiTechIA" className="w-9 h-9 object-contain" />
-              <div>
-                <h1 className="text-base font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent tracking-tight whitespace-nowrap">
-                  ArchiTechIA
-                </h1>
-                <p className="text-gray-600 text-[10px] tracking-wide uppercase">Portal Interno</p>
-              </div>
+              <img src="/logo.png" alt="ArchiTechIA" className="w-9 h-9 object-contain flex-shrink-0" />
+              <img src="/namehd.png" alt="ArchiTechIA" className="h-8 object-contain" />
             </div>
           ) : (
             <img src="/logo.png" alt="ArchiTechIA" className="w-8 h-8 object-contain mx-auto" />
