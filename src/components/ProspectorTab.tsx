@@ -1,7 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, MapPin, Tag, Star, Phone, Globe, ArrowRight, CheckSquare, Square, Loader2, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import dynamic from 'next/dynamic'
+import {
+  Search, MapPin, Tag, Star, Phone, Globe, ArrowRight,
+  CheckSquare, Square, Loader2, UserPlus, AlertCircle,
+  CheckCircle2, Map, X,
+} from 'lucide-react'
+
+const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false })
 
 interface Place {
   placeId: string
@@ -15,28 +22,15 @@ interface Place {
   types: string[]
 }
 
+interface Suggestion {
+  placeId: string
+  mainText: string
+  secondaryText: string
+}
+
 interface Props {
   onLeadsCreated?: () => void
 }
-
-const MUNICIPIOS = [
-  'Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Cúcuta',
-  'Bucaramanga', 'Pereira', 'Santa Marta', 'Ibagué', 'Pasto', 'Manizales',
-  'Neiva', 'Villavicencio', 'Armenia', 'Valledupar', 'Montería', 'Sincelejo',
-  'Popayán', 'Tunja', 'Florencia', 'Riohacha', 'Quibdó', 'Mocoa', 'Arauca',
-  'Yopal', 'Leticia', 'San José del Guaviare', 'Puerto Carreño', 'Inírida', 'Mitú',
-  'Bello', 'Itagüí', 'Envigado', 'Rionegro', 'Sabaneta', 'Copacabana',
-  'Apartadó', 'Turbo', 'Caucasia', 'Caldas', 'La Estrella', 'Girardota', 'Barbosa',
-  'Palmira', 'Buenaventura', 'Tuluá', 'Buga', 'Cartago', 'Jamundí',
-  'Soacha', 'Zipaquirá', 'Facatativá', 'Fusagasugá', 'Girardot', 'Chía', 'Mosquera', 'Madrid',
-  'Floridablanca', 'Piedecuesta', 'Barrancabermeja', 'San Gil',
-  'Soledad', 'Malambo', 'Magangué',
-  'Sogamoso', 'Duitama',
-  'Espinal', 'Honda',
-  'Tumaco', 'Lorica', 'Cereté', 'Dosquebradas',
-  'Santander de Quilichao', 'Aguachica',
-  'Pitalito', 'Garzón', 'Acacías', 'Maicao',
-]
 
 const CATEGORIES = [
   'Empresas de tecnología',
@@ -74,7 +68,11 @@ function Stars({ rating }: { rating: number | null }) {
 }
 
 export default function ProspectorTab({ onLeadsCreated }: Props) {
-  const [city, setCity]             = useState('Bogotá')
+  const [city, setCity]             = useState('')
+  const [coords, setCoords]         = useState<{ lat: number; lng: number } | null>(null)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [showSugg, setShowSugg]     = useState(false)
+  const [loadingSugg, setLoadingSugg] = useState(false)
   const [category, setCategory]     = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [radius, setRadius]         = useState(5000)
@@ -86,8 +84,54 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   const [error, setError]           = useState('')
   const [query, setQuery]           = useState('')
   const [toast, setToast]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [showMap, setShowMap]       = useState(false)
+
+  const suggRef  = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const activeCategory = customCategory.trim() || category
+
+  // Autocomplete debounced
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current)
+    if (city.length < 2) { setSuggestions([]); setShowSugg(false); return }
+
+    debounce.current = setTimeout(async () => {
+      setLoadingSugg(true)
+      try {
+        const res = await fetch(`/api/prospecting/autocomplete?q=${encodeURIComponent(city)}`)
+        const data = await res.json()
+        setSuggestions(data.suggestions ?? [])
+        setShowSugg(true)
+      } catch { setSuggestions([]) }
+      finally { setLoadingSugg(false) }
+    }, 300)
+  }, [city])
+
+  // Cerrar sugerencias al click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (suggRef.current && !suggRef.current.contains(e.target as Node)) {
+        setShowSugg(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const selectSuggestion = (s: Suggestion) => {
+    setCity(s.mainText)
+    setSuggestions([])
+    setShowSugg(false)
+    setCoords(null) // reset coords, se geocodificará por nombre
+  }
+
+  const handleMapSelect = useCallback((lat: number, lng: number, locationName: string) => {
+    setCity(locationName)
+    setCoords({ lat, lng })
+    setShowMap(false)
+  }, [])
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -95,16 +139,30 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
   }
 
   const search = async () => {
-    if (!activeCategory) { setError('Ingresa una categoría'); return }
+    if (!city.trim())        { setError('Selecciona una ubicación'); return }
+    if (!activeCategory)     { setError('Ingresa una categoría'); return }
     setError('')
     setLoading(true)
     setPlaces([])
     setSelected(new Set())
+
     try {
+      const body: Record<string, unknown> = {
+        category: activeCategory,
+        radius,
+        maxResults,
+      }
+      if (coords) {
+        body.lat = coords.lat
+        body.lng = coords.lng
+      } else {
+        body.city = city
+      }
+
       const res = await fetch('/api/prospecting/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city, category: activeCategory, radius, maxResults }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -142,7 +200,7 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      const msg = `${data.created} lead(s) creados con estado Identificación${data.skipped > 0 ? ` · ${data.skipped} ya existían` : ''}`
+      const msg = `${data.created} lead(s) agregados como "Identificación"${data.skipped > 0 ? ` · ${data.skipped} ya existían` : ''}`
       showToast('success', msg)
       setSelected(new Set())
       onLeadsCreated?.()
@@ -167,24 +225,87 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
         </div>
       )}
 
+      {/* Map modal */}
+      {showMap && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-3xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Seleccionar ubicación en mapa</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Haz click en cualquier punto de Colombia</p>
+              </div>
+              <button onClick={() => setShowMap(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="h-[500px]">
+              <MapPicker onSelect={handleMapSelect} radius={radius} />
+            </div>
+            <div className="px-5 py-3 border-t border-gray-700 text-xs text-gray-500">
+              Radio de búsqueda actual: <span className="text-orange-400 font-medium">
+                {RADIUS_OPTIONS.find(r => r.value === radius)?.label ?? `${radius}m`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search form */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* City */}
+
+          {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs text-gray-400 flex items-center gap-1">
-              <MapPin size={11} /> Ciudad / Municipio
+              <MapPin size={11} /> Ubicación
             </label>
-            <input
-              list="municipios-list"
-              value={city}
-              onChange={e => setCity(e.target.value)}
-              placeholder="Ej: Bogotá, Bello, Palmira..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
-            />
-            <datalist id="municipios-list">
-              {MUNICIPIOS.map(m => <option key={m} value={m} />)}
-            </datalist>
+            <div className="flex gap-2">
+              <div ref={suggRef} className="relative flex-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={city}
+                  onChange={e => { setCity(e.target.value); setCoords(null) }}
+                  onFocus={() => suggestions.length > 0 && setShowSugg(true)}
+                  placeholder="Busca ciudad, municipio..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
+                />
+                {loadingSugg && (
+                  <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />
+                )}
+                {showSugg && suggestions.length > 0 && (
+                  <div className="absolute top-full mt-1 left-0 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-30 overflow-hidden">
+                    {suggestions.map(s => (
+                      <button
+                        key={s.placeId}
+                        onClick={() => selectSuggestion(s)}
+                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-700 transition-colors text-left"
+                      >
+                        <MapPin size={12} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-white">{s.mainText}</p>
+                          {s.secondaryText && (
+                            <p className="text-xs text-gray-500">{s.secondaryText}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setShowMap(true)}
+                title="Seleccionar en mapa"
+                className="flex-shrink-0 p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-orange-400 hover:border-orange-500/50 transition-colors"
+              >
+                <Map size={16} />
+              </button>
+            </div>
+            {coords && (
+              <p className="text-[10px] text-orange-400 flex items-center gap-1">
+                <MapPin size={9} /> Coordenadas seleccionadas desde mapa
+              </p>
+            )}
           </div>
 
           {/* Category */}
@@ -243,7 +364,7 @@ export default function ProspectorTab({ onLeadsCreated }: Props) {
           </div>
           <button
             onClick={search}
-            disabled={loading || !activeCategory}
+            disabled={loading || !city.trim() || !activeCategory}
             className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}

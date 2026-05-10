@@ -128,15 +128,26 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key no configurada' }, { status: 500 })
 
-  const { city, category, radius = 5000, maxResults = 20 } = await request.json()
+  const { city, category, radius = 5000, maxResults = 20, lat, lng } = await request.json()
 
-  if (!city || !category) {
-    return NextResponse.json({ error: 'Ciudad y categoría son requeridas' }, { status: 400 })
+  if (!category) {
+    return NextResponse.json({ error: 'Categoría es requerida' }, { status: 400 })
+  }
+  if (!city && (lat === undefined || lng === undefined)) {
+    return NextResponse.json({ error: 'Ubicación es requerida' }, { status: 400 })
   }
 
-  const normalized = city.toLowerCase().trim()
-  const coords = CITY_COORDS[normalized]
-  const query = `${category} en ${city}, Colombia`
+  // Coordenadas: prioridad lat/lng directo (desde mapa), luego lookup por nombre
+  let resolvedCoords: { lat: number; lng: number } | null = null
+  if (lat !== undefined && lng !== undefined) {
+    resolvedCoords = { lat: Number(lat), lng: Number(lng) }
+  } else if (city) {
+    const normalized = city.toLowerCase().trim()
+    resolvedCoords = CITY_COORDS[normalized] ?? null
+  }
+
+  const locationLabel = city || `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`
+  const query = `${category} en ${locationLabel}, Colombia`
 
   const body: Record<string, unknown> = {
     textQuery: query,
@@ -144,10 +155,10 @@ export async function POST(request: NextRequest) {
     maxResultCount: Math.min(maxResults, 20),
   }
 
-  if (coords) {
+  if (resolvedCoords) {
     body.locationBias = {
       circle: {
-        center: { latitude: coords.lat, longitude: coords.lng },
+        center: { latitude: resolvedCoords.lat, longitude: resolvedCoords.lng },
         radius: Number(radius),
       },
     }
