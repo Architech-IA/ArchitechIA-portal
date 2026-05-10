@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import PipelineView from '@/components/PipelineView';
 import ProposalsTab from '@/components/ProposalsTab';
+import ProspectorTab from '@/components/ProspectorTab';
 
 interface Lead {
   id: string;
@@ -77,7 +78,7 @@ export default function LeadsPage() {
   const [noteText, setNoteText]       = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
-  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'propuestas'>('lista');
+  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'propuestas' | 'prospector'>('lista');
 
   // ── Filtros avanzados ──
   const [showFilters, setShowFilters] = useState(false);
@@ -466,6 +467,19 @@ export default function LeadsPage() {
         >
           Propuestas
         </button>
+        <button
+          onClick={() => setActiveTab('prospector')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            activeTab === 'prospector'
+              ? 'bg-orange-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Prospector
+        </button>
       </div>
 
       {activeTab === 'lista' && (
@@ -806,6 +820,14 @@ export default function LeadsPage() {
       {activeTab === 'pipeline' && <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />}
 
       {activeTab === 'propuestas' && <ProposalsTab isAdmin={isAdmin} />}
+
+      {activeTab === 'prospector' && (
+        <ProspectorTab
+          onLeadsCreated={() => {
+            fetch('/api/leads').then(r => r.json()).then(setLeads)
+          }}
+        />
+      )}
 
       {/* Modal crear / editar */}
       {showModal && (
