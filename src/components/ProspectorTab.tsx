@@ -7,11 +7,13 @@ import {
   Search, MapPin, Star, Phone, Globe, ArrowRight,
   CheckSquare, Square, Loader2, UserPlus, AlertCircle,
   CheckCircle2, Map, X, Table2, Trash2, ExternalLink,
-  RefreshCw, Eye, User, Calendar, Clock,
+  RefreshCw, Eye, User, Calendar, Clock, LayoutGrid,
+  Download, Plus, AlertTriangle, Zap,
 } from 'lucide-react'
 import CategorySelector from './CategorySelector'
 
-const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false })
+const MapPicker    = dynamic(() => import('./MapPicker'),    { ssr: false })
+const ResultsMap   = dynamic(() => import('./ResultsMap'),   { ssr: false })
 
 interface Place {
   placeId: string
@@ -23,6 +25,30 @@ interface Place {
   totalRatings: number
   status: string
   types: string[]
+  lat: number | null
+  lng: number | null
+  score: number
+}
+
+function calcScore(p: Omit<Place, 'score'>): number {
+  let s = 0
+  if (p.rating)       s += (p.rating / 5) * 40
+  if (p.totalRatings) s += Math.min(30, Math.log10(p.totalRatings + 1) * 15)
+  if (p.phone)        s += 10
+  if (p.website)      s += 10
+  if (p.status === 'OPERATIONAL') s += 10
+  return Math.round(s)
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const color = score >= 70 ? 'bg-green-500/20 text-green-400 border-green-500/30'
+              : score >= 40 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+              : 'bg-red-500/20 text-red-400 border-red-500/30'
+  return (
+    <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${color}`}>
+      <Zap size={9} /> {score}
+    </span>
+  )
 }
 
 interface Suggestion {
@@ -105,6 +131,14 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
   const [query, setQuery]           = useState('')
   const [toast, setToast]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [showMap, setShowMap]       = useState(false)
+  // Batch search
+  const [batchCities, setBatchCities] = useState<string[]>([])
+  const [batchMode, setBatchMode]     = useState(false)
+  const [batchProgress, setBatchProgress] = useState<string>('')
+  // Results view mode
+  const [resultsView, setResultsView] = useState<'cards' | 'map'>('cards')
+  // Duplicates
+  const [duplicates, setDuplicates]   = useState<Place[]>([])
 
   const suggRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -260,36 +294,68 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
     setTimeout(() => setToast(null), 4000)
   }
 
+  const runOneSearch = async (cityName: string, lat?: number, lng?: number) => {
+    const body: Record<string, unknown> = { category: activeCategory, radius, maxResults }
+    if (lat !== undefined && lng !== undefined) { body.lat = lat; body.lng = lng }
+    else body.city = cityName
+    const res = await fetch('/api/prospecting/search', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+    return data.places as Omit<Place, 'score'>[]
+  }
+
+  const applyScoreAndDedupe = (raw: Omit<Place, 'score'>[]): Place[] => {
+    const seen = new Set<string>()
+    return raw.filter(p => { if (seen.has(p.placeId)) return false; seen.add(p.placeId); return true })
+              .map(p => ({ ...p, score: calcScore(p) }))
+              .sort((a, b) => b.score - a.score)
+  }
+
+  const detectDuplicates = (found: Place[]) => {
+    const dupes = found.filter(p =>
+      savedResults.some(s =>
+        s.placeId === p.placeId ||
+        (p.phone && s.phone && p.phone === s.phone) ||
+        (p.address && s.address && p.address.toLowerCase().includes(s.address.toLowerCase().slice(0, 20)))
+      )
+    )
+    setDuplicates(dupes)
+  }
+
   const search = async () => {
-    if (!city.trim())        { setError('Selecciona una ubicación'); return }
-    if (!activeCategory)     { setError('Ingresa una categoría'); return }
+    if (!batchMode && !city.trim()) { setError('Selecciona una ubicación'); return }
+    if (batchMode && batchCities.length === 0) { setError('Agrega al menos una ciudad'); return }
+    if (!activeCategory) { setError('Ingresa una categoría'); return }
     setError('')
     setLoading(true)
     setPlaces([])
     setSelected(new Set())
+    setDuplicates([])
+    setBatchProgress('')
 
     try {
-      const body: Record<string, unknown> = {
-        category: activeCategory,
-        radius,
-        maxResults,
-      }
-      if (coords) {
-        body.lat = coords.lat
-        body.lng = coords.lng
+      if (!batchMode) {
+        const raw = await runOneSearch(city, coords?.lat, coords?.lng)
+        const scored = applyScoreAndDedupe(raw)
+        setPlaces(scored)
+        setQuery(`${activeCategory} en ${city}`)
+        detectDuplicates(scored)
       } else {
-        body.city = city
+        const all: Omit<Place, 'score'>[] = []
+        for (let i = 0; i < batchCities.length; i++) {
+          const c = batchCities[i]
+          setBatchProgress(`Buscando en ${c} (${i + 1}/${batchCities.length})...`)
+          const raw = await runOneSearch(c)
+          all.push(...raw)
+        }
+        setBatchProgress('')
+        const scored = applyScoreAndDedupe(all)
+        setPlaces(scored)
+        setQuery(`${activeCategory} en ${batchCities.join(', ')}`)
+        detectDuplicates(scored)
       }
-
-      const res = await fetch('/api/prospecting/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setPlaces(data.places)
-      setQuery(data.query)
     } catch (e: any) {
       setError(e.message || 'Error al buscar')
     } finally {
@@ -419,13 +485,90 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
 
       {/* Search form */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+
+        {/* Batch mode toggle */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">Modo de búsqueda</span>
+          <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+            <button onClick={() => setBatchMode(false)} className={`px-3 py-1 text-xs rounded-md transition-colors ${!batchMode ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              Simple
+            </button>
+            <button onClick={() => setBatchMode(true)} className={`px-3 py-1 text-xs rounded-md transition-colors ${batchMode ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              Lote (múltiples ciudades)
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
           {/* Location */}
           <div className="space-y-1.5">
             <label className="text-xs text-gray-400 flex items-center gap-1">
-              <MapPin size={11} /> Ubicación
+              <MapPin size={11} /> {batchMode ? 'Ciudades' : 'Ubicación'}
             </label>
+            {!batchMode && (
+              <div className="flex gap-2">
+                <div ref={suggRef} className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={city}
+                    onChange={e => { setCity(e.target.value); setCoords(null) }}
+                    onFocus={() => suggestions.length > 0 && setShowSugg(true)}
+                    placeholder="Busca ciudad, municipio..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
+                  />
+                  {loadingSugg && <Loader2 size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" />}
+                  {showSugg && suggestions.length > 0 && (
+                    <div className="absolute top-full mt-1 left-0 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-30 overflow-hidden">
+                      {suggestions.map(s => (
+                        <button key={s.placeId} onClick={() => selectSuggestion(s)} className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-700 transition-colors text-left">
+                          <MapPin size={12} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm text-white">{s.mainText}</p>
+                            {s.secondaryText && <p className="text-xs text-gray-500">{s.secondaryText}</p>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => setShowMap(true)} title="Seleccionar en mapa" className="flex-shrink-0 p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-orange-400 hover:border-orange-500/50 transition-colors">
+                  <Map size={16} />
+                </button>
+              </div>
+            )}
+            {!batchMode && coords && <p className="text-[10px] text-orange-400 flex items-center gap-1"><MapPin size={9} /> Coordenadas desde mapa</p>}
+            {batchMode && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {batchCities.map(c => (
+                    <span key={c} className="flex items-center gap-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs px-2 py-0.5 rounded-full">
+                      {c}
+                      <button onClick={() => setBatchCities(prev => prev.filter(x => x !== c))}><X size={10} /></button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    list="municipios-batch"
+                    placeholder="Agregar ciudad..."
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (val && !batchCities.includes(val)) setBatchCities(prev => [...prev, val]);
+                        (e.target as HTMLInputElement).value = ''
+                      }
+                    }}
+                  />
+                  <datalist id="municipios-batch">
+                    {['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Bucaramanga','Pereira','Manizales','Cúcuta','Ibagué','Pasto','Neiva','Villavicencio','Armenia'].map(m => <option key={m} value={m} />)}
+                  </datalist>
+                  <button onClick={() => {}} className="text-[10px] text-gray-500 px-2">↵ Enter</button>
+                </div>
+              </div>
+            )}
             <div className="flex gap-2">
               <div ref={suggRef} className="relative flex-1">
                 <input
@@ -459,20 +602,6 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                     ))}
                   </div>
                 )}
-              </div>
-              <button
-                onClick={() => setShowMap(true)}
-                title="Seleccionar en mapa"
-                className="flex-shrink-0 p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-orange-400 hover:border-orange-500/50 transition-colors"
-              >
-                <Map size={16} />
-              </button>
-            </div>
-            {coords && (
-              <p className="text-[10px] text-orange-400 flex items-center gap-1">
-                <MapPin size={9} /> Coordenadas seleccionadas desde mapa
-              </p>
-            )}
           </div>
 
           {/* Category */}
@@ -528,13 +657,55 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
         )}
       </div>
 
+      {/* Batch progress */}
+      {batchProgress && (
+        <div className="flex items-center gap-2 text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg px-4 py-2.5">
+          <Loader2 size={14} className="animate-spin" /> {batchProgress}
+        </div>
+      )}
+
       {/* Results */}
       {places.length > 0 && (
         <div className="space-y-3">
+          {/* Duplicate widget */}
+          {duplicates.length > 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium">
+                <AlertTriangle size={15} /> {duplicates.length} posible{duplicates.length > 1 ? 's' : ''} duplicado{duplicates.length > 1 ? 's' : ''} detectado{duplicates.length > 1 ? 's' : ''}
+                <span className="text-[10px] text-yellow-600 ml-1">(ya están en Prospector Table)</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {duplicates.map(d => (
+                  <div key={d.placeId} className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/10 rounded-lg px-3 py-1.5">
+                    <AlertTriangle size={11} className="text-yellow-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-white truncate">{d.name}</p>
+                      {d.phone && <p className="text-[10px] text-yellow-600">{d.phone}</p>}
+                    </div>
+                    <ScoreBadge score={d.score} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm font-semibold text-white">{places.length} resultados</span>
-              <span className="text-xs text-gray-500 ml-2">"{query}"</span>
+            <div className="flex items-center gap-3">
+              <div>
+                <span className="text-sm font-semibold text-white">{places.length} resultados</span>
+                <span className="text-xs text-gray-500 ml-2">"{query}"</span>
+              </div>
+              {/* Cards / Map toggle */}
+              <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+                <button onClick={() => setResultsView('cards')} title="Tarjetas"
+                  className={`p-1.5 rounded-md transition-colors ${resultsView === 'cards' ? 'bg-orange-600 text-white' : 'text-gray-500 hover:text-white'}`}>
+                  <LayoutGrid size={13} />
+                </button>
+                <button onClick={() => setResultsView('map')} title="Mapa"
+                  className={`p-1.5 rounded-md transition-colors ${resultsView === 'map' ? 'bg-orange-600 text-white' : 'text-gray-500 hover:text-white'}`}>
+                  <Map size={13} />
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={toggleAll} className="text-xs text-gray-400 hover:text-white transition-colors">
@@ -563,7 +734,15 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Map view */}
+          {resultsView === 'map' && (
+            <div className="h-[480px] rounded-xl overflow-hidden border border-gray-800">
+              <ResultsMap places={places} />
+            </div>
+          )}
+
+          {/* Cards view */}
+          {resultsView === 'cards' && <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {places.map(place => (
               <div
                 key={place.placeId}
@@ -584,7 +763,10 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                     </div>
                     <h3 className="text-sm font-semibold text-white leading-tight">{place.name}</h3>
                   </div>
-                  <Stars rating={place.rating} />
+                  <div className="flex items-center gap-2">
+                    <ScoreBadge score={place.score} />
+                    <Stars rating={place.rating} />
+                  </div>
                 </div>
 
                 <div className="ml-6 space-y-1.5">
@@ -632,7 +814,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                 )}
               </div>
             ))}
-          </div>
+          </div>}
         </div>
       )}
 
@@ -892,6 +1074,20 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                 />
               </div>
               <span className="text-xs text-gray-500 flex-shrink-0">{filteredSaved.length} registros</span>
+              <button
+                onClick={() => {
+                  const headers = ['Nombre','Dirección','Teléfono','Web','Rating','Ciudad','Categoría','Estado','Guardado por','Fecha']
+                  const rows = filteredSaved.map(r => [r.name, r.address ?? '', r.phone ?? '', r.website ?? '', r.rating ?? '', r.city, r.category, r.convertedToLead ? 'Convertido' : 'Pendiente', r.savedByName, new Date(r.createdAt).toLocaleDateString('es-ES')])
+                  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+                  const a = document.createElement('a')
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+                  a.download = 'prospector-table.csv'; a.click()
+                }}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                title="Exportar CSV"
+              >
+                <Download size={13} /> CSV
+              </button>
               <button onClick={loadTable} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors flex-shrink-0">
                 <RefreshCw size={13} className={loadingTable ? 'animate-spin' : ''} /> Actualizar
               </button>
