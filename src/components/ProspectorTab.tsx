@@ -86,7 +86,9 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
   const [savingToTable, setSavingToTable] = useState(false)
   const [tableFilter, setTableFilter]     = useState('')
   const [confirmConvert, setConfirmConvert] = useState<SavedResult | null>(null)
+  const [confirmDelete, setConfirmDelete]   = useState<SavedResult | null>(null)
   const [convertingOne, setConvertingOne]   = useState(false)
+  const [deletingOne, setDeletingOne]       = useState(false)
 
   const { data: session } = useSession()
   const [places, setPlaces]         = useState<Place[]>([])
@@ -180,13 +182,19 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
     }
   }
 
-  const deleteFromTable = async (id: string) => {
-    await fetch('/api/prospecting/table', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
-    setSavedResults(prev => prev.filter(r => r.id !== id))
+  const deleteFromTable = async (record: SavedResult) => {
+    setDeletingOne(true)
+    try {
+      await fetch('/api/prospecting/table', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: record.id }),
+      })
+      setSavedResults(prev => prev.filter(r => r.id !== record.id))
+    } finally {
+      setDeletingOne(false)
+      setConfirmDelete(null)
+    }
   }
 
   const convertOneToLead = async (record: SavedResult) => {
@@ -621,6 +629,48 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
 
       </>)}
 
+      {/* Confirm delete popup */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold">Eliminar registro</h3>
+                <p className="text-gray-400 text-sm mt-0.5">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-5">
+              <p className="text-white font-medium">{confirmDelete.name}</p>
+              {confirmDelete.city && (
+                <p className="text-xs text-gray-500 mt-1">{confirmDelete.city} · {confirmDelete.category}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={deletingOne}
+                className="flex-1 px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => deleteFromTable(confirmDelete)}
+                disabled={deletingOne}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                {deletingOne ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm convert popup */}
       {confirmConvert && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
@@ -800,7 +850,7 @@ export default function ProspectorTab({ onLeadsCreated, initialView = 'search' }
                               </button>
                             )}
                             <button
-                              onClick={() => deleteFromTable(r.id)}
+                              onClick={() => setConfirmDelete(r)}
                               className="text-gray-600 hover:text-red-400 transition-colors"
                               title="Eliminar"
                             >
