@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { StickyNote, Pencil, Trash2, LayoutDashboard } from 'lucide-react';
 import PipelineView from '@/components/PipelineView';
 import ProposalsTab from '@/components/ProposalsTab';
 import ProspectorTab from '@/components/ProspectorTab';
@@ -60,6 +62,7 @@ type SortKey = 'companyName' | 'scope' | 'contactName' | 'email' | 'status' | 'e
 
 export default function LeadsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [leads, setLeads]         = useState<Lead[]>([]);
@@ -755,24 +758,34 @@ export default function LeadsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{lead.user.name}</td>
                         {isAdmin && (
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => router.push(`/leads/${lead.id}/hub`)}
+                                title="HUB del lead"
+                                className="text-orange-400 hover:text-orange-300 transition-colors"
+                              >
+                                <LayoutDashboard size={16} />
+                              </button>
                               <button
                                 onClick={() => openNotes(lead)}
-                                className="px-3 py-1 text-xs bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 rounded-lg transition-colors"
+                                title="Notas"
+                                className="text-blue-400 hover:text-blue-300 transition-colors"
                               >
-                                Notas
+                                <StickyNote size={15} />
                               </button>
                               <button
                                 onClick={() => openEdit(lead)}
-                                className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                                title="Editar"
+                                className="text-gray-400 hover:text-white transition-colors"
                               >
-                                Editar
+                                <Pencil size={15} />
                               </button>
                               <button
                                 onClick={() => setConfirmDel(lead)}
-                                className="px-3 py-1 text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 rounded-lg transition-colors"
+                                title="Eliminar"
+                                className="text-red-500/60 hover:text-red-400 transition-colors"
                               >
-                                Eliminar
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           </td>

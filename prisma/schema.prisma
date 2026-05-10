@@ -368,6 +368,32 @@ model Notification {
   createdAt   DateTime @default(now())
 }
 
+model LeadHub {
+  id        String   @id @default(cuid())
+  leadId    String
+  phase     String
+  content   String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  files     LeadHubFile[]
+
+  @@unique([leadId, phase])
+}
+
+model LeadHubFile {
+  id         String   @id @default(cuid())
+  hubId      String
+  hub        LeadHub  @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  name       String
+  size       Int
+  mimeType   String
+  base64     String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+}
+
 model ProspectorResult {
   id           String   @id @default(cuid())
   placeId      String   @unique
