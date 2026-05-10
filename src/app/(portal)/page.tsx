@@ -190,30 +190,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Top socios */}
-        <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Top Socios</h3>
-          <div className="space-y-3">
-            {data?.topSocios.map((socio, i) => (
-              <div key={socio.id} className="flex items-center gap-3">
-                <span className={`text-lg font-bold w-6 flex-shrink-0 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-400' : 'text-orange-700'}`}>
-                  #{i + 1}
-                </span>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-black font-bold text-sm flex-shrink-0">
-                  {socio.name.split(' ').filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{socio.name}</p>
-                </div>
-                <div className="flex gap-3 text-xs text-gray-400 flex-shrink-0">
-                  <span className="flex items-center gap-1"><span className="text-orange-400 font-semibold">{socio._count.leads}</span> leads</span>
-                  <span className="flex items-center gap-1"><span className="text-blue-400 font-semibold">{socio._count.proposals}</span> prop.</span>
-                  <span className="flex items-center gap-1"><span className="text-green-400 font-semibold">{socio._count.projects}</span> proy.</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Embudo de ventas + Tendencias */}

@@ -64,7 +64,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               ArchiTechIA
             </h1>
           ) : (
-            <img src="/logo.png" alt="ArchiTechIA" style={{ width: '3.75rem', height: '3.75rem' }} className="object-contain mx-auto" />
+            <img src="/logo.png" alt="ArchiTechIA" style={{ width: '5.625rem', height: '5.625rem' }} className="object-contain mx-auto" />
           )}
           {!isCollapsed && !isMobile && (
             <button onClick={toggleCollapse} title="Colapsar sidebar"
