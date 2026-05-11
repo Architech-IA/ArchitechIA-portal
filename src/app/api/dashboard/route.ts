@@ -46,6 +46,21 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+  // ── Backlog stats ──
+  const [backlogItems, sprint] = await Promise.all([
+    prisma.backlogItem.findMany({ select: { status: true, type: true, points: true } }),
+    prisma.sprint.findFirst({ where: { status: 'ACTIVE' }, select: { id: true, name: true, endDate: true } }),
+  ]);
+  const sprintItems = sprint ? await prisma.backlogItem.findMany({ where: { sprintId: sprint.id } }) : [];
+  const backlogStats = {
+    total: backlogItems.length,
+    pendientes: backlogItems.filter(i => i.status === 'BACKLOG').length,
+    enProgreso: backlogItems.filter(i => i.status === 'IN_PROGRESS').length,
+    completados: backlogItems.filter(i => i.status === 'DONE').length,
+    puntosTotales: backlogItems.reduce((a, i) => a + (i.points || 0), 0),
+    sprintActivo: sprint ? { name: sprint.name, endDate: sprint.endDate, items: sprintItems.length } : null,
+  };
+
   // ── Registros pendientes (del array ya cargado)
   const registrosPendientes = await prisma.registroFinanciero.findMany({
     where: { estado: 'pendiente' },
@@ -153,6 +168,7 @@ export async function GET(request: NextRequest) {
     tendencias,
     myDay,
     staleLeads: leadsInactivos,
+    backlogStats,
   });
 }
 

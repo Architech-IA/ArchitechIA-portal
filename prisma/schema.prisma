@@ -112,6 +112,7 @@ model Project {
   users         ProjectUser[]
   milestones    Milestone[]
   activities    Activity[]
+  backlogItems  BacklogItem[]
 }
 
 model ProjectUser {
@@ -428,6 +429,8 @@ model BacklogItem {
   sprint       Sprint?  @relation(fields: [sprintId], references: [id])
   assigneeId   String?
   assigneeName String?
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id])
   order        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

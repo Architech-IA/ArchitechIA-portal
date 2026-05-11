@@ -23,6 +23,7 @@ interface DashboardData {
   tendencias: { mes: string; leads: number; proyectos: number; ingresos: number }[];
   myDay: { leadsContactar: { id: string; companyName: string; contactName: string; status: string; updatedAt: string }[]; propuestasPendientes: { id: string; title: string; status: string; amount: number }[]; tareasVencidas: any[] };
   staleLeads: { id: string; companyName: string; status: string; updatedAt: string }[];
+  backlogStats: { total: number; pendientes: number; enProgreso: number; completados: number; puntosTotales: number; sprintActivo: { name: string; endDate: string; items: number } | null } | null;
 }
 
 const ETAPA_LABELS: Record<string, string> = {
@@ -124,6 +125,37 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* Backlog + Sprint */}
+      {data?.backlogStats && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Backlog</h3>
+          <div className="grid grid-cols-4 gap-4 mb-4">
+            {[
+              { label: 'Total', value: data.backlogStats.total, color: 'text-white' },
+              { label: 'Pendientes', value: data.backlogStats.pendientes, color: 'text-gray-400' },
+              { label: 'En Progreso', value: data.backlogStats.enProgreso, color: 'text-orange-400' },
+              { label: 'Completados', value: data.backlogStats.completados, color: 'text-green-400' },
+            ].map(k => (
+              <div key={k.label} className="bg-gray-800 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-500">{k.label}</p>
+                <p className={`text-xl font-bold ${k.color}`}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-400">{data.backlogStats.puntosTotales} puntos totales</span>
+            {data.backlogStats.sprintActivo ? (
+              <span className="text-orange-400">
+                Sprint activo: {data.backlogStats.sprintActivo.name} · {data.backlogStats.sprintActivo.items} ítems · 
+                hasta {new Date(data.backlogStats.sprintActivo.endDate).toLocaleDateString('es-ES')}
+              </span>
+            ) : (
+              <span className="text-gray-500">Sin sprint activo</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mi Jornada */}
       {data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
