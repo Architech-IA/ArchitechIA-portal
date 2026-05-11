@@ -240,15 +240,15 @@ export default function BacklogPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className={`flex-1 min-h-0 p-6 ${view === 'kanban' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
 
         {/* Kanban */}
         {view === 'kanban' && (
-          <div className="flex gap-4 h-full min-h-0" style={{ minWidth: `${STATUSES.length * 280}px` }}>
+          <div className="flex gap-3 flex-1 min-h-0 overflow-x-auto">
             {STATUSES.map(col => {
               const colItems = byStatus(col.key)
               return (
-                <div key={col.key} className="flex flex-col w-72 flex-shrink-0">
+                <div key={col.key} className="flex flex-col flex-1 min-w-[180px] min-h-0">
                   {/* Column header */}
                   <div className={`flex items-center justify-between px-3 py-2 rounded-t-xl border ${col.border} ${col.bg} mb-2`}>
                     <div className="flex items-center gap-2">
@@ -335,6 +335,7 @@ export default function BacklogPage() {
         )}
 
         {/* Lista */}
+
         {view === 'lista' && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
             <table className="w-full">
