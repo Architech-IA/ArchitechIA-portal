@@ -55,8 +55,15 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
   useEffect(() => {
     fetch('/api/notifications')
       .then(r => r.json())
-      .then(d => setNotifs(d.notifs ?? []))
+      .then(d => setNotifs(Array.isArray(d) ? d : d.notifs ?? []))
       .catch(() => {});
+
+    // SSE: notificaciones en tiempo real
+    const sse = new EventSource('/api/notifications/sse');
+    sse.onmessage = (e) => {
+      try { setNotifs(JSON.parse(e.data)); } catch {}
+    };
+    return () => sse.close();
   }, []);
 
   // Reloj UTC-5 (Colombia / Lima / Bogotá)

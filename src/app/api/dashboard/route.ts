@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     completados: backlogItems.filter(i => i.status === 'DONE').length,
     puntosTotales: backlogItems.reduce((a, i) => a + (i.points || 0), 0),
     sprintActivo: sprint ? { name: sprint.name, endDate: sprint.endDate, items: sprintItems.length } : null,
+    sprintBurndown: sprint ? sprintItems.map(i => ({ status: i.status, points: i.points || 0 })) : [],
   };
 
   // ── Registros pendientes (del array ya cargado)

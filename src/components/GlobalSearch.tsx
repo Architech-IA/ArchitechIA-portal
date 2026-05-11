@@ -8,6 +8,8 @@ interface SearchResults {
   proposals: { id: string; title: string; status: string; amount: number }[];
   projects:  { id: string; name: string; status: string; progress: number }[];
   clientes:  { id: string; nombre: string; industria: string; estado: string }[];
+  backlog:   { id: string; title: string; status: string; type: string }[];
+  meetings:  { id: string; title: string; date: string; type: string }[];
 }
 
 const STATUS_ES: Record<string, string> = {
@@ -127,6 +129,25 @@ export default function GlobalSearch() {
                     <Result key={c.id} onClick={() => navigate('/clientes')}
                       title={c.nombre} sub={c.industria}
                       badge={c.estado} color="purple" />
+                  ))}
+                </Section>
+              )}
+              {results.backlog && results.backlog.length > 0 && (
+                <Section label="Backlog">
+                  {results.backlog.map(b => (
+                    <Result key={b.id} onClick={() => navigate('/backlog')}
+                      title={b.title} sub={b.type}
+                      badge={b.status} color="blue" />
+                  ))}
+                </Section>
+              )}
+              {results.meetings && results.meetings.length > 0 && (
+                <Section label="Meetings">
+                  {results.meetings.map(m => (
+                    <Result key={m.id} onClick={() => navigate('/meetings')}
+                      title={m.title}
+                      sub={new Date(m.date).toLocaleDateString('es-ES')}
+                      badge={m.type} color="green" />
                   ))}
                 </Section>
               )}

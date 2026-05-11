@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import ProjectGantt from '@/components/ProjectGantt';
 
 interface ProjectMember {
   user: { id: string; name: string; email: string };
@@ -74,6 +75,7 @@ export default function ProjectsPage() {
   const [saving, setSaving]           = useState(false);
   const [filter, setFilter]           = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [view, setView] = useState<'cards' | 'gantt'>('cards');
   const [milestoneProject, setMilestoneProject] = useState<string | null>(null);
   const [milestoneName, setMilestoneName]       = useState('');
   const [milestoneDue, setMilestoneDue]         = useState('');
@@ -239,6 +241,10 @@ export default function ProjectsPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             CSV
           </button>
+          <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+            <button onClick={() => setView('cards')} className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${view === 'cards' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Cards</button>
+            <button onClick={() => setView('gantt')} className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${view === 'gantt' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Gantt</button>
+          </div>
           <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
             + Nuevo Proyecto
           </button>
@@ -288,6 +294,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Cards */}
+      {view === 'cards' ? (
       <div className="grid gap-6">
         {filtered.map(project => (
           <div key={project.id} className="border border-gray-700 rounded-xl p-6 bg-gray-900 hover:border-gray-600 transition-colors">
@@ -427,6 +434,16 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+      ) : (
+        <div className="space-y-6">
+          {filtered.map(p => (
+            <ProjectGantt key={p.id} project={{
+              name: p.name, startDate: p.startDate, endDate: p.endDate,
+              progress: p.progress, milestones: p.milestones,
+            }} />
+          ))}
+        </div>
+      )}
 
       {/* Modal crear / editar */}
       {showModal && (
