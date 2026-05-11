@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, ArrowRight, CheckCircle2, Clock, Loader2, Flag, MessageSquare } from 'lucide-react'
+import { X, ArrowRight, CheckCircle2, Clock, Loader2, Flag, MessageSquare, Pencil, Trash2 } from 'lucide-react'
 
 interface BacklogItem {
   id: string
@@ -33,6 +33,8 @@ interface Props {
   onClose: () => void
   onStatusChange: (item: BacklogItem, newStatus: string) => void
   currentUserName: string
+  onEdit: () => void
+  onDelete: () => void
 }
 
 const STATUSES = [
@@ -64,7 +66,7 @@ const PRIORITY_LABELS: Record<string, { label: string; color: string; dot: strin
   LOW:      { label: 'Baja',    color: 'text-gray-400',   dot: 'bg-gray-500'   },
 }
 
-export default function BacklogItemDetail({ item, onClose, onStatusChange, currentUserName }: Props) {
+export default function BacklogItemDetail({ item, onClose, onStatusChange, currentUserName, onEdit, onDelete }: Props) {
   const [logs, setLogs]       = useState<Log[]>([])
   const [loadingLogs, setLoadingLogs] = useState(true)
   const [note, setNote]       = useState('')
@@ -118,6 +120,9 @@ export default function BacklogItemDetail({ item, onClose, onStatusChange, curre
                 <span className={`w-1.5 h-1.5 rounded-full ${pr?.dot}`} /> {pr?.label}
               </span>
               {item.points && <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded font-mono">{item.points}pt</span>}
+              <div className="w-px h-3 bg-gray-700 mx-1" />
+              <button onClick={onEdit} className="text-gray-500 hover:text-white transition-colors" title="Editar"><Pencil size={12} /></button>
+              <button onClick={onDelete} className="text-gray-500 hover:text-red-400 transition-colors" title="Eliminar"><Trash2 size={12} /></button>
             </div>
             <h2 className="text-lg font-bold text-white leading-tight">{item.title}</h2>
           </div>

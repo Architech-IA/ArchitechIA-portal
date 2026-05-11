@@ -279,8 +279,6 @@ export default function BacklogPage() {
                               )}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => setViewItem(item)} className="text-gray-600 hover:text-blue-400 transition-colors"><Eye size={11} /></button>
-                                <button onClick={() => openEdit(item)} className="text-gray-600 hover:text-white transition-colors"><Pencil size={11} /></button>
-                                <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
                               </div>
                             </div>
                           </div>
@@ -294,8 +292,6 @@ export default function BacklogPage() {
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                               <button onClick={() => setViewItem(item)} className="text-gray-500 hover:text-blue-400 transition-colors"><Eye size={11} /></button>
-                              <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={11} /></button>
-                              <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
                             </div>
                           </div>
                           <p className="text-xs text-white font-medium leading-snug mb-2">{item.title}</p>
@@ -514,6 +510,8 @@ export default function BacklogPage() {
           item={viewItem}
           onClose={() => setViewItem(null)}
           currentUserName={userName}
+          onEdit={() => { setViewItem(null); openEdit(viewItem) }}
+          onDelete={() => { setViewItem(null); setConfirmDel(viewItem) }}
           onStatusChange={async (item, newStatus) => {
             const res = await fetch(`/api/backlog/${item.id}`, {
               method: 'PUT', headers: { 'Content-Type': 'application/json' },
