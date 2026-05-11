@@ -43,7 +43,10 @@ const TYPES = [
   { key: 'TASK',        label: 'Tarea',          icon: Wrench,    color: 'text-blue-400 bg-blue-500/10'    },
   { key: 'IMPROVEMENT', label: 'Mejora',         icon: TrendingUp,color: 'text-green-400 bg-green-500/10'  },
   { key: 'TECH_DEBT',   label: 'Deuda técnica',  icon: CreditCard,color: 'text-yellow-400 bg-yellow-500/10'},
-  { key: 'DESARROLLO',  label: 'Desarrollo',     icon: Zap,       color: 'text-cyan-400 bg-cyan-500/10'    },
+  { key: 'DESARROLLO',     label: 'Desarrollo',     icon: Zap,       color: 'text-cyan-400 bg-cyan-500/10'     },
+  { key: 'COTIZACION',    label: 'Cotización',     icon: CreditCard,color: 'text-orange-400 bg-orange-500/10'  },
+  { key: 'DOCUMENTACION', label: 'Documentación',  icon: Wrench,    color: 'text-indigo-400 bg-indigo-500/10'  },
+  { key: 'INVESTIGACION', label: 'Investigación',  icon: TrendingUp,color: 'text-pink-400 bg-pink-500/10'      },
 ]
 
 const PRIORITIES = [
