@@ -395,6 +395,16 @@ model LeadHubFile {
   createdAt  DateTime @default(now())
 }
 
+model BacklogItemLog {
+  id         String   @id @default(cuid())
+  itemId     String
+  fromStatus String?
+  toStatus   String
+  note       String?
+  userName   String?
+  createdAt  DateTime @default(now())
+}
+
 model Sprint {
   id        String        @id @default(cuid())
   name      String

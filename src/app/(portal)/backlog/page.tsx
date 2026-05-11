@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Plus, LayoutGrid, List, X, Loader2, Flag, Zap, Bug, Wrench, TrendingUp, CreditCard, ChevronDown, Pencil, Trash2, Filter } from 'lucide-react'
+import { Plus, LayoutGrid, List, X, Loader2, Flag, Zap, Bug, Wrench, TrendingUp, CreditCard, ChevronDown, Pencil, Trash2, Filter, Eye } from 'lucide-react'
+import BacklogItemDetail from '@/components/BacklogItemDetail'
 
 interface Sprint {
   id: string
@@ -88,6 +89,7 @@ export default function BacklogPage() {
   const [loading, setLoading] = useState(true)
   const [view, setView]         = useState<'kanban' | 'lista'>('kanban')
   const [kanbanExpanded, setKanbanExpanded] = useState(false)
+  const [viewItem, setViewItem] = useState<BacklogItem | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem]   = useState<BacklogItem | null>(null)
   const [form, setForm]     = useState(EMPTY_FORM)
@@ -276,6 +278,7 @@ export default function BacklogPage() {
                                 </div>
                               )}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => setViewItem(item)} className="text-gray-600 hover:text-blue-400 transition-colors"><Eye size={11} /></button>
                                 <button onClick={() => openEdit(item)} className="text-gray-600 hover:text-white transition-colors"><Pencil size={11} /></button>
                                 <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
                               </div>
@@ -290,6 +293,7 @@ export default function BacklogPage() {
                               <TypeBadge type={item.type} />
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              <button onClick={() => setViewItem(item)} className="text-gray-500 hover:text-blue-400 transition-colors"><Eye size={11} /></button>
                               <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={11} /></button>
                               <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
                             </div>
@@ -375,6 +379,7 @@ export default function BacklogPage() {
                       <td className="px-4 py-3 text-center"><PointsBadge points={item.points} /></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => setViewItem(item)} className="text-gray-500 hover:text-blue-400 transition-colors"><Eye size={13} /></button>
                           <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={13} /></button>
                           <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                         </div>
@@ -500,6 +505,26 @@ export default function BacklogPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Item detail popup */}
+      {viewItem && (
+        <BacklogItemDetail
+          item={viewItem}
+          onClose={() => setViewItem(null)}
+          currentUserName={userName}
+          onStatusChange={async (item, newStatus) => {
+            const res = await fetch(`/api/backlog/${item.id}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...item, status: newStatus, sprintId: item.sprintId, assigneeName: item.assigneeName }),
+            })
+            if (res.ok) {
+              const updated = await res.json()
+              setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
+              setViewItem(updated)
+            }
+          }}
+        />
       )}
 
       {/* Confirm delete */}
