@@ -55,7 +55,7 @@ const PRIORITIES = [
 
 const EMPTY_FORM = {
   title: '', description: '', type: 'TASK', priority: 'MEDIUM',
-  status: 'BACKLOG', points: '', sprintId: '', assigneeName: '',
+  status: 'BACKLOG', points: '', sprintId: '', assigneeId: '', assigneeName: '',
 }
 
 function TypeBadge({ type }: { type: string }) {
