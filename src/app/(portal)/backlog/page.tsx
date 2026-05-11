@@ -38,11 +38,12 @@ const STATUSES = [
 ]
 
 const TYPES = [
-  { key: 'FEATURE',    label: 'Feature',        icon: Zap,       color: 'text-purple-400 bg-purple-500/10' },
-  { key: 'BUG',        label: 'Bug',            icon: Bug,       color: 'text-red-400 bg-red-500/10'      },
-  { key: 'TASK',       label: 'Tarea',          icon: Wrench,    color: 'text-blue-400 bg-blue-500/10'    },
-  { key: 'IMPROVEMENT',label: 'Mejora',         icon: TrendingUp,color: 'text-green-400 bg-green-500/10'  },
-  { key: 'TECH_DEBT',  label: 'Deuda técnica',  icon: CreditCard,color: 'text-yellow-400 bg-yellow-500/10'},
+  { key: 'FEATURE',     label: 'Feature',        icon: Zap,       color: 'text-purple-400 bg-purple-500/10' },
+  { key: 'BUG',         label: 'Bug',            icon: Bug,       color: 'text-red-400 bg-red-500/10'      },
+  { key: 'TASK',        label: 'Tarea',          icon: Wrench,    color: 'text-blue-400 bg-blue-500/10'    },
+  { key: 'IMPROVEMENT', label: 'Mejora',         icon: TrendingUp,color: 'text-green-400 bg-green-500/10'  },
+  { key: 'TECH_DEBT',   label: 'Deuda técnica',  icon: CreditCard,color: 'text-yellow-400 bg-yellow-500/10'},
+  { key: 'DESARROLLO',  label: 'Desarrollo',     icon: Zap,       color: 'text-cyan-400 bg-cyan-500/10'    },
 ]
 
 const PRIORITIES = [
@@ -93,16 +94,19 @@ export default function BacklogPage() {
   const [filterPriority, setFilterPriority] = useState('')
   const [showSprintModal, setShowSprintModal] = useState(false)
   const [sprintForm, setSprintForm] = useState({ name: '', goal: '', startDate: '', endDate: '' })
+  const [users, setUsers] = useState<{ id: string; name: string; role: string }[]>([])
 
   const userName = (session?.user as any)?.name ?? ''
 
   const load = async () => {
-    const [i, s] = await Promise.all([
+    const [i, s, u] = await Promise.all([
       fetch('/api/backlog').then(r => r.json()),
       fetch('/api/backlog/sprints').then(r => r.json()),
+      fetch('/api/users').then(r => r.json()),
     ])
     setItems(Array.isArray(i) ? i : [])
     setSprints(Array.isArray(s) ? s : [])
+    setUsers(Array.isArray(u) ? u.filter((x: any) => x.role !== 'SUPERADMIN') : [])
     setLoading(false)
   }
 
@@ -119,7 +123,7 @@ export default function BacklogPage() {
     setForm({
       title: item.title, description: item.description ?? '', type: item.type,
       priority: item.priority, status: item.status, points: item.points ? String(item.points) : '',
-      sprintId: item.sprintId ?? '', assigneeName: item.assigneeName ?? '',
+      sprintId: item.sprintId ?? '', assigneeId: item.assigneeId ?? '', assigneeName: item.assigneeName ?? '',
     })
     setShowModal(true)
   }
@@ -413,7 +417,17 @@ export default function BacklogPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Responsable</label>
-                  <input value={form.assigneeName} onChange={e => setForm({...form, assigneeName: e.target.value})} placeholder="Nombre" className={inputCls} />
+                  <select
+                    value={form.assigneeId}
+                    onChange={e => {
+                      const u = users.find(x => x.id === e.target.value)
+                      setForm({ ...form, assigneeId: e.target.value, assigneeName: u?.name ?? '' })
+                    }}
+                    className={inputCls}
+                  >
+                    <option value="">Sin asignar</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
