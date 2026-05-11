@@ -166,7 +166,7 @@ export default function TeamPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">{user.name}</h3>
-                  <p className="text-sm text-gray-400">{user.email}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function TeamPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">{selectedUser.name}</h2>
-                    <p className="text-orange-100">{selectedUser.email}</p>
+                    <p className="text-xs text-gray-500">{selectedUser.email}</p>
                     <span className={`inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadge(selectedUser.role)}`}>
                       {getRoleLabel(selectedUser.role)}
                     </span>
