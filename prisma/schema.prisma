@@ -395,6 +395,34 @@ model LeadHubFile {
   createdAt  DateTime @default(now())
 }
 
+model Sprint {
+  id        String        @id @default(cuid())
+  name      String
+  goal      String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    String        @default("PLANNED")
+  createdAt DateTime      @default(now())
+  items     BacklogItem[]
+}
+
+model BacklogItem {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  type         String   @default("TASK")
+  priority     String   @default("MEDIUM")
+  status       String   @default("BACKLOG")
+  points       Int?
+  sprintId     String?
+  sprint       Sprint?  @relation(fields: [sprintId], references: [id])
+  assigneeId   String?
+  assigneeName String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model ProspectorResult {
   id           String   @id @default(cuid())
   placeId      String   @unique
