@@ -270,7 +270,7 @@ export default function BacklogPage() {
                         {!kanbanExpanded ? (
                           <div className="flex items-center gap-2 px-3 py-2.5">
                             <PriorityDot priority={item.priority} />
-                            <p className="flex-1 text-xs text-white leading-snug truncate">{item.title}</p>
+                            <p className="flex-1 text-[11px] text-white leading-snug truncate">{item.title}</p>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {item.assigneeName && (
                                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-[9px] font-bold text-black" title={item.assigneeName}>
@@ -294,7 +294,7 @@ export default function BacklogPage() {
                               <button onClick={() => setViewItem(item)} className="text-gray-500 hover:text-blue-400 transition-colors"><Eye size={11} /></button>
                             </div>
                           </div>
-                          <p className="text-xs text-white font-medium leading-snug mb-2">{item.title}</p>
+                          <p className="text-[11px] text-white font-medium leading-snug mb-2">{item.title}</p>
                           {item.description && <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.description}</p>}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
