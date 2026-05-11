@@ -86,7 +86,8 @@ export default function BacklogPage() {
   const [items, setItems]   = useState<BacklogItem[]>([])
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView]     = useState<'kanban' | 'lista'>('kanban')
+  const [view, setView]         = useState<'kanban' | 'lista'>('kanban')
+  const [kanbanExpanded, setKanbanExpanded] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem]   = useState<BacklogItem | null>(null)
   const [form, setForm]     = useState(EMPTY_FORM)
@@ -219,6 +220,15 @@ export default function BacklogPage() {
             <button onClick={() => setView('kanban')} className={`p-1.5 rounded-md transition-colors ${view === 'kanban' ? 'bg-orange-600 text-white' : 'text-gray-500 hover:text-white'}`}><LayoutGrid size={14} /></button>
             <button onClick={() => setView('lista')}  className={`p-1.5 rounded-md transition-colors ${view === 'lista'  ? 'bg-orange-600 text-white' : 'text-gray-500 hover:text-white'}`}><List size={14} /></button>
           </div>
+          {view === 'kanban' && (
+            <button
+              onClick={() => setKanbanExpanded(v => !v)}
+              title={kanbanExpanded ? 'Vista compacta' : 'Vista expandida'}
+              className={`p-1.5 rounded-lg border transition-colors text-xs ${kanbanExpanded ? 'bg-orange-600/20 border-orange-500/40 text-orange-400' : 'bg-gray-800 border-gray-700 text-gray-500 hover:text-white'}`}
+            >
+              {kanbanExpanded ? <ChevronDown size={14} /> : <Filter size={14} />}
+            </button>
+          )}
 
           <button onClick={() => setShowSprintModal(true)} className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">+ Sprint</button>
           <button onClick={() => openNew()} className="flex items-center gap-1.5 text-xs px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors font-medium">
@@ -252,48 +262,59 @@ export default function BacklogPage() {
                   {/* Cards */}
                   <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                     {colItems.map(item => (
-                      <div key={item.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 hover:border-gray-700 transition-colors group">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                      <div key={item.id} className="bg-gray-900 border border-gray-800 rounded-xl hover:border-gray-700 transition-colors group">
+
+                        {/* Compact view (default) */}
+                        {!kanbanExpanded ? (
+                          <div className="flex items-center gap-2 px-3 py-2.5">
                             <PriorityDot priority={item.priority} />
-                            <TypeBadge type={item.type} />
+                            <p className="flex-1 text-sm text-white leading-snug truncate">{item.title}</p>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {item.assigneeName && (
+                                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-[9px] font-bold text-black" title={item.assigneeName}>
+                                  {item.assigneeName.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => openEdit(item)} className="text-gray-600 hover:text-white transition-colors"><Pencil size={11} /></button>
+                                <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                            <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={11} /></button>
-                            <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
+                        ) : (
+                        /* Expanded view */
+                        <div className="p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <PriorityDot priority={item.priority} />
+                              <TypeBadge type={item.type} />
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-white transition-colors"><Pencil size={11} /></button>
+                              <button onClick={() => setConfirmDel(item)} className="text-gray-600 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
+                            </div>
                           </div>
-                        </div>
-
-                        <p className="text-sm text-white font-medium leading-snug mb-2">{item.title}</p>
-
-                        {item.description && (
-                          <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.description}</p>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <PointsBadge points={item.points} />
-                            {item.sprint && (
-                              <span className="text-[10px] text-orange-400/70 bg-orange-500/10 px-1.5 py-0.5 rounded">{item.sprint.name}</span>
+                          <p className="text-sm text-white font-medium leading-snug mb-2">{item.title}</p>
+                          {item.description && <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.description}</p>}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <PointsBadge points={item.points} />
+                              {item.sprint && <span className="text-[10px] text-orange-400/70 bg-orange-500/10 px-1.5 py-0.5 rounded">{item.sprint.name}</span>}
+                            </div>
+                            {item.assigneeName && (
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-[9px] font-bold text-black flex-shrink-0" title={item.assigneeName}>
+                                {item.assigneeName.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
+                              </div>
                             )}
                           </div>
-                          {item.assigneeName && (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-[9px] font-bold text-black flex-shrink-0" title={item.assigneeName}>
-                              {item.assigneeName.split(' ').map(w => w[0]).slice(0, 2).join('')}
-                            </div>
-                          )}
+                          <div className="mt-2 pt-2 border-t border-gray-800">
+                            <select value={item.status} onChange={e => changeStatus(item, e.target.value)}
+                              className="w-full text-[10px] bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-gray-400 focus:outline-none focus:border-orange-500">
+                              {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                            </select>
+                          </div>
                         </div>
-
-                        {/* Quick status change */}
-                        <div className="mt-2 pt-2 border-t border-gray-800">
-                          <select
-                            value={item.status}
-                            onChange={e => changeStatus(item, e.target.value)}
-                            className="w-full text-[10px] bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-gray-400 focus:outline-none focus:border-orange-500"
-                          >
-                            {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                          </select>
-                        </div>
+                        )}
                       </div>
                     ))}
 
