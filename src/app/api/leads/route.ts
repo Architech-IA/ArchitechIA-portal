@@ -20,6 +20,24 @@ export async function POST(request: NextRequest) {
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
+  // Crear cliente automáticamente si no existe
+  const existingCliente = await prisma.cliente.findFirst({
+    where: { nombre: { equals: companyName, mode: 'insensitive' } },
+  });
+  if (!existingCliente) {
+    await prisma.cliente.create({
+      data: {
+        nombre: companyName,
+        contacto: contactName || '',
+        email: email || '',
+        industria: '',
+        pais: '',
+        estado: 'Activo',
+        valorTotal: parseFloat(estimatedValue) || 0,
+      },
+    });
+  }
+
   await logActivity({
     type: 'CREATED', description: `creó el lead ${companyName}`,
     entityType: 'lead', entityId: lead.id, userId, leadId: lead.id,
