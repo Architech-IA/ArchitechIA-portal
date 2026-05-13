@@ -28,15 +28,16 @@ const SEARCH_INDEX = [
   { label: 'Trazabilidad',       url: '/traceability', tipo: 'Página'    },
   { label: 'Equipo',             url: '/team',         tipo: 'Página'    },
   { label: 'Productos',          url: '/productos',    tipo: 'Página'    },
-  { label: 'Cuentas',            url: '/cuentas',      tipo: 'Página'    },
+  { label: 'Resources',          url: '/resources',    tipo: 'Página'    },
+  { label: 'Cuentas',            url: '/resources/cuentas', tipo: 'Página'    },
   { label: 'Finance',            url: '/finanzas',     tipo: 'Página'    },
   { label: 'Calendar / Meetings', url: '/meetings',     tipo: 'Página'    },
   { label: 'Clientes',           url: '/clientes',     tipo: 'Página'    },
   { label: 'Pipeline de Ventas', url: '/leads',        tipo: 'Página'    },
   { label: 'Agente de Seguridad AI', url: '/productos', tipo: 'Producto' },
-  { label: 'Zoho Mail',          url: '/cuentas',      tipo: 'Cuenta'    },
-  { label: 'GitHub',             url: '/cuentas',      tipo: 'Cuenta'    },
-  { label: 'n8n',                url: '/cuentas',      tipo: 'Cuenta'    },
+  { label: 'Zoho Mail',          url: '/resources/cuentas', tipo: 'Cuenta'    },
+  { label: 'GitHub',             url: '/resources/cuentas', tipo: 'Cuenta'    },
+  { label: 'n8n',                url: '/resources/cuentas', tipo: 'Cuenta'    },
 ];
 
 export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => void; isMobile?: boolean }) {
