@@ -27,8 +27,9 @@ interface DashboardData {
 }
 
 const ETAPA_LABELS: Record<string, string> = {
-  NEW: 'Identificación', CONTACTED: 'Contacto', QUALIFIED: 'Diagnóstico',
-  PROPOSAL_SENT: 'Propuesta', NEGOTIATION: 'Negociación', WON: 'Resultado',
+  NEW: 'Identificación', CONTACTED: 'Contacto', DIAGNOSIS: 'Diagnóstico', QUALIFIED: 'Calificado',
+  DEMO_VALIDATION: 'Demo', PROPOSAL_SENT: 'Propuesta', NEGOTIATION: 'Negociación',
+  WON: 'Ganado', LOST: 'Perdido',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -208,22 +209,38 @@ export default function Home() {
         {/* Embudo de ventas */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-5">Embudo de Ventas</h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {data?.embudo.map((etapa, i) => {
-              const pct = Math.round((etapa.count / maxEmbudo) * 100);
-              const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500', 'bg-green-500'];
+              const pct = maxEmbudo > 0 ? Math.round((etapa.count / maxEmbudo) * 100) : 0;
+              const funnelWidth = Math.max(pct, 4); // minimum 4% for visibility
+              const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-orange-500', 'bg-red-500', 'bg-green-500'];
               return (
-                <div key={etapa.status}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-400">{ETAPA_LABELS[etapa.status]}</span>
+                <div key={etapa.status} className="relative">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${colors[i]}`} />
+                      <span className="text-gray-300 font-medium">{ETAPA_LABELS[etapa.status] ?? etapa.status}</span>
+                    </div>
                     <div className="flex items-center gap-3">
                       <span className="text-gray-500">${etapa.valor.toLocaleString()}</span>
-                      <span className="text-white font-semibold w-4 text-right">{etapa.count}</span>
+                      <span className="text-white font-bold min-w-[1.5rem] text-right">{etapa.count}</span>
                     </div>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-2">
-                    <div className={`${colors[i]} h-2 rounded-full transition-all`} style={{ width: `${pct || 2}%` }} />
+                  {/* Funnel bar centered */}
+                  <div className="relative h-3 bg-gray-800/50 rounded-full overflow-hidden">
+                    <div
+                      className={`absolute left-0 top-0 h-full rounded-full ${colors[i]} transition-all duration-700 ease-out`}
+                      style={{ width: `${funnelWidth}%` }}
+                    />
                   </div>
+                  {/* Conversion rate vs previous stage */}
+                  {i > 0 && data.embudo[i - 1].count > 0 && (
+                    <div className="flex justify-end mt-0.5">
+                      <span className="text-[10px] text-gray-600">
+                        {Math.round((etapa.count / data.embudo[i - 1].count) * 100)}% conversión
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -261,11 +278,11 @@ export default function Home() {
               );
             })}
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-800 grid grid-cols-6 gap-1">
+          <div className="mt-3 pt-3 border-t border-gray-800 flex justify-between">
             {tendencias.map((t) => {
               const val = chartTab === 'ingresos' ? t.ingresos : chartTab === 'leads' ? t.leads : t.proyectos;
               return (
-                <p key={t.mes} className="text-xs font-semibold text-orange-400 text-center">
+                <p key={t.mes} className="text-xs font-semibold text-orange-400 text-center flex-1">
                   {chartTab === 'ingresos' ? `$${((val as number) / 1000).toFixed(0)}k` : val}
                 </p>
               );
@@ -283,7 +300,7 @@ export default function Home() {
             </svg>
             Alertas Inteligentes
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Leads inactivos */}
             {(data?.leadsInactivos.length ?? 0) > 0 && (
               <div className="bg-yellow-900/10 border border-yellow-800/50 rounded-lg p-4">
@@ -348,21 +365,23 @@ export default function Home() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Fuentes de Leads</h3>
           <div className="space-y-3">
-            {data?.industriaLeads.map((item) => {
-              const total = data.industriaLeads.reduce((a, b) => a + b._count, 0);
-              const pct = Math.round((item._count / total) * 100);
-              return (
-                <div key={item.source}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-300">{item.source}</span>
-                    <span className="text-orange-400">{item._count} ({pct}%)</span>
+            {(() => {
+              const total = data?.industriaLeads.reduce((a, b) => a + b._count, 0) ?? 1;
+              return data?.industriaLeads.map((item) => {
+                const pct = total > 0 ? Math.round((item._count / total) * 100) : 0;
+                return (
+                  <div key={item.source}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-300">{item.source}</span>
+                      <span className="text-orange-400">{item._count} ({pct}%)</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-1.5">
+                      <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-1.5">
-                    <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -370,12 +389,23 @@ export default function Home() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Leads por Estado</h3>
           <div className="space-y-3">
-            {data?.leadsByStatus.map(item => (
-              <div key={item.status} className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">{translateStatus(item.status)}</span>
-                <span className="font-semibold text-orange-400">{item._count}</span>
-              </div>
-            ))}
+            {(() => {
+              const maxCount = Math.max(...(data?.leadsByStatus.map(s => s._count) ?? [1]));
+              return data?.leadsByStatus.map(item => {
+                const pct = maxCount > 0 ? Math.round((item._count / maxCount) * 100) : 0;
+                return (
+                  <div key={item.status}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-400">{translateStatus(item.status)}</span>
+                      <span className="font-semibold text-orange-400">{item._count}</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-1">
+                      <div className="bg-orange-500 h-1 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -383,12 +413,23 @@ export default function Home() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Propuestas por Estado</h3>
           <div className="space-y-3">
-            {data?.proposalsByStatus.map(item => (
-              <div key={item.status} className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">{translateStatus(item.status)}</span>
-                <span className="font-semibold text-orange-400">{item._count}</span>
-              </div>
-            ))}
+            {(() => {
+              const maxCount = Math.max(...(data?.proposalsByStatus.map(s => s._count) ?? [1]));
+              return data?.proposalsByStatus.map(item => {
+                const pct = maxCount > 0 ? Math.round((item._count / maxCount) * 100) : 0;
+                return (
+                  <div key={item.status}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-400">{translateStatus(item.status)}</span>
+                      <span className="font-semibold text-orange-400">{item._count}</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-1">
+                      <div className="bg-orange-500 h-1 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
