@@ -110,7 +110,10 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
   };
 
   return (
-    <div className="h-14 bg-gray-900/80 backdrop-blur border-b border-gray-800 flex items-center px-4 gap-3 print:hidden">
+    <div
+      className="h-14 flex items-center px-4 gap-3 print:hidden border-b border-gray-800"
+      style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 100%)' }}
+    >
       {/* Hamburger — solo móvil */}
       {isMobile && (
         <button
