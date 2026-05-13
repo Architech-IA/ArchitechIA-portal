@@ -58,7 +58,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     return (
       <>
         {/* Logo + toggle */}
-        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-900" style={{ minHeight: '72px' }}>
+        <div className="flex items-center justify-between px-4 h-14 border-b border-gray-900">
           {!isCollapsed ? (
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent tracking-tight text-center w-full">
               ArchiTechIA
