@@ -31,6 +31,8 @@ const SEARCH_INDEX = [
   { label: 'Resources',          url: '/resources',    tipo: 'Página'    },
   { label: 'Cuentas',            url: '/resources/cuentas', tipo: 'Página'    },
   { label: 'Formatos',           url: '/resources/formatos', tipo: 'Página'    },
+  { label: 'Brand',              url: '/resources/brand',    tipo: 'Página'    },
+  { label: 'Tutoriales',         url: '/resources/tutoriales', tipo: 'Página'    },
   { label: 'Finance',            url: '/finanzas',     tipo: 'Página'    },
   { label: 'Calendar / Meetings', url: '/meetings',     tipo: 'Página'    },
   { label: 'Clientes',           url: '/clientes',     tipo: 'Página'    },
