@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import PipelineView from '@/components/PipelineView';
+import LeadsNav from '@/components/LeadsNav';
 
 export default function PipelinePage() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -21,5 +22,14 @@ export default function PipelinePage() {
     </div>
   );
 
-  return <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />;
+  return (
+    <div className="p-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white">Pipeline</h1>
+        <p className="text-gray-400 mt-1">Visualización del pipeline de ventas por etapas</p>
+      </div>
+      <LeadsNav />
+      <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />
+    </div>
+  );
 }

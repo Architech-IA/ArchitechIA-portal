@@ -4,10 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { StickyNote, Pencil, Trash2, LayoutDashboard } from 'lucide-react';
-import PipelineView from '@/components/PipelineView';
-import ClientesTab from '@/components/ClientesTab';
-import NichesTab from '@/components/NichesTab';
-import ProspectorTab from '@/components/ProspectorTab';
+import LeadsNav from '@/components/LeadsNav';
 
 interface Lead {
   id: string;
@@ -83,9 +80,6 @@ export default function LeadsPage() {
   const [noteText, setNoteText]       = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
   const [addingNote, setAddingNote]   = useState(false);
-  const [activeTab, setActiveTab]     = useState<'lista' | 'pipeline' | 'prospector' | 'clientes' | 'niches'>('lista');
-  const [prospectorView, setProspectorView] = useState<'search' | 'table'>('search');
-
   // ── Filtros avanzados ──
   const [showFilters, setShowFilters] = useState(false);
   const [fStatus, setFStatus] = useState('');
@@ -353,47 +347,18 @@ export default function LeadsPage() {
           <p className="text-gray-400 mt-1">Gestión de prospectos y oportunidades</p>
         </div>
         <div className="flex gap-2">
-          {activeTab === 'lista' && (
-            <>
-              <button
-                onClick={() => { setProspectorView('table'); setActiveTab('prospector'); }}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18M3 14h18M3 18h18" /></svg>
-                Prospector Table
-              </button>
-              <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                CSV
-              </button>
-            </>
-          )}
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            CSV
+          </button>
           <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
             + Nuevo Lead
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'lista' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Leads
-        </button>
-        <button onClick={() => setActiveTab('clientes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'clientes' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Clientes
-        </button>
-        <button onClick={() => setActiveTab('prospector')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'prospector' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Prospector
-        </button>
-        <button onClick={() => setActiveTab('pipeline')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'pipeline' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Timeline
-        </button>
-        <button onClick={() => setActiveTab('niches')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'niches' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          Mercado
-        </button>
-      </div>
+      <LeadsNav />
 
-      {activeTab === 'lista' && (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-4 gap-4 mb-6">
@@ -666,24 +631,6 @@ export default function LeadsPage() {
             )}
           </div>
         </>
-      )}
-
-      {activeTab === 'pipeline' && <PipelineView leads={leads} users={users} onLeadsChange={setLeads} />}
-
-
-      {activeTab === 'prospector' && (
-        <ProspectorTab
-          key={prospectorView}
-          initialView={prospectorView}
-          onLeadsCreated={() => {
-            fetch('/api/leads').then(r => r.json()).then(setLeads)
-          }}
-        />
-      )}
-
-      {activeTab === 'clientes' && <ClientesTab />}
-
-      {activeTab === 'niches' && <NichesTab />}
 
       {/* Modal crear / editar */}
       {showModal && (
