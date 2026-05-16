@@ -396,6 +396,51 @@ model LeadHubFile {
   createdAt  DateTime @default(now())
 }
 
+model BelvoLink {
+  id           String   @id @default(cuid())
+  belvoLinkId  String   @unique
+  institution  String
+  accessMode   String   @default("single")
+  status       String   @default("valid")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  accounts     BelvoAccount[]
+}
+
+model BelvoAccount {
+  id              String   @id @default(cuid())
+  belvoAccountId  String   @unique
+  linkId          String
+  link            BelvoLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  institution     String
+  name            String
+  type            String
+  currency        String   @default("COP")
+  balance         Float    @default(0)
+  creditData      String?
+  syncedAt        DateTime @default(now())
+  transactions    BelvoTransaction[]
+}
+
+model BelvoTransaction {
+  id                String   @id @default(cuid())
+  belvoTxId         String   @unique
+  accountId         String
+  account           BelvoAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  amount            Float
+  currency          String   @default("COP")
+  description       String?
+  category          String?
+  type              String
+  status            String
+  valueDate         String
+  installmentNumber Int?
+  installmentTotal  Int?
+  merchant          String?
+  rawData           String?
+  createdAt         DateTime @default(now())
+}
+
 model BacklogItemLog {
   id         String   @id @default(cuid())
   itemId     String
