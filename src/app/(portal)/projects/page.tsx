@@ -429,8 +429,28 @@ export default function ProjectsPage() {
         ))}
 
         {filtered.length === 0 && (
-          <div className="text-center py-16 text-gray-500">
-            No hay proyectos que coincidan con los filtros.
+          <div className="flex flex-col items-center justify-center py-20 text-center col-span-full">
+            {projects.length === 0 ? (
+              <>
+                <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-10 h-10 text-orange-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Aún no hay proyectos</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-xs">Crea el primer proyecto y empieza a hacer seguimiento del progreso con hitos y equipo.</p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-white mb-1">Sin resultados</h3>
+                <p className="text-gray-500 text-sm">Intenta con otros filtros o términos de búsqueda.</p>
+              </>
+            )}
           </div>
         )}
       </div>

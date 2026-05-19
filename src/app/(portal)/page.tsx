@@ -104,8 +104,46 @@ export default function Home() {
         </button>
       </div>
 
+      {/* Panel de personalización de widgets */}
+      {showSettings && (
+        <div className="bg-gray-900 border border-orange-500/30 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider">Personalizar Dashboard</h3>
+            <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-white transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {([
+              { key: 'kpis',      label: 'KPIs Principales' },
+              { key: 'jornada',   label: 'Mi Jornada' },
+              { key: 'meta',      label: 'Meta Mensual' },
+              { key: 'embudo',    label: 'Embudo de Ventas' },
+              { key: 'alertas',   label: 'Alertas Inteligentes' },
+              { key: 'fuentes',   label: 'Fuentes de Leads' },
+              { key: 'actividad', label: 'Actividad Reciente' },
+            ] as { key: keyof typeof widgets; label: string }[]).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => toggleWidget(key)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                  widgets[key]
+                    ? 'bg-orange-500/10 border-orange-500/40 text-orange-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-500'
+                }`}
+              >
+                <span className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${widgets[key] ? 'bg-orange-500 border-orange-500' : 'border-gray-600'}`}>
+                  {widgets[key] && <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10.28 2.28L4 8.56 1.72 6.28a1 1 0 00-1.42 1.42l3 3a1 1 0 001.42 0l7-7a1 1 0 00-1.42-1.42z"/></svg>}
+                </span>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* KPIs principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {widgets.kpis && <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Leads',     value: data?.counts.leads ?? 0,     sub: `$${(data?.totalEstimatedValue ?? 0).toLocaleString()} en pipeline`, color: 'text-white',      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
           { label: 'Propuestas',      value: data?.counts.proposals ?? 0, sub: 'En seguimiento activo',                                              color: 'text-white',      icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -125,10 +163,10 @@ export default function Home() {
             <p className="text-xs text-gray-500 mt-1">{k.sub}</p>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Backlog + Sprint */}
-      {data?.backlogStats && (
+      {widgets.jornada && data?.backlogStats && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Backlog</h3>
           <div className="grid grid-cols-4 gap-4 mb-4">
@@ -159,7 +197,7 @@ export default function Home() {
       )}
 
       {/* Mi Jornada */}
-      {data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
+      {widgets.jornada && data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Lo que debo hacer hoy</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -204,7 +242,7 @@ export default function Home() {
 
 
       {/* Embudo de ventas + Tendencias */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {widgets.embudo && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Embudo de ventas */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
@@ -289,10 +327,10 @@ export default function Home() {
             })}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Alertas inteligentes */}
-      {alertas > 0 && (
+      {widgets.alertas && alertas > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +398,7 @@ export default function Home() {
       )}
 
       {/* Distribución por fuente + Estados */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {widgets.fuentes && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Fuentes de leads */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Fuentes de Leads</h3>
@@ -432,7 +470,7 @@ export default function Home() {
             })()}
           </div>
         </div>
-      </div>
+      </div>}
 
     </div>
   );

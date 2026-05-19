@@ -6,11 +6,24 @@ import { useRouter } from 'next/navigation';
 
 interface Notif {
   id: string;
-  tipo: 'lead' | 'propuesta' | 'proyecto' | 'finanza';
+  tipo: 'lead' | 'propuesta' | 'proyecto' | 'finanza' | string;
   texto: string;
   sub: string;
   href: string;
   leida: boolean;
+}
+
+interface ApiNotif {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  read: boolean;
+}
+
+function mapNotif(n: ApiNotif): Notif {
+  return { id: n.id, tipo: n.type, texto: n.title, sub: n.message, href: n.link ?? '/', leida: n.read };
 }
 
 const TIPO_ICON: Record<string, string> = {
@@ -65,13 +78,13 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
   useEffect(() => {
     fetch('/api/notifications')
       .then(r => r.json())
-      .then(d => setNotifs(Array.isArray(d) ? d : d.notifs ?? []))
+      .then((d: ApiNotif[]) => setNotifs(Array.isArray(d) ? d.map(mapNotif) : []))
       .catch(() => {});
 
     // SSE: notificaciones en tiempo real
     const sse = new EventSource('/api/notifications/sse');
     sse.onmessage = (e) => {
-      try { setNotifs(JSON.parse(e.data)); } catch {}
+      try { setNotifs((JSON.parse(e.data) as ApiNotif[]).map(mapNotif)); } catch {}
     };
     return () => sse.close();
   }, []);
@@ -107,7 +120,17 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const marcarTodasLeidas = () => setNotifs(prev => prev.map(n => ({ ...n, leida: true })));
+  const marcarTodasLeidas = () => {
+    setNotifs(prev => prev.map(n => ({ ...n, leida: true })));
+    notifs.filter(n => !n.leida).forEach(n =>
+      fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id, read: true }) }).catch(() => {})
+    );
+  };
+
+  const marcarLeida = (id: string) => {
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+    fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, read: true }) }).catch(() => {});
+  };
 
   const irA = (url: string) => {
     router.push(url);
@@ -216,7 +239,7 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
               {notifs.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => { router.push(n.href); setShowNotifs(false); }}
+                  onClick={() => { marcarLeida(n.id); router.push(n.href); setShowNotifs(false); }}
                   className={`w-full flex gap-3 px-4 py-3 border-b border-gray-700/50 text-left hover:bg-gray-700/40 transition-colors ${!n.leida ? 'bg-orange-900/10' : ''}`}
                 >
                   <span className="text-lg flex-shrink-0 mt-0.5">{TIPO_ICON[n.tipo] ?? '🔔'}</span>
