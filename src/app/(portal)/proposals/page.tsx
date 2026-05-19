@@ -78,7 +78,7 @@ export default function ProposalsPage() {
   }, [proposals]);
 
   const openModal = () => {
-    setForm({ title: '', description: '', status: 'DRAFT', amount: '', leadId: '', userId: session?.user?.id ?? '', sentDate: '' });
+    setForm({ title: '', description: '', status: 'DRAFT', amount: '', leadId: '', userId: (session?.user as { id?: string })?.id ?? '', sentDate: '' });
     setShowModal(true);
   };
 
@@ -88,7 +88,7 @@ export default function ProposalsPage() {
     const res = await fetch('/api/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, amount: parseFloat(form.amount) || 0, userId: form.userId || session?.user?.id }),
+      body: JSON.stringify({ ...form, amount: parseFloat(form.amount) || 0, userId: form.userId || (session?.user as { id?: string })?.id }),
     });
     if (res.ok) {
       const created = await res.json();
