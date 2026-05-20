@@ -223,7 +223,11 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
             placeholder="Buscar páginas, clientes, productos..."
             value={query}
             onChange={e => { setQuery(e.target.value); setShowSearch(true); }}
-            onFocus={() => setShowSearch(true)}
+            onFocus={e => {
+              setShowSearch(true);
+              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
+              e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(99,102,241,0.1)';
+            }}
             style={{
               width: '100%',
               paddingLeft: '36px', paddingRight: '16px',
@@ -235,10 +239,6 @@ export default function TopBar({ onMenuClick, isMobile }: { onMenuClick?: () => 
               fontSize:    '13px',
               outline:     'none',
               transition:  'all 0.15s ease',
-            }}
-            onFocus={e => {
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
-              e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(99,102,241,0.1)';
             }}
             onBlur={e => {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
