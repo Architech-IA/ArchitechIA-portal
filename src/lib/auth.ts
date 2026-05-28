@@ -119,6 +119,22 @@ export const authOptions: NextAuthOptions = {
         token.googleTokenExpiry = account.expires_at;
         token.googleConnected = true;
       }
+      // Google OAuth no incluye role/avatar en el objeto user — buscar en DB si falta
+      if (!token.role && token.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            select: { id: true, role: true, avatar: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.id = dbUser.id;
+            if (!token.avatar) token.avatar = dbUser.avatar;
+          }
+        } catch (e) {
+          console.error('JWT role fetch error:', e);
+        }
+      }
       return token;
     },
     async session({ session, token }) {
