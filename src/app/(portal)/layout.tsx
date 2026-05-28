@@ -7,7 +7,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const cookieStore = await cookies();
 
   const token = await getToken({
-    req: { cookies: cookieStore } as Parameters<typeof getToken>[0]['req'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    req: { cookies: cookieStore } as any,
     secret: process.env.NEXTAUTH_SECRET!,
   });
 
