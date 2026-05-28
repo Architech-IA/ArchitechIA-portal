@@ -38,27 +38,42 @@ const STATUS_LEAD: Record<string, string> = {
   QUALIFIED: 'Calificado', DEMO_VALIDATION: 'Demo', PROPOSAL_SENT: 'Propuesta',
   NEGOTIATION: 'Negociación', WON: 'Ganado', LOST: 'Perdido',
 };
-const STATUS_COLOR: Record<string, string> = {
-  NEW: 'text-blue-400', CONTACTED: 'text-indigo-400', DIAGNOSIS: 'text-violet-400',
-  QUALIFIED: 'text-cyan-400', DEMO_VALIDATION: 'text-yellow-400',
-  PROPOSAL_SENT: 'text-orange-400', NEGOTIATION: 'text-amber-400',
-  WON: 'text-green-400', LOST: 'text-red-400',
+const LEAD_STATUS_PILL: Record<string, string> = {
+  NEW: 'bg-blue-500/15 text-blue-400',
+  CONTACTED: 'bg-indigo-500/15 text-indigo-400',
+  DIAGNOSIS: 'bg-violet-500/15 text-violet-400',
+  QUALIFIED: 'bg-cyan-500/15 text-cyan-400',
+  DEMO_VALIDATION: 'bg-yellow-500/15 text-yellow-400',
+  PROPOSAL_SENT: 'bg-orange-500/15 text-orange-400',
+  NEGOTIATION: 'bg-amber-500/15 text-amber-400',
+  WON: 'bg-green-500/15 text-green-400',
+  LOST: 'bg-red-500/15 text-red-400',
 };
-const PRIORITY_DOT: Record<string, string> = {
-  LOW: 'bg-gray-500', MEDIUM: 'bg-yellow-500', HIGH: 'bg-orange-500', CRITICAL: 'bg-red-500',
+const PRIORITY_LEFT: Record<string, string> = {
+  LOW: '#475569', MEDIUM: '#EAB308', HIGH: '#F97316', CRITICAL: '#EF4444',
 };
-const PROJECT_STATUS_COLOR: Record<string, string> = {
-  PLANNING: 'text-blue-400', IN_PROGRESS: 'text-orange-400',
-  ON_HOLD: 'text-yellow-400', COMPLETED: 'text-green-400', CANCELLED: 'text-red-400',
+const PRIORITY_LABEL: Record<string, string> = {
+  LOW: 'Baja', MEDIUM: 'Media', HIGH: 'Alta', CRITICAL: 'Crítica',
+};
+const BACKLOG_STATUS_PILL: Record<string, string> = {
+  BACKLOG: 'bg-slate-700/60 text-slate-300',
+  IN_PROGRESS: 'bg-orange-500/15 text-orange-300',
+  REVIEW: 'bg-blue-500/15 text-blue-300',
+  DONE: 'bg-green-500/15 text-green-300',
 };
 const BACKLOG_STATUS_LABEL: Record<string, string> = {
   BACKLOG: 'Pendiente', IN_PROGRESS: 'En progreso', REVIEW: 'En revisión', DONE: 'Listo',
 };
-const BACKLOG_STATUS_COLOR: Record<string, string> = {
-  BACKLOG: 'bg-gray-700 text-gray-300',
-  IN_PROGRESS: 'bg-orange-900/40 text-orange-300',
-  REVIEW: 'bg-blue-900/40 text-blue-300',
-  DONE: 'bg-green-900/40 text-green-300',
+const PROJECT_STATUS_PILL: Record<string, string> = {
+  PLANNING: 'bg-blue-500/15 text-blue-400',
+  IN_PROGRESS: 'bg-orange-500/15 text-orange-400',
+  ON_HOLD: 'bg-yellow-500/15 text-yellow-400',
+  COMPLETED: 'bg-green-500/15 text-green-400',
+  CANCELLED: 'bg-red-500/15 text-red-400',
+};
+const PROJECT_STATUS_LABEL: Record<string, string> = {
+  PLANNING: 'Planeación', IN_PROGRESS: 'En progreso',
+  ON_HOLD: 'En pausa', COMPLETED: 'Completado', CANCELLED: 'Cancelado',
 };
 const MEETING_TYPE_LABEL: Record<string, string> = {
   INTERNAL_DAILY: 'Daily', INTERNAL_WORKSHOP: 'Workshop',
@@ -66,16 +81,46 @@ const MEETING_TYPE_LABEL: Record<string, string> = {
   PROVEEDORES: 'Proveedores', INTERNAL: 'Interna',
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
-}
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
 }
+function getInitials(name: string) {
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+}
+function daysUntil(iso: string | null) {
+  if (!iso) return null;
+  const diff = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  return diff;
+}
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-white/[0.04] ${className ?? ''}`} />;
+}
+
+function EmptyState({ icon, text, sub, href, linkText }: { icon: string; text: string; sub?: string; href?: string; linkText?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 gap-3">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,90,0,0.08)' }}>
+        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
+        </svg>
+      </div>
+      <div className="text-center">
+        <p className="text-sm text-gray-500">{text}</p>
+        {sub && <p className="text-xs text-gray-700 mt-0.5">{sub}</p>}
+      </div>
+      {href && linkText && (
+        <a href={href} className="text-xs text-orange-500 hover:text-orange-400 transition-colors mt-1">
+          {linkText} →
+        </a>
+      )}
+    </div>
+  );
+}
 
 export default function PersonalDashboard() {
-  const [data, setData]               = useState<PersonalData | null>(null);
-  const [loading, setLoading]         = useState(true);
+  const [data, setData] = useState<PersonalData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
 
   useEffect(() => {
@@ -95,9 +140,9 @@ export default function PersonalDashboard() {
       if (!prev) return prev;
       return {
         ...prev,
-        myBacklog: prev.myBacklog.map(i =>
-          i.id === item.id ? { ...i, status: newStatus } : i
-        ).filter(i => i.status !== 'DONE'),
+        myBacklog: prev.myBacklog
+          .map(i => i.id === item.id ? { ...i, status: newStatus } : i)
+          .filter(i => i.status !== 'DONE'),
       };
     });
     setSelectedItem(prev => prev?.id === item.id ? { ...prev, status: newStatus } : prev);
@@ -109,20 +154,76 @@ export default function PersonalDashboard() {
     setSelectedItem(null);
   };
 
+  // ── Skeleton loading ───────────────────────────────────────────────────────
   if (loading) return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="w-14 h-14 rounded-2xl flex-shrink-0" />
+        <div className="space-y-2 flex-1">
+          <Skeleton className="w-52 h-6" />
+          <Skeleton className="w-36 h-4" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-xl" />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     </div>
   );
 
   const d = data!;
   const today = new Date();
-  const todayMeetings = d.upcomingMeetings.filter(m => new Date(m.date).toDateString() === today.toDateString());
+  const todayMeetings = d.upcomingMeetings.filter(
+    m => new Date(m.date).toDateString() === today.toDateString()
+  );
+  const inProgressTasks = d.myBacklog.filter(i => i.status === 'IN_PROGRESS');
+
+  const kpis = [
+    {
+      label: 'Leads activos',
+      value: d.kpis.leadsActivos,
+      sub: d.kpis.pipelineValue > 0 ? `$${d.kpis.pipelineValue.toLocaleString()} pipeline` : 'Sin pipeline activo',
+      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+      accent: '#3B82F6',
+      badge: null,
+    },
+    {
+      label: 'Proyectos',
+      value: d.kpis.proyectos,
+      sub: 'Asignados a ti',
+      icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
+      accent: '#8B5CF6',
+      badge: null,
+    },
+    {
+      label: 'Tareas pendientes',
+      value: d.kpis.backlogPendientes,
+      sub: `${d.kpis.backlogInProgress} en progreso`,
+      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+      accent: '#F97316',
+      badge: inProgressTasks.length > 0 ? `${inProgressTasks.length} activas` : null,
+    },
+    {
+      label: 'Próximas reuniones',
+      value: d.kpis.reunionesPróximas,
+      sub: `${todayMeetings.length} hoy`,
+      icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+      accent: '#22C55E',
+      badge: todayMeetings.length > 0 ? 'Hoy' : null,
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl">
 
-      {/* Popup de detalle de tarea */}
+      {/* Popup detalle tarea */}
       {selectedItem && (
         <BacklogItemDetail
           item={selectedItem}
@@ -134,108 +235,214 @@ export default function PersonalDashboard() {
         />
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">
-          Hola, <span style={{ color: '#FF7A2F' }}>{d.user.name.split(' ')[0]}</span>
-        </h1>
-        <p className="text-gray-400 text-sm mt-0.5">
-          {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-4">
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-white font-bold text-lg select-none"
+          style={{ background: 'linear-gradient(135deg, #FF5A00 0%, #FF7A2F 100%)', boxShadow: '0 0 24px rgba(255,90,0,0.3)' }}
+        >
+          {getInitials(d.user.name)}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white leading-tight">
+            Hola, <span style={{ color: '#FF7A2F' }}>{d.user.name.split(' ')[0]}</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
       </div>
 
-      {/* KPIs */}
+      {/* ── KPIs ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Leads activos',      value: d.kpis.leadsActivos,      sub: `$${d.kpis.pipelineValue.toLocaleString()} pipeline`, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', color: 'text-white' },
-          { label: 'Proyectos',          value: d.kpis.proyectos,          sub: 'Asignados a ti',                                     icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'text-white' },
-          { label: 'Backlog pendiente',  value: d.kpis.backlogPendientes,  sub: `${d.kpis.backlogInProgress} en progreso`,            icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', color: d.kpis.backlogInProgress > 0 ? 'text-orange-400' : 'text-white' },
-          { label: 'Próximas reuniones', value: d.kpis.reunionesPróximas, sub: `${todayMeetings.length} hoy`,                        icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: 'text-white' },
-        ].map(k => (
-          <div key={k.label} className="rounded-xl p-4 border border-orange-500/20 hover:border-orange-500/40 transition-all" style={{ background: 'rgba(255,255,255,0.03)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-400">{k.label}</p>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,90,0,0.15)' }}>
-                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={k.icon} />
+        {kpis.map(k => (
+          <div
+            key={k.label}
+            className="relative rounded-xl p-4 overflow-hidden transition-all duration-200 group"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.border = `1px solid ${k.accent}33`; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.06)'; }}
+          >
+            {/* Glow top-right */}
+            <div
+              className="absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-10 blur-2xl transition-opacity group-hover:opacity-20"
+              style={{ background: k.accent }}
+            />
+            <div className="flex items-start justify-between mb-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${k.accent}20` }}
+              >
+                <svg className="w-[18px] h-[18px]" style={{ color: k.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={k.icon} />
                 </svg>
               </div>
+              {k.badge && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${k.accent}20`, color: k.accent }}>
+                  {k.badge}
+                </span>
+              )}
             </div>
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{k.sub}</p>
+            <p className="text-3xl font-bold text-white tabular-nums">{k.value}</p>
+            <p className="text-xs text-gray-500 mt-1 truncate">{k.label}</p>
+            <p className="text-[11px] text-gray-600 mt-0.5 truncate">{k.sub}</p>
           </div>
         ))}
       </div>
 
+      {/* ── Tareas + Reuniones ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Backlog */}
-        <div className="rounded-xl border border-gray-800 p-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        {/* Mis Tareas */}
+        <div
+          className="rounded-xl p-5"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#FF7A2F' }}>
-              Mis Tareas (Backlog)
-            </h2>
-            <a href="/backlog" className="text-xs text-gray-500 hover:text-orange-400 transition-colors">Ver todas →</a>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#FF7A2F' }}>Mis Tareas</h2>
+              {d.myBacklog.length > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-medium">
+                  {d.myBacklog.length}
+                </span>
+              )}
+            </div>
+            <a href="/backlog" className="text-xs text-gray-600 hover:text-orange-400 transition-colors">Ver todas →</a>
           </div>
+
           {d.myBacklog.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-6">Sin tareas asignadas</p>
+            <EmptyState
+              icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              text="Sin tareas asignadas"
+              sub="Cuando te asignen tareas aparecerán aquí"
+            />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {d.myBacklog.slice(0, 8).map(item => (
                 <button
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
-                  className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all hover:border-orange-500/30 cursor-pointer group"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid transparent' }}
+                  className="w-full flex items-center gap-3 pl-0 pr-3 py-2.5 rounded-lg text-left transition-all duration-150 group cursor-pointer overflow-hidden"
+                  style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid transparent' }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                    (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.08)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.025)';
+                    (e.currentTarget as HTMLElement).style.border = '1px solid transparent';
+                  }}
                 >
-                  <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[item.priority] ?? 'bg-gray-500'}`} />
+                  {/* Priority bar */}
+                  <span
+                    className="w-1 self-stretch rounded-r flex-shrink-0"
+                    style={{ background: PRIORITY_LEFT[item.priority] ?? '#475569', minHeight: '32px' }}
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-200 truncate group-hover:text-white transition-colors">{item.title}</p>
-                    {item.project && <p className="text-xs text-gray-500 truncate">{item.project.name}</p>}
+                    <p className="text-sm text-gray-200 truncate group-hover:text-white transition-colors leading-snug">
+                      {item.title}
+                    </p>
+                    <p className="text-[11px] text-gray-600 truncate mt-0.5">
+                      {item.project?.name ?? 'Sin proyecto'}{item.sprint ? ` · ${item.sprint.name}` : ''}
+                    </p>
                   </div>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${BACKLOG_STATUS_COLOR[item.status] ?? 'bg-gray-700 text-gray-400'}`}>
-                    {BACKLOG_STATUS_LABEL[item.status] ?? item.status}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {item.points != null && item.points > 0 && (
+                      <span className="text-[10px] text-gray-600 font-medium">{item.points}pt</span>
+                    )}
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${BACKLOG_STATUS_PILL[item.status] ?? 'bg-gray-700/60 text-gray-400'}`}>
+                      {BACKLOG_STATUS_LABEL[item.status] ?? item.status}
+                    </span>
+                  </div>
                 </button>
               ))}
               {d.myBacklog.length > 8 && (
-                <p className="text-xs text-gray-600 text-center pt-1">+{d.myBacklog.length - 8} más</p>
+                <a href="/backlog" className="block text-center text-xs text-gray-600 hover:text-orange-400 pt-2 transition-colors">
+                  +{d.myBacklog.length - 8} tareas más →
+                </a>
               )}
             </div>
           )}
         </div>
 
-        {/* Próximas reuniones */}
-        <div className="rounded-xl border border-gray-800 p-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        {/* Próximas Reuniones */}
+        <div
+          className="rounded-xl p-5"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#FF7A2F' }}>
-              Próximas Reuniones
-            </h2>
-            <a href="/meetings" className="text-xs text-gray-500 hover:text-orange-400 transition-colors">Ver calendario →</a>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#FF7A2F' }}>Próximas Reuniones</h2>
+              {todayMeetings.length > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-medium">
+                  {todayMeetings.length} hoy
+                </span>
+              )}
+            </div>
+            <a href="/meetings" className="text-xs text-gray-600 hover:text-orange-400 transition-colors">Ver calendario →</a>
           </div>
+
           {d.upcomingMeetings.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-6">Sin reuniones los próximos 14 días</p>
+            <EmptyState
+              icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              text="Sin reuniones los próximos 14 días"
+              sub="Tienes la agenda libre"
+            />
           ) : (
             <div className="space-y-2">
               {d.upcomingMeetings.map(m => {
-                const isToday = new Date(m.date).toDateString() === today.toDateString();
+                const mDate = new Date(m.date);
+                const isToday = mDate.toDateString() === today.toDateString();
+                const isTomorrow = mDate.toDateString() === new Date(today.getTime() + 86400000).toDateString();
+                const dayNum = mDate.toLocaleDateString('es-ES', { day: '2-digit' });
+                const monthAbbr = mDate.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '').toUpperCase();
                 return (
-                  <div key={m.id}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all"
-                    style={{ background: isToday ? 'rgba(255,90,0,0.08)' : 'rgba(255,255,255,0.03)', border: isToday ? '1px solid rgba(255,90,0,0.2)' : '1px solid transparent' }}
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all"
+                    style={{
+                      background: isToday ? 'rgba(255,90,0,0.07)' : 'rgba(255,255,255,0.025)',
+                      border: isToday ? '1px solid rgba(255,90,0,0.2)' : '1px solid rgba(255,255,255,0.04)',
+                    }}
                   >
-                    <div className="flex-shrink-0 text-center w-10">
-                      <p className="text-[10px] text-gray-500 uppercase">{formatDate(m.date).split(' ')[0]}</p>
-                      <p className="text-sm font-bold text-white">{formatDate(m.date).split(' ')[1]}</p>
+                    {/* Date badge */}
+                    <div
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex flex-col items-center justify-center"
+                      style={{ background: isToday ? 'rgba(255,90,0,0.2)' : 'rgba(255,255,255,0.05)' }}
+                    >
+                      <span className="text-[9px] font-semibold leading-none" style={{ color: isToday ? '#FF7A2F' : '#64748b' }}>
+                        {monthAbbr}
+                      </span>
+                      <span className="text-sm font-bold leading-tight text-white">{dayNum}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-200 truncate">{m.title}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm text-gray-200 truncate leading-snug">{m.title}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         {formatTime(m.date)}{m.endDate ? ` — ${formatTime(m.endDate)}` : ''} · {MEETING_TYPE_LABEL[m.type] ?? m.type}
                       </p>
                     </div>
                     {isToday && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 flex-shrink-0">Hoy</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-semibold flex-shrink-0">HOY</span>
+                    )}
+                    {isTomorrow && !isToday && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-semibold flex-shrink-0">MAÑANA</span>
+                    )}
+                    {m.link && (
+                      <a
+                        href={m.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                        title="Unirse"
+                      >
+                        <svg className="w-3.5 h-3.5 text-gray-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
                     )}
                   </div>
                 );
@@ -245,82 +452,167 @@ export default function PersonalDashboard() {
         </div>
       </div>
 
+      {/* ── Leads + Proyectos ────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Mis Leads */}
-        <div className="rounded-xl border border-gray-800 p-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div
+          className="rounded-xl p-5"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#FF7A2F' }}>
-              Mis Leads
-            </h2>
-            <a href="/leads" className="text-xs text-gray-500 hover:text-orange-400 transition-colors">Ver todos →</a>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#FF7A2F' }}>Mis Leads</h2>
+              {d.myLeads.length > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-medium">
+                  {d.myLeads.length}
+                </span>
+              )}
+            </div>
+            <a href="/leads" className="text-xs text-gray-600 hover:text-orange-400 transition-colors">Ver todos →</a>
           </div>
+
           {d.myLeads.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-6">Sin leads asignados</p>
+            <EmptyState
+              icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+              text="Sin leads asignados"
+              sub="Los leads que gestiones aparecerán aquí"
+              href="/leads"
+              linkText="Ir a Leads"
+            />
           ) : (
-            <div className="space-y-2">
-              {d.myLeads.slice(0, 8).map(l => (
-                <a key={l.id} href="/leads"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:border-orange-500/20"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid transparent' }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-200 truncate font-medium">{l.companyName}</p>
-                    <p className="text-xs text-gray-500 truncate">{l.contactName}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-xs font-medium ${STATUS_COLOR[l.status] ?? 'text-gray-400'}`}>
-                      {STATUS_LEAD[l.status] ?? l.status}
-                    </p>
-                    {l.estimatedValue > 0 && (
-                      <p className="text-xs text-gray-500">${l.estimatedValue.toLocaleString()}</p>
-                    )}
-                  </div>
-                </a>
-              ))}
+            <div className="space-y-1.5">
+              {d.myLeads.slice(0, 8).map(l => {
+                const daysSince = Math.floor((Date.now() - new Date(l.updatedAt).getTime()) / 86400000);
+                const isStale = daysSince >= 7;
+                return (
+                  <a
+                    key={l.id}
+                    href="/leads"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150"
+                    style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid transparent' }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                      (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.08)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.025)';
+                      (e.currentTarget as HTMLElement).style.border = '1px solid transparent';
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-200 truncate font-medium">{l.companyName}</p>
+                        {isStale && (
+                          <span title={`Sin actividad ${daysSince} días`} className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-600 truncate mt-0.5">{l.contactName}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {l.estimatedValue > 0 && (
+                        <span className="text-xs text-gray-400 font-medium">${l.estimatedValue.toLocaleString()}</span>
+                      )}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${LEAD_STATUS_PILL[l.status] ?? 'bg-gray-700/60 text-gray-400'}`}>
+                        {STATUS_LEAD[l.status] ?? l.status}
+                      </span>
+                    </div>
+                  </a>
+                );
+              })}
               {d.myLeads.length > 8 && (
-                <p className="text-xs text-gray-600 text-center pt-1">+{d.myLeads.length - 8} más</p>
+                <a href="/leads" className="block text-center text-xs text-gray-600 hover:text-orange-400 pt-2 transition-colors">
+                  +{d.myLeads.length - 8} más →
+                </a>
               )}
             </div>
           )}
         </div>
 
         {/* Mis Proyectos */}
-        <div className="rounded-xl border border-gray-800 p-5" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div
+          className="rounded-xl p-5"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#FF7A2F' }}>
-              Mis Proyectos
-            </h2>
-            <a href="/projects" className="text-xs text-gray-500 hover:text-orange-400 transition-colors">Ver todos →</a>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#FF7A2F' }}>Mis Proyectos</h2>
+              {d.myProjects.length > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 font-medium">
+                  {d.myProjects.length}
+                </span>
+              )}
+            </div>
+            <a href="/projects" className="text-xs text-gray-600 hover:text-orange-400 transition-colors">Ver todos →</a>
           </div>
+
           {d.myProjects.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-6">Sin proyectos asignados</p>
+            <EmptyState
+              icon="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+              text="Sin proyectos asignados"
+              sub="Los proyectos en los que participes aparecerán aquí"
+              href="/projects"
+              linkText="Ver Proyectos"
+            />
           ) : (
-            <div className="space-y-3">
-              {d.myProjects.map(p => (
-                <a key={p.id} href="/projects"
-                  className="block px-3 py-3 rounded-lg transition-all hover:border-orange-500/20"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid transparent' }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-gray-200 font-medium truncate flex-1">{p.name}</p>
-                    <span className={`text-xs ml-3 flex-shrink-0 ${PROJECT_STATUS_COLOR[p.status] ?? 'text-gray-400'}`}>
-                      {p.status === 'PLANNING' ? 'Planeación' : p.status === 'IN_PROGRESS' ? 'En progreso' : p.status === 'COMPLETED' ? 'Completado' : p.status === 'ON_HOLD' ? 'En pausa' : p.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-800 rounded-full h-1.5">
-                      <div className="h-1.5 rounded-full transition-all" style={{ width: `${p.progress}%`, background: 'linear-gradient(90deg, #FF5A00, #FF7A2F)' }} />
+            <div className="space-y-2.5">
+              {d.myProjects.map(p => {
+                const days = daysUntil(p.endDate);
+                const isOverdue = days !== null && days < 0;
+                const isUrgent = days !== null && days >= 0 && days <= 7;
+                return (
+                  <a
+                    key={p.id}
+                    href="/projects"
+                    className="block px-3 py-3 rounded-lg transition-all duration-150"
+                    style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid transparent' }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                      (e.currentTarget as HTMLElement).style.border = '1px solid rgba(255,255,255,0.08)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.025)';
+                      (e.currentTarget as HTMLElement).style.border = '1px solid transparent';
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2.5">
+                      <p className="text-sm text-gray-200 font-medium leading-snug flex-1 min-w-0 truncate">{p.name}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${PROJECT_STATUS_PILL[p.status] ?? 'bg-gray-700/60 text-gray-400'}`}>
+                        {PROJECT_STATUS_LABEL[p.status] ?? p.status}
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-500 flex-shrink-0">{p.progress}%</span>
-                  </div>
-                  {p.endDate && (
-                    <p className="text-xs text-gray-600 mt-1">
-                      Fecha límite: {new Date(p.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </p>
-                  )}
-                </a>
-              ))}
+
+                    {/* Progress bar */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 bg-white/5 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${p.progress}%`,
+                            background: p.progress >= 80
+                              ? 'linear-gradient(90deg, #22C55E, #4ADE80)'
+                              : 'linear-gradient(90deg, #FF5A00, #FF7A2F)',
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium tabular-nums w-8 text-right flex-shrink-0">
+                        {p.progress}%
+                      </span>
+                    </div>
+
+                    {p.endDate && (
+                      <p className={`text-[11px] ${isOverdue ? 'text-red-400' : isUrgent ? 'text-yellow-400' : 'text-gray-600'}`}>
+                        {isOverdue
+                          ? `⚠ Vencido hace ${Math.abs(days!)} días`
+                          : isUrgent
+                          ? `⏱ Vence en ${days} día${days === 1 ? '' : 's'}`
+                          : `Fecha límite: ${new Date(p.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                        }
+                      </p>
+                    )}
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
