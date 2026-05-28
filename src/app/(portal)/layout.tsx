@@ -10,6 +10,7 @@ export default async function PortalLayout({ children }: { children: React.React
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     req: { cookies: cookieStore } as any,
     secret: process.env.NEXTAUTH_SECRET!,
+    secureCookie: process.env.NEXTAUTH_URL?.startsWith('https://') ?? false,
   });
 
   let role = (token?.role as string) ?? '';
