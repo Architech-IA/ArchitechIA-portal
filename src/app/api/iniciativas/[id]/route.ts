@@ -19,7 +19,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const body = await request.json()
   const {
     nombre, descripcion, categoria, estado, prioridad, sector, problema,
-    beneficios, tecnologias, costoEstimado, roiEstimado, color,
+    beneficios, tecnologias, costoMin, costoMax, tiempoEstimado, roiEstimado, color,
   } = body
 
   try {
@@ -33,7 +33,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(tecnologias !== undefined
           ? { tecnologias: JSON.stringify(Array.isArray(tecnologias) ? tecnologias : []) }
           : {}),
-        costoEstimado: costoEstimado != null && costoEstimado !== '' ? Number(costoEstimado) : null,
+        costoMin: costoMin != null && costoMin !== '' ? Number(costoMin) : null,
+        costoMax: costoMax != null && costoMax !== '' ? Number(costoMax) : null,
+        tiempoEstimado: tiempoEstimado?.trim() || null,
         roiEstimado: roiEstimado || null,
         ...(color ? { color } : {}),
       },

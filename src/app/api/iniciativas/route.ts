@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const {
     nombre, descripcion, categoria, estado, prioridad, sector, problema,
-    beneficios, tecnologias, costoEstimado, roiEstimado, color,
+    beneficios, tecnologias, costoMin, costoMax, tiempoEstimado, roiEstimado, color,
   } = body
 
   if (!nombre?.trim() || !descripcion?.trim()) {
@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       problema: problema || null,
       beneficios: beneficios || null,
       tecnologias: JSON.stringify(Array.isArray(tecnologias) ? tecnologias : []),
-      costoEstimado: costoEstimado != null && costoEstimado !== '' ? Number(costoEstimado) : null,
+      costoMin: costoMin != null && costoMin !== '' ? Number(costoMin) : null,
+      costoMax: costoMax != null && costoMax !== '' ? Number(costoMax) : null,
+      tiempoEstimado: tiempoEstimado?.trim() || null,
       roiEstimado: roiEstimado || null,
       color: color || 'from-orange-500 to-red-600',
       responsable: (token.name as string) || null,

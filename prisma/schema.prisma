@@ -277,12 +277,14 @@ model Iniciativa {
   sector        String?
   problema      String?
   beneficios    String?
-  tecnologias   String   @default("[]")    // JSON array (igual que Producto)
-  responsable   String?
-  responsableId String?
-  costoEstimado Float?
-  roiEstimado   String?
-  proyectoId    String?  // se llena al convertir en proyecto → trazabilidad
+  tecnologias    String   @default("[]")    // JSON array (igual que Producto)
+  responsable    String?
+  responsableId  String?
+  costoMin       Float?   // rango de costo estimado (mínimo)
+  costoMax       Float?   // rango de costo estimado (máximo)
+  tiempoEstimado String?  // ej: "2 a 4 semanas"
+  roiEstimado    String?
+  proyectoId     String?  // se llena al convertir en proyecto → trazabilidad
   color         String   @default("from-orange-500 to-red-600")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

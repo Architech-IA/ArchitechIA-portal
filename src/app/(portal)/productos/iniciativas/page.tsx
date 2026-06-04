@@ -20,7 +20,9 @@ interface Iniciativa {
   tecnologias: string[]
   responsable: string | null
   responsableId: string | null
-  costoEstimado: number | null
+  costoMin: number | null
+  costoMax: number | null
+  tiempoEstimado: string | null
   roiEstimado: string | null
   proyectoId: string | null
   color: string
@@ -69,7 +71,8 @@ const COLORES = [
 
 const EMPTY_FORM = {
   nombre: '', descripcion: '', categoria: 'IA/ML', estado: 'IDEA', prioridad: 'MEDIA',
-  sector: '', problema: '', beneficios: '', tecnologias: '', costoEstimado: '', roiEstimado: '',
+  sector: '', problema: '', beneficios: '', tecnologias: '',
+  costoMin: '', costoMax: '', tiempoEstimado: '', roiEstimado: '',
   color: 'from-orange-500 to-red-600',
 }
 
@@ -78,13 +81,22 @@ function formFrom(i: Iniciativa) {
     nombre: i.nombre, descripcion: i.descripcion, categoria: i.categoria, estado: i.estado,
     prioridad: i.prioridad, sector: i.sector ?? '', problema: i.problema ?? '',
     beneficios: i.beneficios ?? '', tecnologias: i.tecnologias.join(', '),
-    costoEstimado: i.costoEstimado != null ? String(i.costoEstimado) : '',
+    costoMin: i.costoMin != null ? String(i.costoMin) : '',
+    costoMax: i.costoMax != null ? String(i.costoMax) : '',
+    tiempoEstimado: i.tiempoEstimado ?? '',
     roiEstimado: i.roiEstimado ?? '', color: i.color,
   }
 }
 
 const money = (n: number | null) =>
   n == null ? '—' : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+
+// Rango de costo: "$X – $Y", o un solo extremo si falta el otro.
+const costoRango = (min: number | null, max: number | null) => {
+  if (min == null && max == null) return '—'
+  if (min != null && max != null) return min === max ? money(min) : `${money(min)} – ${money(max)}`
+  return min != null ? `Desde ${money(min)}` : `Hasta ${money(max)}`
+}
 
 const inputCls = 'w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500'
 
@@ -165,7 +177,9 @@ export default function IniciativasPage() {
     const body = {
       ...form,
       tecnologias: form.tecnologias.split(',').map(t => t.trim()).filter(Boolean),
-      costoEstimado: form.costoEstimado === '' ? null : Number(form.costoEstimado),
+      costoMin: form.costoMin === '' ? null : Number(form.costoMin),
+      costoMax: form.costoMax === '' ? null : Number(form.costoMax),
+      tiempoEstimado: form.tiempoEstimado.trim() || null,
     }
     const res = editItem
       ? await fetch(`/api/iniciativas/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -368,6 +382,7 @@ export default function IniciativasPage() {
                 <th className="text-left px-4 py-3">Estado</th>
                 <th className="text-left px-4 py-3">Prioridad</th>
                 <th className="text-left px-4 py-3">Costo est.</th>
+                <th className="text-left px-4 py-3">Tiempo est.</th>
                 <th className="text-left px-4 py-3">Responsable</th>
                 <th className="text-center px-4 py-3">Acciones</th>
               </tr>
@@ -385,7 +400,8 @@ export default function IniciativasPage() {
                   <td className="px-4 py-3 text-xs text-gray-300">{i.categoria}</td>
                   <td className="px-4 py-3"><EstadoChip estado={i.estado} /></td>
                   <td className="px-4 py-3"><PrioridadTag prioridad={i.prioridad} /></td>
-                  <td className="px-4 py-3 text-xs text-gray-300">{money(i.costoEstimado)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-300 whitespace-nowrap">{costoRango(i.costoMin, i.costoMax)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-300 whitespace-nowrap">{i.tiempoEstimado || '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">{i.responsable ?? '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
@@ -432,7 +448,11 @@ export default function IniciativasPage() {
                 </div>
                 <div className="bg-gray-800/60 rounded-lg p-3">
                   <p className="text-[10px] text-gray-500 mb-1">Costo estimado</p>
-                  <p className="text-sm text-gray-300">{money(selected.costoEstimado)}</p>
+                  <p className="text-sm text-gray-300">{costoRango(selected.costoMin, selected.costoMax)}</p>
+                </div>
+                <div className="bg-gray-800/60 rounded-lg p-3">
+                  <p className="text-[10px] text-gray-500 mb-1">Tiempo estimado</p>
+                  <p className="text-sm text-gray-300">{selected.tiempoEstimado || '—'}</p>
                 </div>
                 <div className="bg-gray-800/60 rounded-lg p-3">
                   <p className="text-[10px] text-gray-500 mb-1">ROI estimado</p>
@@ -545,8 +565,18 @@ export default function IniciativasPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Costo estimado (COP)</label>
-                  <input type="number" min={0} value={form.costoEstimado} onChange={e => setForm({ ...form, costoEstimado: e.target.value })} placeholder="0" className={inputCls} />
+                  <label className="block text-xs text-gray-400 mb-1">Costo estimado mín. (COP)</label>
+                  <input type="number" min={0} value={form.costoMin} onChange={e => setForm({ ...form, costoMin: e.target.value })} placeholder="Ej: 3.000.000" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Costo estimado máx. (COP)</label>
+                  <input type="number" min={0} value={form.costoMax} onChange={e => setForm({ ...form, costoMax: e.target.value })} placeholder="Ej: 6.000.000" className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Tiempo estimado</label>
+                  <input value={form.tiempoEstimado} onChange={e => setForm({ ...form, tiempoEstimado: e.target.value })} placeholder="Ej: 2 a 4 semanas" className={inputCls} />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">ROI estimado</label>
