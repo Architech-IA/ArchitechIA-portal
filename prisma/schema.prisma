@@ -267,6 +267,43 @@ model Producto {
   updatedAt       DateTime @updatedAt
 }
 
+model Iniciativa {
+  id            String   @id @default(cuid())
+  nombre        String
+  descripcion   String
+  categoria     String   @default("IA/ML")
+  estado        String   @default("IDEA")  // IDEA, EVALUACION, APROBADA, EN_EJECUCION, COMPLETADA, DESCARTADA
+  prioridad     String   @default("MEDIA") // BAJA, MEDIA, ALTA, CRITICA
+  sector        String?
+  problema      String?
+  beneficios    String?
+  tecnologias   String   @default("[]")    // JSON array (igual que Producto)
+  responsable   String?
+  responsableId String?
+  costoEstimado Float?
+  roiEstimado   String?
+  proyectoId    String?  // se llena al convertir en proyecto → trazabilidad
+  color         String   @default("from-orange-500 to-red-600")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deleteRequests IniciativaDeleteRequest[]
+}
+
+model IniciativaDeleteRequest {
+  id            String     @id @default(cuid())
+  iniciativaId  String
+  iniciativa    Iniciativa @relation(fields: [iniciativaId], references: [id], onDelete: Cascade)
+  requestedById String
+  requesterName String?
+  reason        String?
+  status        String     @default("PENDIENTE") // PENDIENTE, APROBADA, RECHAZADA
+  resolvedById  String?
+  resolvedByName String?
+  createdAt     DateTime   @default(now())
+  resolvedAt    DateTime?
+}
+
 model SessionLog {
   id        String   @id @default(cuid())
   userId    String?
