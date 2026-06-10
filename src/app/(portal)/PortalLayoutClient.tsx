@@ -119,8 +119,10 @@ export default function PortalLayoutClient({
       <a
         href={item.href}
         title={isCollapsed ? item.label : undefined}
-        className="flex items-center rounded-xl text-sm font-medium transition-all relative"
+        className="flex items-center rounded-xl transition-all relative"
         style={{
+          fontSize: '13px',
+          fontWeight: 400,
           gap: isCollapsed ? '0' : '10px',
           padding: isCollapsed ? '10px 0' : '8px 12px',
           marginLeft: !isCollapsed && sub ? '8px' : '0',
