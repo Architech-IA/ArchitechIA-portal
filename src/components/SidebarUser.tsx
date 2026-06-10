@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useSession, signOut } from 'next-auth/react';
 
@@ -10,6 +10,7 @@ const ROLE_LABELS: Record<string, string> = {
   ARQUITECTO_SOLUCIONES:     'Arquitecto de Soluciones',
   PARTNER:                   'Socio',
   COLLABORATOR:              'Colaborador',
+  SUPERADMIN:                'Super Admin',
 };
 
 async function logLogout(userId: string, email: string) {
@@ -23,8 +24,8 @@ async function logLogout(userId: string, email: string) {
 }
 
 const avatarStyle = {
-  background: 'linear-gradient(135deg, #FF5A00 0%, #FF5A00 100%)',
-  boxShadow:  '0 0 12px rgba(255,90,0,0.4)',
+  background: '#FF5A00',
+  boxShadow:  '0 0 10px rgba(255,90,0,0.25)',
 } as const;
 
 export default function SidebarUser({ collapsed = false }: { collapsed?: boolean }) {
@@ -47,21 +48,21 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
     signOut({ callbackUrl: '/login' });
   };
 
-  const Avatar = () => (
+  const Avatar = ({ size = 32 }: { size?: number }) => (
     <div
-      className="flex items-center justify-center overflow-hidden"
-      style={avatarStyle}
+      className="rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0"
+      style={{ width: size, height: size, ...avatarStyle }}
     >
       {avatar
         ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
-        : <span className="font-semibold text-white text-xs">{initials}</span>
+        : <span className="font-semibold text-white" style={{ fontSize: size * 0.36 }}>{initials}</span>
       }
     </div>
   );
 
   const LogoutIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   );
 
@@ -71,34 +72,16 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
         className="p-2 flex flex-col items-center gap-2"
         style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <div
-          title={`${name} â€” ${ROLE_LABELS[role] ?? role}`}
-          className="w-9 h-9 rounded-xl"
-          style={avatarStyle}
-        >
-          <Avatar />
+        <div title={`${name} — ${ROLE_LABELS[role] ?? role}`}>
+          <Avatar size={34} />
         </div>
         <button
           onClick={handleLogout}
-          title="Cerrar sesiÃ³n"
-          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-          style={{
-            color:       '#475569',
-            background:  'rgba(255,255,255,0.03)',
-            border:      '1px solid rgba(255,255,255,0.06)',
-          }}
-          onMouseEnter={e => {
-            const el = e.currentTarget as HTMLElement;
-            el.style.color       = '#f87171';
-            el.style.background  = 'rgba(239,68,68,0.1)';
-            el.style.borderColor = 'rgba(239,68,68,0.2)';
-          }}
-          onMouseLeave={e => {
-            const el = e.currentTarget as HTMLElement;
-            el.style.color       = '#475569';
-            el.style.background  = 'rgba(255,255,255,0.03)';
-            el.style.borderColor = 'rgba(255,255,255,0.06)';
-          }}
+          title="Cerrar sesión"
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+          style={{ color: '#475569' }}
+          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#f87171'; el.style.background = 'rgba(239,68,68,0.1)'; }}
+          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#475569'; el.style.background = 'transparent'; }}
         >
           <LogoutIcon />
         </button>
@@ -107,55 +90,28 @@ export default function SidebarUser({ collapsed = false }: { collapsed?: boolean
   }
 
   return (
-    <div
-      className="p-3"
-      style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-    >
-      <div
-        className="flex items-center gap-3 p-2.5 rounded-xl mb-2"
-        style={{
-          background: 'rgba(255,255,255,0.03)',
-          border:     '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        <div className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden" style={avatarStyle}>
-          <Avatar />
-        </div>
+    <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-2.5 px-1">
+        <Avatar size={32} />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate" style={{ color: '#e2e8f0' }}>{name}</p>
-          <p className="text-xs truncate" style={{ color: '#475569' }}>{email}</p>
-          {role && (
-            <p className="text-xs truncate" style={{ color: '#FF7A2F' }}>
-              {ROLE_LABELS[role] ?? role}
-            </p>
-          )}
+          <p className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: '#e2e8f0', lineHeight: 1.3 }}>
+            {name}
+          </p>
+          <p className="truncate" style={{ fontSize: '10.5px', fontWeight: 300, color: '#64748b', lineHeight: 1.3 }}>
+            {ROLE_LABELS[role] ?? email}
+          </p>
         </div>
+        <button
+          onClick={handleLogout}
+          title="Cerrar sesión"
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+          style={{ color: '#475569' }}
+          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#f87171'; el.style.background = 'rgba(239,68,68,0.1)'; }}
+          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = '#475569'; el.style.background = 'transparent'; }}
+        >
+          <LogoutIcon />
+        </button>
       </div>
-
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-xl transition-all"
-        style={{
-          color:      '#475569',
-          background: 'rgba(255,255,255,0.02)',
-          border:     '1px solid rgba(255,255,255,0.05)',
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color       = '#f87171';
-          el.style.background  = 'rgba(239,68,68,0.08)';
-          el.style.borderColor = 'rgba(239,68,68,0.15)';
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color       = '#475569';
-          el.style.background  = 'rgba(255,255,255,0.02)';
-          el.style.borderColor = 'rgba(255,255,255,0.05)';
-        }}
-      >
-        <LogoutIcon />
-        Cerrar sesiÃ³n
-      </button>
     </div>
   );
 }
