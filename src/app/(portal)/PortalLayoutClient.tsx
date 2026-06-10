@@ -127,18 +127,18 @@ export default function PortalLayoutClient({
           padding: isCollapsed ? '10px 0' : '8px 12px',
           marginLeft: !isCollapsed && sub ? '8px' : '0',
           justifyContent: isCollapsed ? 'center' : 'flex-start',
-          color: active ? '#FF7A2F' : '#64748b',
+          color: active ? '#FF7A2F' : '#e2e8f0',
           background: active ? 'linear-gradient(90deg, rgba(255,90,0,0) 0%, rgba(255,90,0,0.08) 40%, rgba(255,90,0,0.28) 100%)' : 'transparent',
           border: active ? '1px solid rgba(255,90,0,0.25)' : '1px solid transparent',
           textDecoration: 'none', whiteSpace: 'nowrap',
         }}
-        onMouseEnter={e => { if (!active) { const el = e.currentTarget as HTMLElement; el.style.color = '#cbd5e1'; el.style.background = 'rgba(255,255,255,0.04)'; el.style.border = '1px solid rgba(255,255,255,0.06)'; } }}
-        onMouseLeave={e => { if (!active) { const el = e.currentTarget as HTMLElement; el.style.color = '#64748b'; el.style.background = 'transparent'; el.style.border = '1px solid transparent'; } }}
+        onMouseEnter={e => { if (!active) { const el = e.currentTarget as HTMLElement; el.style.color = '#ffffff'; el.style.background = 'rgba(255,255,255,0.04)'; el.style.border = '1px solid rgba(255,255,255,0.06)'; } }}
+        onMouseLeave={e => { if (!active) { const el = e.currentTarget as HTMLElement; el.style.color = '#e2e8f0'; el.style.background = 'transparent'; el.style.border = '1px solid transparent'; } }}
       >
         {active && !isCollapsed && (
           <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full" style={{ background: '#FF5A00' }} />
         )}
-        <svg style={{ color: active ? '#FF7A2F' : '#475569', flexShrink: 0 }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ color: active ? '#FF7A2F' : '#5a6577', flexShrink: 0 }} className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={item.icon} />
         </svg>
         {!isCollapsed && item.label}
