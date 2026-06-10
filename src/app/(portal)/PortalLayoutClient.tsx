@@ -121,7 +121,7 @@ export default function PortalLayoutClient({
         title={isCollapsed ? item.label : undefined}
         className="flex items-center rounded-xl transition-all relative"
         style={{
-          fontSize: '11px',
+          fontSize: '12px',
           fontWeight: 300,
           gap: isCollapsed ? '0' : '10px',
           padding: isCollapsed ? '10px 0' : '8px 12px',
