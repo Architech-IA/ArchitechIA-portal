@@ -126,8 +126,8 @@ export default function PortalLayoutClient({
           marginLeft: !isCollapsed && sub ? '8px' : '0',
           justifyContent: isCollapsed ? 'center' : 'flex-start',
           color: active ? '#FF7A2F' : '#64748b',
-          background: active ? 'rgba(255,90,0,0.1)' : 'transparent',
-          border: active ? '1px solid rgba(255,90,0,0.2)' : '1px solid transparent',
+          background: active ? 'linear-gradient(90deg, rgba(255,90,0,0.28) 0%, rgba(255,90,0,0.08) 60%, rgba(255,90,0,0) 100%)' : 'transparent',
+          border: active ? '1px solid rgba(255,90,0,0.25)' : '1px solid transparent',
           textDecoration: 'none', whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => { if (!active) { const el = e.currentTarget as HTMLElement; el.style.color = '#cbd5e1'; el.style.background = 'rgba(255,255,255,0.04)'; el.style.border = '1px solid rgba(255,255,255,0.06)'; } }}
