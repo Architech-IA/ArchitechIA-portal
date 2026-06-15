@@ -1,6 +1,7 @@
 import type { AppTypeDefinition } from '@/lib/app-types';
 import AppConfigForm from '@/components/apps/shared/AppConfigForm';
 import AppRuntimePlaceholder from '@/components/apps/shared/AppRuntimePlaceholder';
+import CRMRuntime from '@/components/apps/crm/CRMRuntime';
 
 export const APP_REGISTRY: Record<string, AppTypeDefinition> = {
   crm: {
@@ -180,4 +181,4 @@ export function parseJsonConfig(value: unknown): Record<string, unknown> {
   return {};
 }
 
-export { AppConfigForm, AppRuntimePlaceholder };
+export { AppConfigForm, AppRuntimePlaceholder, CRMRuntime };

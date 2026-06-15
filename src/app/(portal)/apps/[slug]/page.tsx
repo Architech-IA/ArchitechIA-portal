@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft, Settings, Box, Users, Layout, Globe, BarChart3,
 } from 'lucide-react';
+import CRMRuntime from '@/components/apps/crm/CRMRuntime';
 import AppRuntimePlaceholder from '@/components/apps/shared/AppRuntimePlaceholder';
 import type { AppInstance } from '@/lib/app-types';
 import { APP_STATUS_LABELS } from '@/lib/app-types';
@@ -92,8 +93,8 @@ export default function AppRuntimePage() {
       </div>
 
       {/* Runtime area */}
-      <div className="flex-1 overflow-auto p-6">
-        <AppRuntimePlaceholder app={app} />
+      <div className="flex-1 overflow-hidden">
+        {app.appType.slug === 'crm' ? <CRMRuntime app={app} /> : <AppRuntimePlaceholder app={app} />}
       </div>
     </div>
   );
