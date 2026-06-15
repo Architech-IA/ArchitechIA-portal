@@ -128,26 +128,6 @@ export default function AppsHubPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {statusKeys.map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(statusFilter === status ? '' : status)}
-            className={`rounded-xl border p-3 text-left transition-colors ${
-              statusFilter === status
-                ? 'border-orange-500/50 bg-orange-500/10'
-                : 'border-gray-800 bg-gray-900 hover:border-gray-700'
-            }`}
-          >
-            <p className="text-xs text-gray-500">{APP_STATUS_LABELS[status].label}</p>
-            <p className="text-2xl font-bold text-white">
-              {apps.filter((a) => a.status === status).length}
-            </p>
-          </button>
-        ))}
-      </div>
-
       {/* Empty state */}
       {filteredApps.length === 0 && (
         <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/50 p-12 text-center">
