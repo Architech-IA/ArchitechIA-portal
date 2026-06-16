@@ -190,9 +190,22 @@ export default function TraceabilityPage() {
         }
       `}</style>
 
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <p className="text-gray-400 mt-1">Historial completo de actividades, sesiones y cambios</p>
+      {/* ── Tabs + Exportar ── */}
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex gap-1 bg-gray-800 rounded-xl p-1 border border-gray-700 w-fit">
+          {TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                tab === key
+                  ? 'bg-orange-600 text-white shadow'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <button
           onClick={handleExportPDF}
@@ -203,23 +216,6 @@ export default function TraceabilityPage() {
           </svg>
           Exportar PDF
         </button>
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 mb-6 bg-gray-800 rounded-xl p-1 border border-gray-700 w-fit">
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === key
-                ? 'bg-orange-600 text-white shadow'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* ═══════════ TAB: ACTIVITIES ═══════════ */}
