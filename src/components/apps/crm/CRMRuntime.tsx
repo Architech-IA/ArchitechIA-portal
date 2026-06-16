@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -48,6 +48,16 @@ import {
   Gauge,
   CircleDot,
   Calendar,
+  Bot,
+  Send,
+  Sparkles,
+  X,
+  Loader2,
+  FileSearch,
+  FilePlus2,
+  FileSignature,
+  ScanText,
+  Check,
 } from 'lucide-react';
 import type { AppInstance } from '@/lib/app-types';
 import AppBackButton from '@/components/apps/shared/AppBackButton';
@@ -795,6 +805,19 @@ export default function CRMRuntime({ app }: { app: AppInstance }) {
           )}
         </div>
       </main>
+
+      {/* Asistente documental flotante */}
+      <DocAssistant
+        companyName={companyName}
+        onNavigate={switchView}
+        rows={rows}
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
+        setSearch={setSearch}
+        setReportFilter={setReportFilter}
+        setValueRangeFilter={setValueRangeFilter}
+        onUpdate={handleUpdate}
+      />
     </div>
   );
 }
@@ -1910,5 +1933,227 @@ function ComplianceCenterView() {
         </div>
       </SectionCard>
     </div>
+  );
+}
+
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'bot';
+  content: string;
+  actions?: { label: string; onClick: () => void }[];
+};
+
+function DocAssistant({
+  companyName,
+  onNavigate,
+  rows,
+  selectedIds,
+  setSelectedIds,
+  setSearch,
+  setReportFilter,
+  setValueRangeFilter,
+  onUpdate,
+}: {
+  companyName: string;
+  onNavigate: (view: ViewId) => void;
+  rows: InvoiceRow[];
+  selectedIds: Set<string>;
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setSearch: React.Dispatch<React.SetStateAction<string>>;
+  setReportFilter: React.Dispatch<React.SetStateAction<ReportFilter>>;
+  setValueRangeFilter: React.Dispatch<React.SetStateAction<ValueRangeFilter>>;
+  onUpdate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'bot',
+      content: `Hola, soy el agente documental de ${companyName}. ¿Qué tarea puedo ejecutar para ti?`,
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [typing, setTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typing]);
+
+  const addMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
+
+  const botReply = (content: string, actions?: ChatMessage['actions']) => {
+    setTyping(true);
+    setTimeout(() => {
+      setTyping(false);
+      addMessage({ id: Math.random().toString(36).slice(2), role: 'bot', content, actions });
+    }, 600);
+  };
+
+  const generateMonthlyReport = () => {
+    addMessage({ id: 'u-report', role: 'user', content: 'Generar reporte mensual de facturas' });
+    setReportFilter('all');
+    setValueRangeFilter('all');
+    setSearch('');
+    onNavigate('Invoice Manager');
+    onUpdate();
+    botReply('He generado el reporte mensual, aplicado los filtros generales y actualizado la vista Invoice Manager.', [
+      { label: 'Descargar CSV', onClick: () => botReply('Descarga simulada completada. El archivo estaría listo en tu bandeja.') },
+    ]);
+  };
+
+  const findOverdue = () => {
+    addMessage({ id: 'u-overdue', role: 'user', content: 'Buscar facturas vencidas' });
+    const overdueIds = rows.filter((r) => r.value < 1500).slice(0, 4).map((r) => r.id);
+    setSelectedIds(new Set(overdueIds));
+    setReportFilter('all');
+    setValueRangeFilter('low');
+    setSearch('');
+    onNavigate('Invoice Manager');
+    botReply(`He seleccionado ${overdueIds.length} facturas con riesgo de vencimiento y aplicado el filtro de valores bajos.`);
+  };
+
+  const sendReminders = () => {
+    addMessage({ id: 'u-remind', role: 'user', content: 'Enviar recordatorios de pago' });
+    const toRemind = rows.filter((r) => r.value >= 1000).slice(0, 3).map((r) => r.id);
+    setSelectedIds(new Set(toRemind));
+    setReportFilter('all');
+    setValueRangeFilter('all');
+    setSearch('');
+    onNavigate('Invoice Manager');
+    botReply(`Recordatorios enviados a ${toRemind.length} clientes. Las facturas seleccionadas están listas para seguimiento.`);
+  };
+
+  const showDashboard = () => {
+    addMessage({ id: 'u-dash', role: 'user', content: 'Ver resumen general' });
+    onNavigate('Overview');
+    onUpdate();
+    botReply('Aquí tienes el resumen general con métricas actualizadas.');
+  };
+
+  const quickActions = [
+    { label: 'Reporte mensual', onClick: generateMonthlyReport },
+    { label: 'Facturas vencidas', onClick: findOverdue },
+    { label: 'Recordatorios', onClick: sendReminders },
+    { label: 'Resumen', onClick: showDashboard },
+  ];
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    addMessage({ id: `u-${Date.now()}`, role: 'user', content: input });
+    const lower = input.toLowerCase();
+    if (lower.includes('report') || lower.includes('reporte')) generateMonthlyReport();
+    else if (lower.includes('venc') || lower.includes('overdue') || lower.includes('atras')) findOverdue();
+    else if (lower.includes('recordator') || lower.includes('reminder') || lower.includes('cobrar')) sendReminders();
+    else if (lower.includes('resumen') || lower.includes('dashboard') || lower.includes('overview')) showDashboard();
+    else botReply('Puedo ayudarte con: generar reportes, buscar facturas vencidas, enviar recordatorios o mostrar el resumen. Selecciona una opción rápida.', quickActions);
+    setInput('');
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-[#050505] shadow-lg shadow-amber-500/20 transition-transform hover:scale-105 active:scale-95"
+        aria-label="Abrir asistente"
+      >
+        {open ? <X className="h-6 w-6" /> : <Bot className="h-7 w-7" />}
+      </button>
+
+      {open && (
+        <div className="fixed bottom-24 right-6 z-50 flex h-[420px] w-[340px] flex-col overflow-hidden rounded-2xl border border-[#222222] bg-[#0a0a0a] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[#222222] bg-[#141414] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-200">AI Document Agent</p>
+                <p className="text-[10px] text-gray-500">Smartlex Assistant</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-gray-500 transition-colors hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-3 overflow-y-auto p-3">
+            {messages.map((m) => (
+              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                    m.role === 'user' ? 'bg-amber-500 text-[#050505]' : 'bg-[#1a1a1a] text-gray-200'
+                  }`}
+                >
+                  {m.content}
+                  {m.actions && m.actions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {m.actions.map((a) => (
+                        <button
+                          key={a.label}
+                          type="button"
+                          onClick={a.onClick}
+                          className="rounded-md border border-[#2a2a2a] bg-[#141414] px-2 py-1 text-[10px] text-gray-300 transition-colors hover:border-amber-500/50 hover:text-amber-400"
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {typing && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-xl bg-[#1a1a1a] px-3 py-2 text-xs text-gray-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t border-[#222222] bg-[#141414] p-3">
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {quickActions.map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={a.onClick}
+                  className="rounded-full border border-[#2a2a2a] bg-[#1a1a1a] px-2 py-0.5 text-[10px] text-gray-400 transition-colors hover:border-amber-500/50 hover:text-amber-400"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-3 py-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSend();
+                }}
+                placeholder="Escribe una tarea..."
+                className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-gray-600"
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                className="text-amber-400 transition-colors hover:text-amber-300"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
