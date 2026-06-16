@@ -197,7 +197,7 @@ export default function TraceabilityPage() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-5 py-2 text-xs font-normal rounded-lg transition-all ${
                 tab === key
                   ? 'bg-orange-600 text-white shadow'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
@@ -209,7 +209,7 @@ export default function TraceabilityPage() {
         </div>
         <button
           onClick={handleExportPDF}
-          className="no-print flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+          className="no-print flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-xs font-normal"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -228,12 +228,12 @@ export default function TraceabilityPage() {
                 placeholder="Buscar actividades..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-orange-500"
+                className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-sm text-gray-100 focus:ring-2 focus:ring-orange-500"
               />
               <select
                 value={entityTypeFilter}
                 onChange={(e) => setEntityTypeFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-orange-500"
+                className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-sm text-gray-100 focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">Todos los tipos</option>
                 <option value="lead">Leads</option>
@@ -250,7 +250,7 @@ export default function TraceabilityPage() {
                   <div key={activity.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="w-10 h-10 rounded-full bg-orange-900 flex items-center justify-center flex-shrink-0">
-                        <span className="text-lg">{getActivityIcon(activity.type)}</span>
+                        <span className="text-base">{getActivityIcon(activity.type)}</span>
                       </div>
                       {index < filteredActivities.length - 1 && (
                         <div className="w-0.5 h-full bg-gray-600 mt-2"></div>
@@ -260,22 +260,22 @@ export default function TraceabilityPage() {
                       <div className="bg-gray-700 rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-100">{activity.user.name}</span>
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${getEntityTypeBadgeColor(activity.entityType)}`}>
+                            <span className="text-sm font-normal text-gray-100">{activity.user.name}</span>
+                            <span className={`px-2 py-0.5 text-[10px] font-normal rounded ${getEntityTypeBadgeColor(activity.entityType)}`}>
                               {getEntityTypeLabel(activity.entityType)}
                             </span>
                           </div>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[10px] text-gray-500">
                             {new Date(activity.createdAt).toLocaleString('es-ES')}
                           </span>
                         </div>
-                        <p className="text-gray-300">{activity.description}</p>
+                        <p className="text-sm text-gray-300">{activity.description}</p>
                       </div>
                     </div>
                   </div>
                 ))}
                 {filteredActivities.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">No se encontraron actividades</p>
+                  <p className="text-center text-sm text-gray-500 py-8">No se encontraron actividades</p>
                 )}
               </div>
             </div>
@@ -299,12 +299,12 @@ export default function TraceabilityPage() {
                     placeholder="Buscar por email, IP o acción..."
                     value={sessionSearch}
                     onChange={(e) => setSessionSearch(e.target.value)}
-                    className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-orange-500"
+                    className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-sm text-gray-100 focus:ring-2 focus:ring-orange-500"
                   />
                   <select
                     value={sessionActionFilter}
                     onChange={(e) => setSessionActionFilter(e.target.value)}
-                    className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-orange-500"
+                    className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-sm text-gray-100 focus:ring-2 focus:ring-orange-500"
                   >
                     <option value="">Todas las acciones</option>
                     <option value="LOGIN">Inicios de sesión</option>
@@ -315,40 +315,40 @@ export default function TraceabilityPage() {
               </div>
 
               <div className="bg-gray-800 rounded-xl shadow border border-gray-700 overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-xs text-left">
                   <thead>
                     <tr className="border-b border-gray-700 text-gray-400">
-                      <th className="px-5 py-3 font-medium">Fecha / Hora</th>
-                      <th className="px-5 py-3 font-medium">Email</th>
-                      <th className="px-5 py-3 font-medium">Acción</th>
-                      <th className="px-5 py-3 font-medium">IP</th>
-                      <th className="px-5 py-3 font-medium">Navegador</th>
-                      <th className="px-5 py-3 font-medium">SO</th>
-                      <th className="px-5 py-3 font-medium">Estado</th>
+                      <th className="px-5 py-3 font-normal">Fecha / Hora</th>
+                      <th className="px-5 py-3 font-normal">Email</th>
+                      <th className="px-5 py-3 font-normal">Acción</th>
+                      <th className="px-5 py-3 font-normal">IP</th>
+                      <th className="px-5 py-3 font-normal">Navegador</th>
+                      <th className="px-5 py-3 font-normal">SO</th>
+                      <th className="px-5 py-3 font-normal">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredSessions.map((s) => (
                       <tr key={s.id} className="border-b border-gray-700/50 hover:bg-gray-750 transition-colors">
-                        <td className="px-5 py-3 text-gray-200 whitespace-nowrap font-mono text-xs">
+                        <td className="px-5 py-3 text-gray-200 whitespace-nowrap font-mono text-[10px]">
                           {new Date(s.createdAt).toLocaleString('es-ES')}
                         </td>
                         <td className="px-5 py-3 text-gray-300 max-w-[200px] truncate" title={s.email || '—'}>
                           {s.email || '—'}
                         </td>
                         <td className="px-5 py-3">
-                          <span className={`px-2 py-0.5 text-xs font-semibold rounded ${getActionBadge(s.action)}`}>
+                          <span className={`px-2 py-0.5 text-[10px] font-normal rounded ${getActionBadge(s.action)}`}>
                             {getActionLabel(s.action)}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-gray-400 font-mono text-xs">{s.ip || '—'}</td>
+                        <td className="px-5 py-3 text-gray-400 font-mono text-[10px]">{s.ip || '—'}</td>
                         <td className="px-5 py-3 text-gray-400">{parseBrowser(s.userAgent)}</td>
                         <td className="px-5 py-3 text-gray-400">{parseOS(s.userAgent)}</td>
                         <td className="px-5 py-3">
                           {s.success ? (
-                            <span className="text-green-400 text-xs font-medium">✓ Éxito</span>
+                            <span className="text-green-400 text-[10px] font-normal">✓ Éxito</span>
                           ) : (
-                            <span className="text-red-400 text-xs font-medium" title={s.details || ''}>
+                            <span className="text-red-400 text-[10px] font-normal" title={s.details || ''}>
                               ✗ Fallo
                             </span>
                           )}
@@ -366,7 +366,7 @@ export default function TraceabilityPage() {
                 </table>
               </div>
 
-              <p className="text-xs text-gray-600 mt-3 text-right">
+              <p className="text-[10px] text-gray-600 mt-3 text-right">
                 Mostrando {filteredSessions.length} de {sessions.length} registros
               </p>
             </>
