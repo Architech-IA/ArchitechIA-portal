@@ -158,7 +158,6 @@ export default function ProfilePage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-white">Mi Perfil</h1>
         {isAdmin && (
           <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
             <button onClick={() => setTab('perfil')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'perfil' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mi Perfil</button>

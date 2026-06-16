@@ -92,7 +92,6 @@ export default function ReportesPage() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Reportes</h1>
         <p className="text-gray-400 mt-1">Métricas de ventas, pipeline y rendimiento del equipo</p>
       </div>
 

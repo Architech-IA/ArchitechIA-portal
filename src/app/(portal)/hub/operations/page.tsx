@@ -4,7 +4,6 @@ export default function OperationsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">OPERATIONS</h1>
         <p className="text-gray-400 mt-1">Proyectos, backlog y operaciones del equipo técnico</p>
       </div>
 

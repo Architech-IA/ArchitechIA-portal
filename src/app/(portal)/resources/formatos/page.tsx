@@ -52,7 +52,6 @@ export default function FormatosPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Formatos</h1>
         <p className="text-gray-400 mt-1">Documentos, plantillas y formatos oficiales del equipo</p>
       </div>
 

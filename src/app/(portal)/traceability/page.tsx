@@ -192,7 +192,6 @@ export default function TraceabilityPage() {
 
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100">Trazabilidad y Control</h1>
           <p className="text-gray-400 mt-1">Historial completo de actividades, sesiones y cambios</p>
         </div>
         <button

@@ -46,7 +46,6 @@ export default function ResourcesPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Resources</h1>
         <p className="text-gray-400 mt-1">Centro de recursos, herramientas y cuentas del equipo</p>
       </div>
 

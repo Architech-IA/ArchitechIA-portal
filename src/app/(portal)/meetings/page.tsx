@@ -245,7 +245,6 @@ export default function MeetingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Calendario</h1>
           <p className="text-gray-400 mt-1">Calendario de reuniones, citas y actas</p>
         </div>
         <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">

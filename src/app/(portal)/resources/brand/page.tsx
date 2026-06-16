@@ -4,7 +4,6 @@ export default function BrandPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Brand</h1>
         <p className="text-gray-400 mt-1">Assets, guías de marca y recursos visuales oficiales</p>
       </div>
 

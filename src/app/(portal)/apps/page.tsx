@@ -67,9 +67,7 @@ export default function AppsHubPage() {
     <div className="p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Mini-Apps Hub</h1>
-        </div>
+        <div />
         <button
           onClick={() => router.push('/apps/catalogo')}
           className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:from-orange-600 hover:to-orange-700"

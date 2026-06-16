@@ -4,7 +4,6 @@ export default function BusinessPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">BUSINESS</h1>
         <p className="text-gray-400 mt-1">Estrategia comercial, leads, propuestas y gestión de clientes</p>
       </div>
 

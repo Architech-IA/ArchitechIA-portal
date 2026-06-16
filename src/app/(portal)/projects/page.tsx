@@ -233,7 +233,6 @@ export default function ProjectsPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Proyectos</h1>
           <p className="text-gray-400 mt-1">Desarrollo de productos y proyectos</p>
         </div>
         <div className="flex gap-2">

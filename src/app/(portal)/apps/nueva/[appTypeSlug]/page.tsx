@@ -117,7 +117,6 @@ export default function NewAppWizardPage() {
           <Icon className="h-7 w-7" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">Nueva {type.name}</h1>
           <p className="text-sm text-gray-400">{type.description}</p>
         </div>
       </div>

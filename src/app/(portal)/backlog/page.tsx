@@ -179,7 +179,6 @@ export default function BacklogPage() {
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Backlog</h1>
           <p className="text-xs text-gray-500 mt-0.5">
             {items.length} ítems · {totalDone} completados · {totalPoints} pts entregados
           </p>

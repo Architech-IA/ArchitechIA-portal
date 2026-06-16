@@ -344,7 +344,6 @@ export default function LeadsPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Leads</h1>
           <p className="text-gray-400 mt-1">Gestión de prospectos y oportunidades</p>
         </div>
         <div className="flex gap-2">

@@ -4,7 +4,6 @@ export default function LegalPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">LEGAL</h1>
         <p className="text-gray-400 mt-1">Contratos, documentos legales, compliance y políticas corporativas</p>
       </div>
 

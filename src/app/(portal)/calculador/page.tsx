@@ -42,7 +42,6 @@ export default function CalculadorPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-2">Calculador de Proyectos</h1>
       <p className="text-gray-400 mb-8">Estima el costo, esfuerzo y margen de tu proyecto de IA</p>
 
       {/* Steps */}
