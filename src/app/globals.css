@@ -99,11 +99,11 @@ aside nav a {
 aside ::-webkit-scrollbar  { width: 3px; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  {
-  background: linear-gradient(180deg, #FF5A00 0%, #E64E00 100%);
+  background: linear-gradient(180deg, #D4AF37 0%, #B8962F 100%);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #FF7A2F 0%, #FF5A00 100%);
+  background: linear-gradient(180deg, #E6C45C 0%, #D4AF37 100%);
 }
 
 /* ─── Responsive ─────────────────────────────────────────────── */
@@ -163,8 +163,8 @@ aside ::-webkit-scrollbar  { width: 3px; }
 
 [data-theme="light"] ::-webkit-scrollbar-track { background: #eef0f8; }
 [data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #FF5A00, #E64E00);
+  background: linear-gradient(180deg, #D4AF37, #B8962F);
 }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #818cf8, #a78bfa);
+  background: linear-gradient(180deg, #E6C45C, #D4AF37);
 }
