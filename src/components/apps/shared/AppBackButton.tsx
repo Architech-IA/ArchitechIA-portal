@@ -7,9 +7,9 @@ export default function AppBackButton() {
   const router = useRouter();
   return (
     <button
-      onClick={() => router.push('/apps/catalogo')}
+      onClick={() => router.push('/apps')}
       className="rounded-lg border border-gray-700 p-2 text-gray-300 hover:bg-gray-800 hover:text-white"
-      title="Volver al catálogo"
+      title="Volver al Hub"
     >
       <ArrowLeft className="h-5 w-5" />
     </button>
