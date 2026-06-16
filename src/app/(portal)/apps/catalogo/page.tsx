@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Box, Users, Layout, Globe, BarChart3 } from 'lucide-react';
+import {
+  ArrowLeft, Box, Users, Layout, Globe, BarChart3,
+  Bot, FileText, UserCircle, Headphones, Shield, Plug, Kanban,
+} from 'lucide-react';
 import type { AppTypeDefinition } from '@/lib/app-types';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -10,6 +13,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Layout,
   Globe,
   BarChart3,
+  Bot,
+  FileText,
+  UserCircle,
+  Headphones,
+  Shield,
+  Plug,
+  Kanban,
 };
 
 export default function AppCatalogPage() {

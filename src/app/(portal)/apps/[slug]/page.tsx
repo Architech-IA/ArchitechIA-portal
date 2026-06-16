@@ -4,9 +4,18 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft, Settings, Box, Users, Layout, Globe, BarChart3,
+  Bot, FileText, UserCircle, Headphones, Shield, Plug, Kanban,
 } from 'lucide-react';
 import CRMRuntime from '@/components/apps/crm/CRMRuntime';
 import LandingRuntime from '@/components/apps/landing/LandingRuntime';
+import AIChatbotRuntime from '@/components/apps/ai-chatbot/AIChatbotRuntime';
+import BIDashboardRuntime from '@/components/apps/bi-dashboard/BIDashboardRuntime';
+import RPAInvoicingRuntime from '@/components/apps/rpa-invoicing/RPAInvoicingRuntime';
+import CustomerPortalRuntime from '@/components/apps/customer-portal/CustomerPortalRuntime';
+import HelpdeskRuntime from '@/components/apps/helpdesk/HelpdeskRuntime';
+import SecurityDashboardRuntime from '@/components/apps/security-dashboard/SecurityDashboardRuntime';
+import IntegrationHubRuntime from '@/components/apps/integration-hub/IntegrationHubRuntime';
+import ProjectManagerRuntime from '@/components/apps/project-manager/ProjectManagerRuntime';
 import AppRuntimePlaceholder from '@/components/apps/shared/AppRuntimePlaceholder';
 import type { AppInstance } from '@/lib/app-types';
 import { APP_STATUS_LABELS } from '@/lib/app-types';
@@ -16,6 +25,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Layout,
   Globe,
   BarChart3,
+  Bot,
+  FileText,
+  UserCircle,
+  Headphones,
+  Shield,
+  Plug,
+  Kanban,
 };
 
 export default function AppRuntimePage() {
@@ -97,7 +113,26 @@ export default function AppRuntimePage() {
       <div className="flex-1 overflow-hidden">
         {app.appType.slug === 'crm' && <CRMRuntime app={app} />}
         {app.appType.slug === 'landing-page' && <LandingRuntime app={app} />}
-        {app.appType.slug !== 'crm' && app.appType.slug !== 'landing-page' && <AppRuntimePlaceholder app={app} />}
+        {app.appType.slug === 'ai-chatbot' && <AIChatbotRuntime app={app} />}
+        {app.appType.slug === 'bi-dashboard' && <BIDashboardRuntime app={app} />}
+        {app.appType.slug === 'rpa-invoicing' && <RPAInvoicingRuntime app={app} />}
+        {app.appType.slug === 'customer-portal' && <CustomerPortalRuntime app={app} />}
+        {app.appType.slug === 'helpdesk' && <HelpdeskRuntime app={app} />}
+        {app.appType.slug === 'security-dashboard' && <SecurityDashboardRuntime app={app} />}
+        {app.appType.slug === 'integration-hub' && <IntegrationHubRuntime app={app} />}
+        {app.appType.slug === 'project-manager' && <ProjectManagerRuntime app={app} />}
+        {![
+          'crm',
+          'landing-page',
+          'ai-chatbot',
+          'bi-dashboard',
+          'rpa-invoicing',
+          'customer-portal',
+          'helpdesk',
+          'security-dashboard',
+          'integration-hub',
+          'project-manager',
+        ].includes(app.appType.slug) && <AppRuntimePlaceholder app={app} />}
       </div>
     </div>
   );

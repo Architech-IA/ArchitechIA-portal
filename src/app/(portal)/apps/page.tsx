@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Plus, Search, LayoutGrid, List, Settings, Play,
   Users, Layout, Globe, BarChart3, Box,
+  Bot, FileText, UserCircle, Headphones, Shield, Plug, Kanban,
 } from 'lucide-react';
 import type { AppInstance } from '@/lib/app-types';
 import { APP_STATUS_LABELS, APP_CATEGORIES } from '@/lib/app-types';
@@ -14,6 +15,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Layout,
   Globe,
   BarChart3,
+  Bot,
+  FileText,
+  UserCircle,
+  Headphones,
+  Shield,
+  Plug,
+  Kanban,
 };
 
 export default function AppsHubPage() {
