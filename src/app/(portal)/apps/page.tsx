@@ -82,13 +82,13 @@ export default function AppsHubPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre o descripción..."
-            className="w-full rounded-xl border border-gray-800 bg-gray-900 py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-orange-500 focus:outline-none"
+            className="w-full rounded-xl border border-gray-800 bg-gray-900 py-2.5 pl-10 pr-4 text-xs font-normal text-white placeholder-gray-600 focus:border-orange-500 focus:outline-none"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-normal text-white focus:border-orange-500 focus:outline-none"
         >
           <option value="">Todos los estados</option>
           {statusKeys.map((s) => (
@@ -98,7 +98,7 @@ export default function AppsHubPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-sm text-white focus:border-orange-500 focus:outline-none"
+          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-normal text-white focus:border-orange-500 focus:outline-none"
         >
           <option value="">Todas las categorías</option>
           {categories.map((c) => (
@@ -121,7 +121,7 @@ export default function AppsHubPage() {
         </div>
         <button
           onClick={() => router.push('/apps/catalogo')}
-          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:from-orange-600 hover:to-orange-700"
+          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-xs font-normal text-white hover:from-orange-600 hover:to-orange-700"
         >
           <Plus className="h-4 w-4" />
           Nueva app
@@ -181,7 +181,7 @@ function AppCard({ app }: { app: AppInstance }) {
           <Icon className="h-6 w-6" />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`rounded-full border px-2 py-0.5 text-xs ${status.chip}`}>
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-normal ${status.chip}`}>
             <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />
             {status.label}
           </span>
@@ -196,9 +196,9 @@ function AppCard({ app }: { app: AppInstance }) {
           </div>
         </div>
       </div>
-      <h3 className="mb-1 text-lg font-semibold text-white">{app.name}</h3>
-      <p className="mb-4 line-clamp-2 text-sm text-gray-500">{app.description ?? 'Sin descripción'}</p>
-      <div className="mb-4 flex items-center gap-3 text-xs text-gray-500">
+      <h3 className="mb-1 text-base font-normal text-white">{app.name}</h3>
+      <p className="mb-4 line-clamp-2 text-xs font-normal text-gray-500">{app.description ?? 'Sin descripción'}</p>
+      <div className="mb-4 flex items-center gap-3 text-[10px] font-normal text-gray-500">
         <span className={category?.color ?? 'text-gray-400'}>{category?.label ?? app.appType.category}</span>
         <span>•</span>
         <span>{app.appType.name}</span>
@@ -208,14 +208,14 @@ function AppCard({ app }: { app: AppInstance }) {
       <div className="flex items-center gap-2">
         <button
           onClick={() => router.push(`/apps/${app.slug}`)}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-orange-600 py-2 text-sm font-medium text-white hover:bg-orange-700"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-orange-600 py-2 text-xs font-normal text-white hover:bg-orange-700"
         >
           <Play className="h-4 w-4" />
           Abrir
         </button>
         <button
           onClick={() => router.push(`/apps/${app.slug}/config`)}
-          className="rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+          className="rounded-lg border border-gray-700 px-3 py-2 text-xs font-normal text-gray-300 hover:bg-gray-800 hover:text-white"
         >
           Configurar
         </button>
