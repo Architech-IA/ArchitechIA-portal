@@ -1740,18 +1740,17 @@ function NotificationsView() {
 
 function TeamAccessView() {
   const members = [
-    { name: 'Alex Rivera', role: 'Admin', status: 'Active' },
-    { name: 'Jordan Lee', role: 'Editor', status: 'Active' },
-    { name: 'Taylor Morgan', role: 'Viewer', status: 'Pending' },
-    { name: 'Casey Brooks', role: 'Editor', status: 'Active' },
+    { name: 'Hector Pisso', role: 'Admin', status: 'Active' },
+    { name: 'Julian Jaramillo', role: 'Editor', status: 'Active' },
+    { name: 'Gustavo Morales', role: 'Viewer', status: 'Active' },
   ];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Team Members" value="8" change="+1 this month" positive icon={Users2} />
-        <StatCard label="Active Now" value="4" change="2 away" positive icon={Activity} />
-        <StatCard label="Pending Invites" value="1" change="Send reminder" positive={false} icon={Mail} />
+        <StatCard label="Team Members" value="3" change="Core team" positive icon={Users2} />
+        <StatCard label="Active Now" value="3" change="All online" positive icon={Activity} />
+        <StatCard label="Pending Invites" value="0" change="No pending" positive icon={Mail} />
       </div>
 
       <SectionCard
