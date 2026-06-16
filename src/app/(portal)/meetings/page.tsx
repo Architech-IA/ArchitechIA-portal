@@ -242,16 +242,6 @@ export default function MeetingsPage() {
 
   return (
     <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-gray-400 mt-1">Calendario de reuniones, citas y actas</p>
-        </div>
-        <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
-          + Nuevo Evento
-        </button>
-      </div>
-
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
         <button onClick={() => setTab('calendario')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'calendario' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mes</button>
@@ -576,6 +566,9 @@ export default function MeetingsPage() {
                 {t === '' ? 'Todas' : TYPE_LABELS[t]}
               </button>
             ))}
+            <button onClick={openNew} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
+              + Nuevo Evento
+            </button>
           </div>
 
           {/* Lista */}
