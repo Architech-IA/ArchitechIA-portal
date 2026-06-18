@@ -112,7 +112,7 @@ export default function MeetingsPage() {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T09:00`;
-    setForm({ ...EMPTY_FORM, date: today, userId: (session?.user as { id?: string })?.id || users[0]?.id || '' });
+    setForm({ ...EMPTY_FORM, date: today, userId: (session?.user as { id?: string })?.id || users[0]?.id || '', link: 'https://meet.google.com/usz-ysto-pcq' });
     setExternalAttendees([]);
     setAttendeeInput('');
     setActaFileBase64('');
@@ -648,7 +648,10 @@ export default function MeetingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Tipo</label>
-                  <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
+                  <select value={form.type} onChange={e => {
+                    const t = e.target.value;
+                    setForm({...form, type: t, link: t === 'INTERNAL_DAILY' ? 'https://meet.google.com/usz-ysto-pcq' : (form.type === 'INTERNAL_DAILY' ? '' : form.link)});
+                  }}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm">
                     <option value="INTERNAL_DAILY">Reunión Interna - Daily</option>
                     <option value="INTERNAL_WORKSHOP">Reunión Interna - Workshop</option>
@@ -806,9 +809,18 @@ export default function MeetingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Dirección (URL)</label>
-                  <input type="url" value={form.link} onChange={e => setForm({...form, link: e.target.value})}
+                  <input
+                    type="url"
+                    value={form.link}
+                    onChange={e => setForm({...form, link: e.target.value})}
                     placeholder="https://meet.google.com/..."
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm placeholder-gray-500" />
+                    readOnly={form.type === 'INTERNAL_DAILY'}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none ${
+                      form.type === 'INTERNAL_DAILY'
+                        ? 'bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed select-none'
+                        : 'bg-gray-800 border-gray-600 text-white focus:ring-2 focus:ring-orange-500 placeholder-gray-500'
+                    }`}
+                  />
                 </div>
               </div>
               <div>
