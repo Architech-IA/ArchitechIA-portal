@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import { Package, Lightbulb } from 'lucide-react'
+import { Package, Lightbulb, FolderKanban, FlaskConical, Handshake } from 'lucide-react'
 
 export default function ProductosTabs() {
   const pathname = usePathname()
@@ -24,6 +24,9 @@ export default function ProductosTabs() {
 
   const tabs = [
     { href: '/productos', label: 'Productos', icon: Package, exact: true },
+    { href: '/productos/projects', label: 'Projects', icon: FolderKanban, exact: false },
+    { href: '/productos/poc', label: 'PoC', icon: FlaskConical, exact: false },
+    { href: '/productos/partnership', label: 'Partnership', icon: Handshake, exact: false },
     { href: '/productos/iniciativas', label: 'Iniciativas', icon: Lightbulb, exact: false },
   ]
 

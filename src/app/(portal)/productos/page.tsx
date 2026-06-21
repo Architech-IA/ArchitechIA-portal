@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { FolderKanban, FlaskConical, Handshake, ArrowRight } from 'lucide-react';
 
 interface Producto {
   id: string;
@@ -295,6 +297,49 @@ export default function ProductosPage() {
             + Nuevo Producto
           </button>
         )}
+      </div>
+
+      {/* Tipos de soluciones a la medida */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Link
+          href="/productos/projects"
+          className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-orange-500/40 transition-all"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-orange-600/15 flex items-center justify-center">
+              <FolderKanban className="text-orange-400" size={20} />
+            </div>
+            <ArrowRight className="text-gray-600 group-hover:text-orange-400 transition-colors" size={18} />
+          </div>
+          <h3 className="text-white font-semibold mb-1">Projects</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">Proyectos tecnológicos completos con IA y automatización.</p>
+        </Link>
+        <Link
+          href="/productos/poc"
+          className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-cyan-500/40 transition-all"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-600/15 flex items-center justify-center">
+              <FlaskConical className="text-cyan-400" size={20} />
+            </div>
+            <ArrowRight className="text-gray-600 group-hover:text-cyan-400 transition-colors" size={18} />
+          </div>
+          <h3 className="text-white font-semibold mb-1">PoC</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">Prueba de concepto para validar tecnología antes de escalar.</p>
+        </Link>
+        <Link
+          href="/productos/partnership"
+          className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-violet-500/40 transition-all"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-violet-600/15 flex items-center justify-center">
+              <Handshake className="text-violet-400" size={20} />
+            </div>
+            <ArrowRight className="text-gray-600 group-hover:text-violet-400 transition-colors" size={18} />
+          </div>
+          <h3 className="text-white font-semibold mb-1">Partnership</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">Alianzas estratégicas para co-crear soluciones y productos.</p>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
