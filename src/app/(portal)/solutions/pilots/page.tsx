@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   FlaskConical, CheckCircle2, ArrowRight, Zap, Gauge,
-  Target, ShieldCheck, FileText, MessageSquare,
+  Target, ShieldCheck,
 } from 'lucide-react'
 import SolucionesList from '@/components/SolucionesList'
 
@@ -40,38 +40,6 @@ const deliverables = [
 export default function PocSolutionPage() {
   return (
     <div className="p-4 md:p-8 space-y-8">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-cyan-700 to-blue-700 p-8 md:p-10">
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium mb-4">
-            <FlaskConical size={14} />
-            Prueba de concepto
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Pilots</h1>
-          <p className="text-white/90 text-lg leading-relaxed max-w-2xl">
-            Proof of Concept para validar una idea, tecnología o caso de uso de IA antes de escalar.
-            Reduce el riesgo y toma decisiones informadas con un demo funcional y métricas reales.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/leads"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-cyan-700 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
-            >
-              <MessageSquare size={16} />
-              Cotizar un PoC
-            </Link>
-            <Link
-              href="/proposals"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/15 text-white rounded-lg text-sm font-medium hover:bg-white/25 transition-colors"
-            >
-              <FileText size={16} />
-              Ver propuestas
-            </Link>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
-      </div>
-
       {/* Benefits */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {benefits.map(b => (
