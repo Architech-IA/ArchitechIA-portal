@@ -15,6 +15,7 @@ interface Lead {
   status: string;
   source: string;
   tipo: string | null;
+  solucionAsociada: string | null;
   scope: string | null;
   repository: string | null;
   estimatedValue: number;
@@ -25,7 +26,7 @@ interface Lead {
 
 const EMPTY_FORM = {
   companyName: '', contactName: '', email: '', phone: '',
-  status: 'NEW', source: '', tipo: '', scope: '', estimatedValue: '', notes: '', userId: '',
+  status: 'NEW', source: '', tipo: '', solucionAsociada: '', scope: '', estimatedValue: '', notes: '', userId: '',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -125,9 +126,10 @@ export default function LeadsPage() {
       phone:          lead.phone || '',
       status:         lead.status,
       source:         lead.source,
-      tipo:           lead.tipo || '',
-      scope:          lead.scope || '',
-      estimatedValue: String(lead.estimatedValue),
+      tipo:             lead.tipo || '',
+      solucionAsociada: lead.solucionAsociada || '',
+      scope:            lead.scope || '',
+      estimatedValue:   String(lead.estimatedValue),
       notes:          lead.notes || '',
       userId:         lead.user.id,
     });
@@ -558,6 +560,11 @@ export default function LeadsPage() {
                                 {lead.tipo}
                               </span>
                             )}
+                            {lead.solucionAsociada && (
+                              <span className="px-2 py-0.5 text-[10px] bg-orange-900/30 text-orange-400 border border-orange-800/40 rounded-full w-fit">
+                                {lead.solucionAsociada}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-white">${lead.estimatedValue.toLocaleString()}</td>
@@ -660,7 +667,7 @@ export default function LeadsPage() {
                   <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Tipo</label>
                   <select value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
@@ -670,6 +677,16 @@ export default function LeadsPage() {
                     <option value="Servicios Gestionados">Servicios Gestionados</option>
                     <option value="Soporte">Soporte</option>
                     <option value="Consultoría">Consultoría</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Solución Asociada</label>
+                  <select value={formData.solucionAsociada} onChange={e => setFormData({...formData, solucionAsociada: e.target.value})} className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 bg-gray-800 text-white">
+                    <option value="">Seleccionar...</option>
+                    <option value="Project">Project</option>
+                    <option value="Demo">Demo</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Products">Products</option>
                   </select>
                 </div>
                 <div>
