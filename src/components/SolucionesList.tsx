@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { Loader2, ExternalLink, DollarSign } from 'lucide-react'
 
@@ -20,6 +21,8 @@ interface SolucionesListProps {
   tipo: 'PROJECT' | 'DEMO' | 'PARTNERSHIP' | 'PRODUCT' | 'INTERN'
   color: 'orange' | 'cyan' | 'violet' | 'emerald'
   title?: string
+  refreshKey?: number
+  headerAction?: React.ReactNode
 }
 
 const colorMap = {
@@ -49,12 +52,13 @@ const colorMap = {
   },
 }
 
-export default function SolucionesList({ tipo, color, title }: SolucionesListProps) {
+export default function SolucionesList({ tipo, color, title, refreshKey, headerAction }: SolucionesListProps) {
   const [soluciones, setSoluciones] = useState<Solucion[]>([])
   const [loading, setLoading] = useState(true)
   const c = colorMap[color]
 
   useEffect(() => {
+    setLoading(true)
     fetch(`/api/soluciones?tipo=${tipo}`)
       .then(r => r.json())
       .then((data: Solucion[]) => {
@@ -62,7 +66,7 @@ export default function SolucionesList({ tipo, color, title }: SolucionesListPro
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [tipo])
+  }, [tipo, refreshKey])
 
   if (loading) {
     return (
@@ -83,10 +87,13 @@ export default function SolucionesList({ tipo, color, title }: SolucionesListPro
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8">
-      <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
-        {title || 'Soluciones asociadas'}
-        <span className={`px-2 py-0.5 text-xs rounded-full border ${c.badge}`}>{soluciones.length}</span>
-      </h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          {title || 'Soluciones asociadas'}
+          <span className={`px-2 py-0.5 text-xs rounded-full border ${c.badge}`}>{soluciones.length}</span>
+        </h2>
+        {headerAction}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {soluciones.map(s => (
           <div
