@@ -55,6 +55,20 @@ model Lead {
   proposals  Proposal[]
   activities Activity[]
   appInstances AppInstance[]
+  solucion   Solucion?
+}
+
+model Solucion {
+  id            String   @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  tipo          String   // PROJECT, DEMO, PARTNERSHIP, PRODUCT
+  estado        String   @default("ACTIVO")
+  valorEstimado Float    @default(0)
+  leadId        String?  @unique
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Proposal {

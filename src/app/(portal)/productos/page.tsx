@@ -64,6 +64,7 @@ export default function ProductosPage() {
   const isAdmin = ['ADMIN','SUPERADMIN'].includes((session?.user as { role?: string })?.role ?? '');
 
   const [productos, setProductos]   = useState<Producto[]>([]);
+  const [soluciones, setSoluciones] = useState<{ id: string; tipo: string }[]>([]);
   const [loading, setLoading]       = useState(true);
   const [selected, setSelected]     = useState<Producto | null>(null);
   const [tab, setTab]               = useState<'info' | 'roadmap' | 'changelog'>('info');
@@ -75,8 +76,13 @@ export default function ProductosPage() {
 
   const fetchProductos = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/productos');
-    setProductos(await res.json());
+    const [prodRes, solRes] = await Promise.all([
+      fetch('/api/productos'),
+      fetch('/api/soluciones'),
+    ]);
+    setProductos(await prodRes.json());
+    const solData = await solRes.json();
+    setSoluciones(Array.isArray(solData) ? solData : []);
     setLoading(false);
   }, []);
 
@@ -309,7 +315,12 @@ export default function ProductosPage() {
             <div className="w-10 h-10 rounded-lg bg-orange-600/15 flex items-center justify-center">
               <FolderKanban className="text-orange-400" size={20} />
             </div>
-            <ArrowRight className="text-gray-600 group-hover:text-orange-400 transition-colors" size={18} />
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 text-xs bg-orange-900/30 text-orange-400 rounded-full border border-orange-800/40">
+                {soluciones.filter(s => s.tipo === 'PROJECT').length}
+              </span>
+              <ArrowRight className="text-gray-600 group-hover:text-orange-400 transition-colors" size={18} />
+            </div>
           </div>
           <h3 className="text-white font-semibold mb-1">Projects</h3>
           <p className="text-gray-400 text-sm leading-relaxed">Proyectos tecnológicos completos con IA y automatización.</p>
@@ -322,7 +333,12 @@ export default function ProductosPage() {
             <div className="w-10 h-10 rounded-lg bg-cyan-600/15 flex items-center justify-center">
               <FlaskConical className="text-cyan-400" size={20} />
             </div>
-            <ArrowRight className="text-gray-600 group-hover:text-cyan-400 transition-colors" size={18} />
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 text-xs bg-cyan-900/30 text-cyan-400 rounded-full border border-cyan-800/40">
+                {soluciones.filter(s => s.tipo === 'DEMO').length}
+              </span>
+              <ArrowRight className="text-gray-600 group-hover:text-cyan-400 transition-colors" size={18} />
+            </div>
           </div>
           <h3 className="text-white font-semibold mb-1">PoC</h3>
           <p className="text-gray-400 text-sm leading-relaxed">Prueba de concepto para validar tecnología antes de escalar.</p>
@@ -335,7 +351,12 @@ export default function ProductosPage() {
             <div className="w-10 h-10 rounded-lg bg-violet-600/15 flex items-center justify-center">
               <Handshake className="text-violet-400" size={20} />
             </div>
-            <ArrowRight className="text-gray-600 group-hover:text-violet-400 transition-colors" size={18} />
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 text-xs bg-violet-900/30 text-violet-400 rounded-full border border-violet-800/40">
+                {soluciones.filter(s => s.tipo === 'PARTNERSHIP').length}
+              </span>
+              <ArrowRight className="text-gray-600 group-hover:text-violet-400 transition-colors" size={18} />
+            </div>
           </div>
           <h3 className="text-white font-semibold mb-1">Partnership</h3>
           <p className="text-gray-400 text-sm leading-relaxed">Alianzas estratégicas para co-crear soluciones y productos.</p>

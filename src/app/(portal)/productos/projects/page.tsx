@@ -5,6 +5,7 @@ import {
   FolderKanban, CheckCircle2, ArrowRight, Clock, Shield,
   Users, Rocket, FileText, MessageSquare,
 } from 'lucide-react'
+import SolucionesList from '@/components/SolucionesList'
 
 const features = [
   {
@@ -126,6 +127,9 @@ export default function ProjectsSolutionPage() {
           </div>
         ))}
       </div>
+
+      {/* Soluciones asociadas */}
+      <SolucionesList tipo="PROJECT" color="orange" title="Projects activos" />
 
       {/* CTA */}
       <div className="bg-gradient-to-r from-gray-900 to-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">

@@ -5,6 +5,7 @@ import {
   Handshake, CheckCircle2, ArrowRight, TrendingUp, Network,
   Briefcase, Award, FileText, MessageSquare,
 } from 'lucide-react'
+import SolucionesList from '@/components/SolucionesList'
 
 const models = [
   {
@@ -130,6 +131,9 @@ export default function PartnershipSolutionPage() {
           ))}
         </div>
       </div>
+
+      {/* Soluciones asociadas */}
+      <SolucionesList tipo="PARTNERSHIP" color="violet" title="Partnerships activos" />
 
       {/* CTA */}
       <div className="bg-gradient-to-r from-gray-900 to-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">

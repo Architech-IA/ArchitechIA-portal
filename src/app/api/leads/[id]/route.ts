@@ -46,6 +46,35 @@ export async function PUT(
       include: { user: { select: { id: true, name: true, email: true } } },
     });
 
+    // Crear o actualizar solución asociada
+    if (solucionAsociada) {
+      const tipoMap: Record<string, string> = {
+        Project: 'PROJECT',
+        Demo: 'DEMO',
+        Partnership: 'PARTNERSHIP',
+        Products: 'PRODUCT',
+      };
+      await prisma.solucion.upsert({
+        where: { leadId: id },
+        create: {
+          nombre: `${companyName} — ${solucionAsociada}`,
+          descripcion: scope || null,
+          tipo: tipoMap[solucionAsociada] || 'PROJECT',
+          valorEstimado: parseFloat(estimatedValue) || 0,
+          leadId: id,
+        },
+        update: {
+          nombre: `${companyName} — ${solucionAsociada}`,
+          descripcion: scope || null,
+          tipo: tipoMap[solucionAsociada] || 'PROJECT',
+          valorEstimado: parseFloat(estimatedValue) || 0,
+        },
+      });
+    } else {
+      // Si se quitó la solución asociada, eliminar la solución existente
+      await prisma.solucion.deleteMany({ where: { leadId: id } });
+    }
+
     const actorId = (token as { sub?: string })?.sub || userId;
     if (prev?.status !== status) {
       await logActivity({ type: 'STATUS_CHANGED',
