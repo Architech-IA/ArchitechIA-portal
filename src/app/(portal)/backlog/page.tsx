@@ -10,6 +10,12 @@ interface Project {
   name: string
 }
 
+interface Solucion {
+  id: string
+  nombre: string
+  tipo: string
+}
+
 interface BacklogItem {
   id: string
   title: string
@@ -20,6 +26,8 @@ interface BacklogItem {
   points: number | null
   projectId: string | null
   project: { id: string; name: string } | null
+  solucionId: string | null
+  solucion: { id: string; nombre: string; tipo: string } | null
   assigneeId: string | null
   assigneeName: string | null
   createdAt: string
@@ -54,7 +62,7 @@ const PRIORITIES = [
 
 const EMPTY_FORM = {
   title: '', description: '', type: 'TASK', priority: 'MEDIUM',
-  status: 'BACKLOG', points: '', projectId: '', assigneeId: '', assigneeName: '',
+  status: 'BACKLOG', points: '', projectId: '', solucionId: '', assigneeId: '', assigneeName: '',
 }
 
 function TypeBadge({ type }: { type: string }) {
@@ -77,10 +85,24 @@ function PointsBadge({ points }: { points: number | null }) {
   return <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded font-mono">{points}pt</span>
 }
 
+const SOLUCION_TIPO_LABELS: Record<string, string> = {
+  PROJECT: 'Proyecto', DEMO: 'Demo', PARTNERSHIP: 'Partnership', PRODUCT: 'Producto',
+}
+
+function SolutionBadge({ solucion }: { solucion: { id: string; nombre: string; tipo: string } | null }) {
+  if (!solucion) return null
+  return (
+    <span className="text-[10px] text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded truncate max-w-[120px]" title={`${SOLUCION_TIPO_LABELS[solucion.tipo] ?? solucion.tipo}: ${solucion.nombre}`}>
+      {solucion.nombre}
+    </span>
+  )
+}
+
 export default function BacklogPage() {
   const { data: session } = useSession()
   const [items, setItems]   = useState<BacklogItem[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [soluciones, setSoluciones] = useState<Solucion[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView]         = useState<'kanban' | 'lista'>('kanban')
   const [kanbanExpanded, setKanbanExpanded] = useState(false)
@@ -93,18 +115,21 @@ export default function BacklogPage() {
   const [filterProject, setFilterProject] = useState('')
   const [filterType, setFilterType]     = useState('')
   const [filterPriority, setFilterPriority] = useState('')
+  const [filterSolution, setFilterSolution] = useState('')
   const [users, setUsers] = useState<{ id: string; name: string; role: string }[]>([])
 
   const userName = (session?.user as any)?.name ?? ''
 
   const load = async () => {
-    const [i, p, u] = await Promise.all([
+    const [i, p, s, u] = await Promise.all([
       fetch('/api/backlog').then(r => r.json()),
       fetch('/api/projects').then(r => r.json()),
+      fetch('/api/soluciones').then(r => r.json()),
       fetch('/api/users').then(r => r.json()),
     ])
     setItems(Array.isArray(i) ? i : [])
     setProjects(Array.isArray(p) ? p.map((x: any) => ({ id: x.id, name: x.name })) : [])
+    setSoluciones(Array.isArray(s) ? s.map((x: any) => ({ id: x.id, nombre: x.nombre, tipo: x.tipo })) : [])
     setUsers(Array.isArray(u) ? u.filter((x: any) => x.role !== 'SUPERADMIN') : [])
     setLoading(false)
   }
@@ -122,7 +147,7 @@ export default function BacklogPage() {
     setForm({
       title: item.title, description: item.description ?? '', type: item.type,
       priority: item.priority, status: item.status, points: item.points ? String(item.points) : '',
-      projectId: item.projectId ?? '', assigneeId: item.assigneeId ?? '', assigneeName: item.assigneeName ?? '',
+      projectId: item.projectId ?? '', solucionId: item.solucionId ?? '', assigneeId: item.assigneeId ?? '', assigneeName: item.assigneeName ?? '',
     })
     setShowModal(true)
   }
@@ -130,8 +155,16 @@ export default function BacklogPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim()) return
+    if (!form.solucionId.trim()) {
+      alert('Debes seleccionar una solución asociada')
+      return
+    }
+    if (!form.projectId.trim()) {
+      alert('Debes seleccionar un proyecto')
+      return
+    }
     setSaving(true)
-    const body = { ...form, points: form.points ? Number(form.points) : null, projectId: form.projectId || null }
+    const body = { ...form, points: form.points ? Number(form.points) : null, projectId: form.projectId || null, solucionId: form.solucionId || null }
     if (editItem) {
       const res = await fetch(`/api/backlog/${editItem.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (res.ok) { const updated = await res.json(); setItems(prev => prev.map(i => i.id === updated.id ? updated : i)) }
@@ -153,13 +186,14 @@ export default function BacklogPage() {
   const changeStatus = async (item: BacklogItem, newStatus: string) => {
     const res = await fetch(`/api/backlog/${item.id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...item, status: newStatus, projectId: item.projectId, assigneeName: item.assigneeName }),
+      body: JSON.stringify({ ...item, status: newStatus, projectId: item.projectId, solucionId: item.solucionId, assigneeName: item.assigneeName }),
     })
     if (res.ok) { const updated = await res.json(); setItems(prev => prev.map(i => i.id === updated.id ? updated : i)) }
   }
 
   const filtered = items.filter(i => {
     if (filterProject && i.projectId !== filterProject) return false
+    if (filterSolution && i.solucionId !== filterSolution) return false
     if (filterType && i.type !== filterType) return false
     if (filterPriority && i.priority !== filterPriority) return false
     return true
@@ -182,6 +216,10 @@ export default function BacklogPage() {
             <select value={filterProject} onChange={e => setFilterProject(e.target.value)} className="text-xs bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-gray-300 focus:outline-none focus:border-orange-500">
               <option value="">Todos los proyectos</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <select value={filterSolution} onChange={e => setFilterSolution(e.target.value)} className="text-xs bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-gray-300 focus:outline-none focus:border-orange-500">
+              <option value="">Todas las soluciones</option>
+              {soluciones.map(s => <option key={s.id} value={s.id}>{SOLUCION_TIPO_LABELS[s.tipo] ?? s.tipo}: {s.nombre}</option>)}
             </select>
             <select value={filterType} onChange={e => setFilterType(e.target.value)} className="text-xs bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-gray-300 focus:outline-none focus:border-orange-500">
               <option value="">Todos los tipos</option>
@@ -275,6 +313,7 @@ export default function BacklogPage() {
                             <div className="flex items-center gap-1.5">
                               <PointsBadge points={item.points} />
                               {item.project && <span className="text-[10px] text-orange-400/70 bg-orange-500/10 px-1.5 py-0.5 rounded truncate max-w-[120px]">{item.project.name}</span>}
+                              <SolutionBadge solucion={item.solucion} />
                             </div>
                             {item.assigneeName && (
                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-[9px] font-bold text-black flex-shrink-0" title={item.assigneeName}>
@@ -317,6 +356,7 @@ export default function BacklogPage() {
                   <th className="text-left px-4 py-3">Prioridad</th>
                   <th className="text-left px-4 py-3">Estado</th>
                   <th className="text-left px-4 py-3">Proyecto</th>
+                  <th className="text-left px-4 py-3">Solución</th>
                   <th className="text-left px-4 py-3">Responsable</th>
                   <th className="text-center px-4 py-3">Pts</th>
                   <th className="text-center px-4 py-3">Acciones</th>
@@ -324,7 +364,7 @@ export default function BacklogPage() {
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-600 text-sm">Sin ítems en el backlog</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-600 text-sm">Sin ítems en el backlog</td></tr>
                 ) : filtered.map(item => {
                   const st = STATUSES.find(s => s.key === item.status)
                   const pr = PRIORITIES.find(p => p.key === item.priority)
@@ -347,6 +387,7 @@ export default function BacklogPage() {
                         </select>
                       </td>
                       <td className="px-4 py-3 text-xs text-orange-400/70">{item.project?.name ?? '—'}</td>
+                      <td className="px-4 py-3"><SolutionBadge solucion={item.solucion} /></td>
                       <td className="px-4 py-3 text-xs text-gray-400">{item.assigneeName ?? '—'}</td>
                       <td className="px-4 py-3 text-center"><PointsBadge points={item.points} /></td>
                       <td className="px-4 py-3 text-center">
@@ -417,19 +458,26 @@ export default function BacklogPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Responsable</label>
-                  <select
-                    value={form.assigneeId}
-                    onChange={e => {
-                      const u = users.find(x => x.id === e.target.value)
-                      setForm({ ...form, assigneeId: e.target.value, assigneeName: u?.name ?? '' })
-                    }}
-                    className={inputCls}
-                  >
-                    <option value="">Sin asignar</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  <label className="block text-xs text-gray-400 mb-1">Solución asociada *</label>
+                  <select required value={form.solucionId} onChange={e => setForm({...form, solucionId: e.target.value})} className={inputCls}>
+                    <option value="">Selecciona una solución…</option>
+                    {soluciones.map(s => <option key={s.id} value={s.id}>{SOLUCION_TIPO_LABELS[s.tipo] ?? s.tipo}: {s.nombre}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Responsable</label>
+                <select
+                  value={form.assigneeId}
+                  onChange={e => {
+                    const u = users.find(x => x.id === e.target.value)
+                    setForm({ ...form, assigneeId: e.target.value, assigneeName: u?.name ?? '' })
+                  }}
+                  className={inputCls}
+                >
+                  <option value="">Sin asignar</option>
+                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 text-sm">Cancelar</button>
@@ -454,7 +502,7 @@ export default function BacklogPage() {
           onStatusChange={async (item, newStatus) => {
             const res = await fetch(`/api/backlog/${item.id}`, {
               method: 'PUT', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...item, status: newStatus, projectId: item.projectId, assigneeName: item.assigneeName }),
+              body: JSON.stringify({ ...item, status: newStatus, projectId: item.projectId, solucionId: item.solucionId, assigneeName: item.assigneeName }),
             })
             if (res.ok) {
               const updated = await res.json()

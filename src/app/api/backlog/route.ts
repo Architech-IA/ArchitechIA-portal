@@ -36,7 +36,10 @@ export async function GET() {
   await ensureInternoAndBackfill()
 
   const items = await prisma.backlogItem.findMany({
-    include: { project: { select: { id: true, name: true } } },
+    include: {
+      project: { select: { id: true, name: true } },
+      solucion: { select: { id: true, nombre: true, tipo: true } },
+    },
     orderBy: [{ status: 'asc' }, { priority: 'asc' }, { order: 'asc' }],
   })
   return NextResponse.json(items)
@@ -47,7 +50,11 @@ export async function POST(request: NextRequest) {
   if (!token) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const body = await request.json()
-  const { title, description, type, priority, status, points, projectId, assigneeId, assigneeName } = body
+  const { title, description, type, priority, status, points, projectId, solucionId, assigneeId, assigneeName } = body
+
+  if (!solucionId) {
+    return NextResponse.json({ error: 'La solución asociada es obligatoria' }, { status: 400 })
+  }
 
   // El proyecto es obligatorio: si no llega, se asigna al proyecto Interno.
   const resolvedProjectId = projectId || (await ensureInternoAndBackfill())
@@ -61,10 +68,14 @@ export async function POST(request: NextRequest) {
       status: status || 'BACKLOG',
       points: points ? Number(points) : null,
       projectId: resolvedProjectId,
+      solucionId,
       assigneeId: assigneeId || null,
       assigneeName: assigneeName || null,
     },
-    include: { project: { select: { id: true, name: true } } },
+    include: {
+      project: { select: { id: true, name: true } },
+      solucion: { select: { id: true, nombre: true, tipo: true } },
+    },
   })
   return NextResponse.json(item)
 }

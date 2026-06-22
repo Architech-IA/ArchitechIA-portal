@@ -87,7 +87,7 @@ export default function PortalLayoutClient({
     if (pathname === '/hub/legal') return 'Legal';
     if (pathname === '/solutions') return 'Solutions';
     if (pathname === '/solutions/projects') return 'Projects';
-    if (pathname === '/solutions/poc') return 'PoC';
+    if (pathname === '/solutions/pilots') return 'Pilots';
     if (pathname === '/solutions/partnership') return 'Partnership';
     if (pathname === '/resources/cuentas') return 'Cuentas';
     if (pathname === '/finanzas') return 'Finance';

@@ -59,16 +59,17 @@ model Lead {
 }
 
 model Solucion {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   nombre        String
   descripcion   String?
-  tipo          String   // PROJECT, DEMO, PARTNERSHIP, PRODUCT
-  estado        String   @default("ACTIVO")
-  valorEstimado Float    @default(0)
-  leadId        String?  @unique
-  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  tipo          String        // PROJECT, DEMO, PARTNERSHIP, PRODUCT
+  estado        String        @default("ACTIVO")
+  valorEstimado Float         @default(0)
+  leadId        String?       @unique
+  lead          Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  backlogItems  BacklogItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Proposal {
@@ -491,6 +492,8 @@ model BacklogItem {
   assigneeName String?
   projectId    String?
   project      Project? @relation(fields: [projectId], references: [id])
+  solucionId   String?
+  solucion     Solucion? @relation(fields: [solucionId], references: [id], onDelete: SetNull)
   order        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

@@ -8,6 +8,7 @@ interface BacklogItem {
   priority: string; status: string; points: number | null;
   assigneeId: string | null; assigneeName: string | null; createdAt: string;
   projectId: string | null; project: { id: string; name: string } | null;
+  solucionId: string | null; solucion: { id: string; nombre: string; tipo: string } | null;
 }
 
 interface PersonalData {
@@ -133,7 +134,7 @@ export default function PersonalDashboard() {
     await fetch(`/api/backlog/${item.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...item, status: newStatus }),
+      body: JSON.stringify({ ...item, status: newStatus, projectId: item.projectId, solucionId: item.solucionId }),
     });
     setData(prev => {
       if (!prev) return prev;

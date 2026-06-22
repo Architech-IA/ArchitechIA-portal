@@ -13,6 +13,8 @@ interface BacklogItem {
   points: number | null
   projectId: string | null
   project: { id: string; name: string } | null
+  solucionId: string | null
+  solucion: { id: string; nombre: string; tipo: string } | null
   assigneeId: string | null
   assigneeName: string | null
   createdAt: string
@@ -64,6 +66,10 @@ const PRIORITY_LABELS: Record<string, { label: string; color: string; dot: strin
   HIGH:     { label: 'Alta',    color: 'text-orange-400', dot: 'bg-orange-500' },
   MEDIUM:   { label: 'Media',   color: 'text-yellow-400', dot: 'bg-yellow-500' },
   LOW:      { label: 'Baja',    color: 'text-gray-400',   dot: 'bg-gray-500'   },
+}
+
+const SOLUCION_TIPO_LABELS: Record<string, string> = {
+  PROJECT: 'Proyecto', DEMO: 'Demo', PARTNERSHIP: 'Partnership', PRODUCT: 'Producto',
 }
 
 export default function BacklogItemDetail({ item, onClose, onStatusChange, currentUserName, onEdit, onDelete }: Props) {
@@ -153,6 +159,12 @@ export default function BacklogItemDetail({ item, onClose, onStatusChange, curre
                   <div className="bg-gray-800/60 rounded-lg p-3">
                     <p className="text-[10px] text-gray-500 mb-1">Proyecto</p>
                     <p className="text-sm text-orange-400">{item.project.name}</p>
+                  </div>
+                )}
+                {item.solucion && (
+                  <div className="bg-gray-800/60 rounded-lg p-3">
+                    <p className="text-[10px] text-gray-500 mb-1">Solución asociada</p>
+                    <p className="text-sm text-emerald-400">{SOLUCION_TIPO_LABELS[item.solucion.tipo] ?? item.solucion.tipo}: {item.solucion.nombre}</p>
                   </div>
                 )}
               </div>
