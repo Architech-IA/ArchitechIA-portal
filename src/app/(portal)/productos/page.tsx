@@ -340,7 +340,7 @@ export default function ProductosPage() {
               <ArrowRight className="text-gray-600 group-hover:text-cyan-400 transition-colors" size={18} />
             </div>
           </div>
-          <h3 className="text-white font-semibold mb-1">PoC</h3>
+          <h3 className="text-white font-semibold mb-1">Pilots</h3>
           <p className="text-gray-400 text-sm leading-relaxed">Prueba de concepto para validar tecnología antes de escalar.</p>
         </Link>
         <Link
