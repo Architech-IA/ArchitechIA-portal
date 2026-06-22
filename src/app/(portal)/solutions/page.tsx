@@ -308,7 +308,7 @@ export default function ProductosPage() {
       {/* Tipos de soluciones a la medida */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Link
-          href="/productos/projects"
+          href="/solutions/projects"
           className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-orange-500/40 transition-all"
         >
           <div className="flex items-start justify-between mb-3">
@@ -326,7 +326,7 @@ export default function ProductosPage() {
           <p className="text-gray-400 text-sm leading-relaxed">Proyectos tecnológicos completos con IA y automatización.</p>
         </Link>
         <Link
-          href="/productos/poc"
+          href="/solutions/poc"
           className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-cyan-500/40 transition-all"
         >
           <div className="flex items-start justify-between mb-3">
@@ -344,7 +344,7 @@ export default function ProductosPage() {
           <p className="text-gray-400 text-sm leading-relaxed">Prueba de concepto para validar tecnología antes de escalar.</p>
         </Link>
         <Link
-          href="/productos/partnership"
+          href="/solutions/partnership"
           className="group bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-violet-500/40 transition-all"
         >
           <div className="flex items-start justify-between mb-3">

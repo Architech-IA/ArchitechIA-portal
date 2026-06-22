@@ -23,11 +23,11 @@ export default function ProductosTabs() {
   }, [isSuperAdmin, pathname])
 
   const tabs = [
-    { href: '/productos', label: 'Productos', icon: Package, exact: true },
-    { href: '/productos/projects', label: 'Projects', icon: FolderKanban, exact: false },
-    { href: '/productos/poc', label: 'PoC', icon: FlaskConical, exact: false },
-    { href: '/productos/partnership', label: 'Partnership', icon: Handshake, exact: false },
-    { href: '/productos/iniciativas', label: 'Iniciativas', icon: Lightbulb, exact: false },
+    { href: '/solutions', label: 'Productos', icon: Package, exact: true },
+    { href: '/solutions/projects', label: 'Projects', icon: FolderKanban, exact: false },
+    { href: '/solutions/poc', label: 'PoC', icon: FlaskConical, exact: false },
+    { href: '/solutions/partnership', label: 'Partnership', icon: Handshake, exact: false },
+    { href: '/solutions/iniciativas', label: 'Iniciativas', icon: Lightbulb, exact: false },
   ]
 
   return (
@@ -48,7 +48,7 @@ export default function ProductosTabs() {
             >
               <Icon size={15} />
               {t.label}
-              {t.href === '/productos/iniciativas' && isSuperAdmin && pending > 0 && (
+              {t.href === '/solutions/iniciativas' && isSuperAdmin && pending > 0 && (
                 <span className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {pending}
                 </span>

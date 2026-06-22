@@ -33,7 +33,7 @@ const sections: NavSection[] = [
   {
     id: 'comercial', label: 'Comercial',
     items: [
-      { href: '/productos', label: 'Solutions', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+      { href: '/solutions', label: 'Solutions', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
       { href: '/resources/cuentas', label: 'Cuentas', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
       { href: '/finanzas',  label: 'Finance',   icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ],
@@ -85,10 +85,10 @@ export default function PortalLayoutClient({
     if (pathname === '/hub/finance') return 'Finance';
     if (pathname === '/hub/operations') return 'Operations';
     if (pathname === '/hub/legal') return 'Legal';
-    if (pathname === '/productos') return 'Solutions';
-    if (pathname === '/productos/projects') return 'Projects';
-    if (pathname === '/productos/poc') return 'PoC';
-    if (pathname === '/productos/partnership') return 'Partnership';
+    if (pathname === '/solutions') return 'Solutions';
+    if (pathname === '/solutions/projects') return 'Projects';
+    if (pathname === '/solutions/poc') return 'PoC';
+    if (pathname === '/solutions/partnership') return 'Partnership';
     if (pathname === '/resources/cuentas') return 'Cuentas';
     if (pathname === '/finanzas') return 'Finance';
     if (pathname === '/meetings') return 'Calendar';
