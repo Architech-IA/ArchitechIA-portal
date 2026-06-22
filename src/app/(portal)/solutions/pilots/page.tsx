@@ -47,7 +47,7 @@ export default function PocSolutionPage() {
             <FlaskConical size={14} />
             Prueba de concepto
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">PoC</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Pilots</h1>
           <p className="text-white/90 text-lg leading-relaxed max-w-2xl">
             Proof of Concept para validar una idea, tecnología o caso de uso de IA antes de escalar.
             Reduce el riesgo y toma decisiones informadas con un demo funcional y métricas reales.

@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { Package, Lightbulb, FolderKanban, FlaskConical, Handshake } from 'lucide-react'
 
-export default function ProductosTabs() {
+export default function SolutionsTabs() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const isSuperAdmin = (session?.user as { role?: string })?.role === 'SUPERADMIN'
@@ -25,7 +25,7 @@ export default function ProductosTabs() {
   const tabs = [
     { href: '/solutions', label: 'Productos', icon: Package, exact: true },
     { href: '/solutions/projects', label: 'Projects', icon: FolderKanban, exact: false },
-    { href: '/solutions/poc', label: 'PoC', icon: FlaskConical, exact: false },
+    { href: '/solutions/pilots', label: 'PoC', icon: FlaskConical, exact: false },
     { href: '/solutions/partnership', label: 'Partnership', icon: Handshake, exact: false },
     { href: '/solutions/iniciativas', label: 'Iniciativas', icon: Lightbulb, exact: false },
   ]
