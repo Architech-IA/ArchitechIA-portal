@@ -433,6 +433,27 @@ async function main() {
         showTimeline: true,
       },
     },
+    {
+      slug: 'secop-ai-analyzer',
+      name: 'SECOP AI Analyzer',
+      description: 'Analiza procesos de contratación pública SECOP II con IA y compáralos contra el perfil de tu empresa.',
+      icon: 'Gavel',
+      color: 'from-indigo-500 to-violet-600',
+      category: 'ia',
+      schema: {
+        type: 'object',
+        properties: {
+          embedUrl: { type: 'string', title: 'URL de la app desplegada (Vercel)' },
+          height: { type: 'number', title: 'Alto del iframe (px)', default: 900 },
+        },
+        required: ['embedUrl'],
+      },
+      defaultConfig: {
+        // TODO: verificar/actualizar con la URL real de producción en Vercel.
+        embedUrl: 'https://secop2-agentai-insights.vercel.app',
+        height: 900,
+      },
+    },
   ];
 
   for (const appType of appTypes) {

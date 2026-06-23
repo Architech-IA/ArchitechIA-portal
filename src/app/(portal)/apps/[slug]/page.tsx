@@ -13,6 +13,7 @@ import HelpdeskRuntime from '@/components/apps/helpdesk/HelpdeskRuntime';
 import SecurityDashboardRuntime from '@/components/apps/security-dashboard/SecurityDashboardRuntime';
 import IntegrationHubRuntime from '@/components/apps/integration-hub/IntegrationHubRuntime';
 import ProjectManagerRuntime from '@/components/apps/project-manager/ProjectManagerRuntime';
+import SecopAIRuntime from '@/components/apps/secop-ai-analyzer/SecopAIRuntime';
 import AppRuntimePlaceholder from '@/components/apps/shared/AppRuntimePlaceholder';
 import type { AppInstance } from '@/lib/app-types';
 
@@ -66,6 +67,7 @@ export default function AppRuntimePage() {
         {app.appType.slug === 'security-dashboard' && <SecurityDashboardRuntime app={app} />}
         {app.appType.slug === 'integration-hub' && <IntegrationHubRuntime app={app} />}
         {app.appType.slug === 'project-manager' && <ProjectManagerRuntime app={app} />}
+        {app.appType.slug === 'secop-ai-analyzer' && <SecopAIRuntime app={app} />}
         {![
           'crm',
           'landing-page',
@@ -77,6 +79,7 @@ export default function AppRuntimePage() {
           'security-dashboard',
           'integration-hub',
           'project-manager',
+          'secop-ai-analyzer',
         ].includes(app.appType.slug) && <AppRuntimePlaceholder app={app} />}
       </div>
     </div>
