@@ -397,7 +397,14 @@ export default function PortalLayoutClient({
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar onMenuClick={() => setMobileOpen(true)} isMobile={isMobile} title={pageTitle} />
-        <main className="flex-1 overflow-y-auto" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255,90,0,0.05) 0%, transparent 60%), #0a0a18' }}>
+        <main className="flex-1 overflow-y-auto" style={{ background: [
+          'radial-gradient(circle at 8% 8%, rgba(59,130,246,0.13) 0%, transparent 32%)',
+          'radial-gradient(circle at 90% 12%, rgba(34,197,94,0.10) 0%, transparent 32%)',
+          'radial-gradient(circle at 80% 85%, rgba(139,92,246,0.13) 0%, transparent 38%)',
+          'radial-gradient(circle at 12% 88%, rgba(255,90,0,0.10) 0%, transparent 34%)',
+          'radial-gradient(circle at 50% 45%, rgba(6,182,212,0.07) 0%, transparent 55%)',
+          '#08081a',
+        ].join(', ') }}>
           {children}
         </main>
         <GlobalSearch />

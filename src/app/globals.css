@@ -5,9 +5,9 @@
   /* Backgrounds */
   --bg-base:     #06060f;
   --bg-surface:  #09091a;
-  --bg-elevated: #111128;
-  --bg-card:     #0e0e22;
-  --bg-card-2:   #14142c;
+  --bg-elevated: rgba(17, 17, 40, 0.7);
+  --bg-card:     rgba(14, 14, 34, 0.55);
+  --bg-card-2:   rgba(20, 20, 44, 0.6);
 
   /* Glass */
   --glass-bg:        rgba(255, 255, 255, 0.03);
@@ -75,10 +75,10 @@
    utilities. Overriding the scale here re-skins every page at once instead
    of touching each file individually.                              ── */
 @theme {
-  --color-gray-950: #040410;
-  --color-gray-900: #07071a;
-  --color-gray-800: #0e0e22;
-  --color-gray-700: #1b1b38;
+  --color-gray-950: rgba(4, 4, 16, 0.6);
+  --color-gray-900: rgba(9, 9, 24, 0.55);
+  --color-gray-800: rgba(14, 14, 34, 0.6);
+  --color-gray-700: rgba(27, 27, 56, 0.65);
   --color-gray-600: #2a2a4a;
   --color-gray-500: #5a6577;
   --color-gray-400: #94a3b8;
@@ -108,6 +108,15 @@ body {
 aside nav a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Paneles translúcidos — bg-gray-900/800 ahora llevan alpha (ver @theme
+   arriba); aquí se les agrega blur para que se lean como vidrio sobre el
+   fondo de figuras de color, sin tocar cada página individualmente. */
+[class*="bg-gray-900"],
+[class*="bg-gray-800"] {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 /* Subtle noise texture — adds tactile depth to flat dark surfaces */
@@ -185,6 +194,8 @@ body::before {
   border: 1px solid var(--border-base);
   border-radius: var(--radius);
   box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .card-hover {
