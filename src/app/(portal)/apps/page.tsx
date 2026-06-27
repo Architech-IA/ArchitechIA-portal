@@ -82,13 +82,13 @@ export default function AppsHubPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre o descripción..."
-            className="w-full rounded-xl border border-gray-800 bg-gray-900 py-2.5 pl-10 pr-4 text-xs font-normal text-white placeholder-gray-600 focus:border-orange-500 focus:outline-none"
+            className="input-dark rounded-xl py-2.5 pl-10 pr-4 text-xs"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-normal text-white focus:border-orange-500 focus:outline-none"
+          className="input-dark rounded-xl px-4 py-2.5 text-xs w-auto"
         >
           <option value="">Todos los estados</option>
           {statusKeys.map((s) => (
@@ -98,7 +98,7 @@ export default function AppsHubPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-normal text-white focus:border-orange-500 focus:outline-none"
+          className="input-dark rounded-xl px-4 py-2.5 text-xs w-auto"
         >
           <option value="">Todas las categorías</option>
           {categories.map((c) => (
@@ -173,7 +173,7 @@ function AppCard({ app }: { app: AppInstance }) {
   const category = APP_CATEGORIES[app.appType.category];
 
   return (
-    <div className="group relative rounded-xl border border-gray-800 bg-gray-900 p-5 transition-colors hover:border-gray-700">
+    <div className="group relative card card-hover p-5">
       <div className="mb-4 flex items-start justify-between">
         <div
           className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${app.appType.color} text-white shadow-lg`}
@@ -231,7 +231,7 @@ function AppListRow({ app }: { app: AppInstance }) {
   const category = APP_CATEGORIES[app.appType.category];
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-gray-800 bg-gray-900 p-4 hover:border-gray-700">
+    <div className="flex items-center gap-4 card card-hover p-4">
       <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${app.appType.color} text-white`}>
         <Icon className="h-5 w-5" />
       </div>

@@ -97,24 +97,25 @@ export default function Home() {
   const alertas = (data?.leadsInactivos.length ?? 0) + (data?.propuestasSinRespuesta.length ?? 0) + (data?.proximosDeadlines.length ?? 0) + (data?.registrosPendientes.length ?? 0);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-400 mt-1">Resumen general de ArchiTechIA</p>
+          <h1 className="text-2xl font-bold tracking-tight gradient-text">Dashboard</h1>
+          <p className="page-subtitle">Resumen general de ArchiTechIA</p>
         </div>
         {alertas > 0 && (
-          <div className="flex items-center gap-2 bg-red-900/20 border border-red-800 text-red-400 text-sm px-4 py-2 rounded-lg">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="badge badge-danger gap-1.5 px-3 py-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
             {alertas} alerta{alertas > 1 ? 's' : ''}
           </div>
         )}
         <button onClick={() => setShowSettings(!showSettings)}
-          className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+          className={`btn ${showSettings ? 'btn-primary' : 'btn-ghost'}`}
           title="Personalizar dashboard">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
         </button>
       </div>
 
@@ -164,10 +165,10 @@ export default function Home() {
           { label: 'Tasa Conversión', value: `${data?.conversionRate ?? 0}%`, sub: `${data?.leadsGanados ?? 0} leads ganados`,                      color: 'text-green-400',  icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
           { label: 'Proyectos',       value: data?.counts.projects ?? 0,  sub: 'En desarrollo y completados',                                        color: 'text-white',      icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
         ].map((k) => (
-          <div key={k.label} className="bg-gray-900 rounded-xl p-5 border border-orange-500/20 hover:border-orange-500/50 transition-all">
+          <div key={k.label} className="card card-hover p-5">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">{k.label}</p>
-              <div className="w-9 h-9 bg-orange-500/20 rounded-lg flex items-center justify-center">
+              <div className="w-9 h-9 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={k.icon} />
                 </svg>
@@ -181,7 +182,7 @@ export default function Home() {
 
       {/* Backlog + Sprint */}
       {widgets.jornada && data?.backlogStats && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+        <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Backlog</h3>
           <div className="grid grid-cols-4 gap-4 mb-4">
             {[
@@ -212,7 +213,7 @@ export default function Home() {
 
       {/* Mi Jornada */}
       {widgets.jornada && data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+        <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Lo que debo hacer hoy</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {data.myDay.leadsContactar.length > 0 && (
@@ -259,7 +260,7 @@ export default function Home() {
       {widgets.embudo && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Embudo de ventas */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-5">Embudo de Ventas</h3>
           <div className="space-y-3">
             {data?.embudo.map((etapa, i) => {
@@ -300,7 +301,7 @@ export default function Home() {
         </div>
 
         {/* Tendencias mensuales */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider">Tendencias</h3>
             <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
@@ -345,7 +346,7 @@ export default function Home() {
 
       {/* Alertas inteligentes */}
       {widgets.alertas && alertas > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -414,7 +415,7 @@ export default function Home() {
       {/* Distribución por fuente + Estados */}
       {widgets.fuentes && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Fuentes de leads */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Fuentes de Leads</h3>
           <div className="space-y-3">
             {(() => {
@@ -438,7 +439,7 @@ export default function Home() {
         </div>
 
         {/* Leads por estado */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Leads por Estado</h3>
           <div className="space-y-3">
             {(() => {
@@ -462,7 +463,7 @@ export default function Home() {
         </div>
 
         {/* Propuestas por estado */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="card p-6">
           <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Propuestas por Estado</h3>
           <div className="space-y-3">
             {(() => {

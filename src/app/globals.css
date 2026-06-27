@@ -85,6 +85,15 @@
   --color-gray-300: #c3cad9;
   --color-gray-200: #e2e8f0;
   --color-gray-100: #f1f5f9;
+
+  /* Alinea la escala "orange" de Tailwind con el naranja exacto de marca
+     (#FF5A00) — las 70+ páginas usan text/bg/border-orange-* directamente. */
+  --color-orange-300: #ffb37a;
+  --color-orange-400: #FF7A2F;
+  --color-orange-500: #FF5A00;
+  --color-orange-600: #E64E00;
+  --color-orange-700: #C44200;
+  --color-orange-900: #7a2700;
 }
 
 /* ─── Base ───────────────────────────────────────────────────── */
