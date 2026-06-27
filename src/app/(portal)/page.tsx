@@ -39,6 +39,26 @@ const PRIORITY_COLORS: Record<string, string> = {
   HIGH: 'text-orange-400', CRITICAL: 'text-red-400',
 };
 
+/* Header de sección reutilizable: chip de ícono coloreado + título.
+   Reemplaza los emojis (rendering inconsistente entre OS) y el texto
+   uppercase suelto que hacía ver las cards "desordenadas". */
+function SectionHeader({ icon, color, title, badge }: { icon: string; color: string; title: string; badge?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${color}1f`, border: `1px solid ${color}33` }}>
+          <svg className="w-3.5 h-3.5" style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
+          </svg>
+        </div>
+        <h3 className="text-sm font-semibold text-white leading-none">{title}</h3>
+      </div>
+      {badge}
+    </div>
+  );
+}
+
 export default function Home() {
   const { data: session, status: sessionStatus } = useSession();
   const userRole = (session?.user as { role?: string })?.role ?? '';
@@ -99,35 +119,39 @@ export default function Home() {
   return (
     <div className="p-8 space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight gradient-text">Dashboard</h1>
           <p className="page-subtitle">Resumen general de ArchiTechIA</p>
         </div>
-        {alertas > 0 && (
-          <div className="badge badge-danger gap-1.5 px-3 py-1.5">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-            {alertas} alerta{alertas > 1 ? 's' : ''}
-          </div>
-        )}
-        <button onClick={() => setShowSettings(!showSettings)}
-          className={`btn ${showSettings ? 'btn-primary' : 'btn-ghost'}`}
-          title="Personalizar dashboard">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {alertas > 0 && (
+            <div className="badge badge-danger gap-1.5 px-3 py-1.5 flex-shrink-0">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              {alertas} alerta{alertas > 1 ? 's' : ''}
+            </div>
+          )}
+          <button onClick={() => setShowSettings(!showSettings)}
+            className={`btn ${showSettings ? 'btn-primary' : 'btn-ghost'}`}
+            title="Personalizar dashboard">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+        </div>
       </div>
 
       {/* Panel de personalización de widgets */}
       {showSettings && (
         <div className="bg-gray-900 border border-orange-500/30 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider">Personalizar Dashboard</h3>
-            <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-white transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
+          <SectionHeader color="#FF5A00" title="Personalizar Dashboard"
+            icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            badge={
+              <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-white transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            }
+          />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {([
               { key: 'kpis',      label: 'KPIs Principales' },
@@ -160,22 +184,23 @@ export default function Home() {
       {/* KPIs principales */}
       {widgets.kpis && <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Leads',     value: data?.counts.leads ?? 0,     sub: `$${(data?.totalEstimatedValue ?? 0).toLocaleString()} en pipeline`, color: 'text-white',      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-          { label: 'Propuestas',      value: data?.counts.proposals ?? 0, sub: 'En seguimiento activo',                                              color: 'text-white',      icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-          { label: 'Tasa Conversión', value: `${data?.conversionRate ?? 0}%`, sub: `${data?.leadsGanados ?? 0} leads ganados`,                      color: 'text-green-400',  icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
-          { label: 'Proyectos',       value: data?.counts.projects ?? 0,  sub: 'En desarrollo y completados',                                        color: 'text-white',      icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
+          { label: 'Total Leads',     value: data?.counts.leads ?? 0,     sub: `$${(data?.totalEstimatedValue ?? 0).toLocaleString()} en pipeline`, accent: '#3B82F6', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+          { label: 'Propuestas',      value: data?.counts.proposals ?? 0, sub: 'En seguimiento activo',                                              accent: '#8B5CF6', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+          { label: 'Tasa Conversión', value: `${data?.conversionRate ?? 0}%`, sub: `${data?.leadsGanados ?? 0} leads ganados`,                      accent: '#22C55E', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+          { label: 'Proyectos',       value: data?.counts.projects ?? 0,  sub: 'En desarrollo y completados',                                        accent: '#FF5A00', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
         ].map((k) => (
           <div key={k.label} className="card card-hover p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-400">{k.label}</p>
-              <div className="w-9 h-9 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={k.icon} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: `${k.accent}1f`, border: `1px solid ${k.accent}33` }}>
+                <svg className="w-[18px] h-[18px]" style={{ color: k.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={k.icon} />
                 </svg>
               </div>
             </div>
-            <p className={`text-3xl font-bold ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{k.sub}</p>
+            <p className="text-3xl font-bold text-white tabular-nums">{k.value}</p>
+            <p className="text-sm text-gray-400 mt-1 truncate">{k.label}</p>
+            <p className="text-[11px] text-gray-600 mt-0.5 truncate">{k.sub}</p>
           </div>
         ))}
       </div>}
@@ -183,7 +208,8 @@ export default function Home() {
       {/* Backlog + Sprint */}
       {widgets.jornada && data?.backlogStats && (
         <div className="card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Backlog</h3>
+          <SectionHeader color="#FF5A00" title="Backlog"
+            icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           <div className="grid grid-cols-4 gap-4 mb-4">
             {[
               { label: 'Total', value: data.backlogStats.total, color: 'text-white' },
@@ -214,7 +240,8 @@ export default function Home() {
       {/* Mi Jornada */}
       {widgets.jornada && data?.myDay && (data.myDay.leadsContactar.length > 0 || data.myDay.propuestasPendientes.length > 0 || (data.staleLeads?.length ?? 0) > 0) && (
         <div className="card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">📋 Lo que debo hacer hoy</h3>
+          <SectionHeader color="#3B82F6" title="Lo que debo hacer hoy"
+            icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {data.myDay.leadsContactar.length > 0 && (
               <div>
@@ -242,7 +269,12 @@ export default function Home() {
             )}
             {(data.staleLeads?.length ?? 0) > 0 && (
               <div>
-                <p className="text-xs text-gray-500 mb-2">⚠️ Leads estancados (+7 días)</p>
+                <p className="text-xs font-medium text-red-400 mb-2 flex items-center gap-1.5">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                  Leads estancados (+7 días)
+                </p>
                 {data.staleLeads!.slice(0, 5).map(l => (
                   <a key={l.id} href={`/leads`} className="flex items-center justify-between px-3 py-2 bg-red-900/10 border border-red-900/20 rounded-lg mb-1 hover:bg-red-900/20 transition-colors text-xs">
                     <span className="text-white truncate">{l.companyName}</span>
@@ -261,7 +293,8 @@ export default function Home() {
 
         {/* Embudo de ventas */}
         <div className="card p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-5">Embudo de Ventas</h3>
+          <SectionHeader color="#A855F7" title="Embudo de Ventas"
+            icon="M3 4h18l-7 9v6l-4 2v-8L3 4z" />
           <div className="space-y-3">
             {data?.embudo.map((etapa, i) => {
               const pct = maxEmbudo > 0 ? Math.round((etapa.count / maxEmbudo) * 100) : 0;
@@ -302,17 +335,19 @@ export default function Home() {
 
         {/* Tendencias mensuales */}
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider">Tendencias</h3>
-            <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-              {(['ingresos', 'leads', 'proyectos'] as const).map((t) => (
-                <button key={t} onClick={() => setChartTab(t)}
-                  className={`px-2 py-1 text-xs rounded-md capitalize transition-colors ${chartTab === t ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SectionHeader color="#06B6D4" title="Tendencias"
+            icon="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+            badge={
+              <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+                {(['ingresos', 'leads', 'proyectos'] as const).map((t) => (
+                  <button key={t} onClick={() => setChartTab(t)}
+                    className={`px-2 py-1 text-xs rounded-md capitalize transition-colors ${chartTab === t ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            }
+          />
           <div className="flex items-end gap-2 h-32">
             {tendencias.map((t) => {
               const val = chartTab === 'ingresos' ? t.ingresos : chartTab === 'leads' ? t.leads : t.proyectos;
@@ -347,17 +382,18 @@ export default function Home() {
       {/* Alertas inteligentes */}
       {widgets.alertas && alertas > 0 && (
         <div className="card p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            Alertas Inteligentes
-          </h3>
+          <SectionHeader color="#F59E0B" title="Alertas Inteligentes"
+            icon="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Leads inactivos */}
             {(data?.leadsInactivos.length ?? 0) > 0 && (
               <div className="bg-yellow-900/10 border border-yellow-800/50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-yellow-400 mb-2">⏰ Leads sin actividad +7 días</p>
+                <p className="text-xs font-semibold text-yellow-400 mb-2 flex items-center gap-1.5">
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Leads sin actividad +7 días
+                </p>
                 <div className="space-y-1">
                   {data?.leadsInactivos.map(l => (
                     <p key={l.id} className="text-xs text-gray-300 truncate">• {l.companyName}</p>
@@ -368,7 +404,12 @@ export default function Home() {
             {/* Propuestas sin respuesta */}
             {(data?.propuestasSinRespuesta.length ?? 0) > 0 && (
               <div className="bg-red-900/10 border border-red-800/50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-red-400 mb-2">📄 Propuestas sin respuesta +5 días</p>
+                <p className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1.5">
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Propuestas sin respuesta +5 días
+                </p>
                 <div className="space-y-1">
                   {data?.propuestasSinRespuesta.map(p => (
                     <p key={p.id} className="text-xs text-gray-300 truncate">• {p.title}</p>
@@ -379,7 +420,12 @@ export default function Home() {
             {/* Próximos deadlines */}
             {(data?.proximosDeadlines.length ?? 0) > 0 && (
               <div className="bg-orange-900/10 border border-orange-800/50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-orange-400 mb-2">🗓️ Deadlines próximos 7 días</p>
+                <p className="text-xs font-semibold text-orange-400 mb-2 flex items-center gap-1.5">
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Deadlines próximos 7 días
+                </p>
                 <div className="space-y-1">
                   {data?.proximosDeadlines.map(p => (
                     <div key={p.id} className="flex items-center justify-between">
@@ -395,7 +441,12 @@ export default function Home() {
             {/* Registros financieros pendientes */}
             {(data?.registrosPendientes.length ?? 0) > 0 && (
               <div className="bg-purple-900/10 border border-purple-800/50 rounded-lg p-4">
-                <p className="text-xs font-semibold text-purple-400 mb-2">💰 Pagos pendientes en Finanzas</p>
+                <p className="text-xs font-semibold text-purple-400 mb-2 flex items-center gap-1.5">
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Pagos pendientes en Finanzas
+                </p>
                 <div className="space-y-1">
                   {data?.registrosPendientes.map(r => (
                     <div key={r.id} className="flex items-center justify-between">
@@ -416,7 +467,8 @@ export default function Home() {
       {widgets.fuentes && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Fuentes de leads */}
         <div className="card p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Fuentes de Leads</h3>
+          <SectionHeader color="#22D3EE" title="Fuentes de Leads"
+            icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           <div className="space-y-3">
             {(() => {
               const total = data?.industriaLeads.reduce((a, b) => a + b._count, 0) ?? 1;
@@ -440,7 +492,8 @@ export default function Home() {
 
         {/* Leads por estado */}
         <div className="card p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Leads por Estado</h3>
+          <SectionHeader color="#3B82F6" title="Leads por Estado"
+            icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           <div className="space-y-3">
             {(() => {
               const maxCount = Math.max(...(data?.leadsByStatus.map(s => s._count) ?? [1]));
@@ -464,7 +517,8 @@ export default function Home() {
 
         {/* Propuestas por estado */}
         <div className="card p-6">
-          <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4">Propuestas por Estado</h3>
+          <SectionHeader color="#8B5CF6" title="Propuestas por Estado"
+            icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           <div className="space-y-3">
             {(() => {
               const maxCount = Math.max(...(data?.proposalsByStatus.map(s => s._count) ?? [1]));
