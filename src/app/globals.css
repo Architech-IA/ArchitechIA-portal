@@ -116,7 +116,6 @@ aside nav a {
 [class*="bg-gray-900"],
 [class*="bg-gray-800"] {
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 
 /* Subtle noise texture — adds tactile depth to flat dark surfaces */
@@ -177,14 +176,12 @@ body::before {
 .glass {
   background: rgba(14, 14, 34, 0.7);
   backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
 }
 
 .glass-light {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
 }
 
@@ -195,7 +192,6 @@ body::before {
   border-radius: var(--radius);
   box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.02);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 
 .card-hover {
