@@ -176,23 +176,6 @@ export default function TopBar({
         <h1 className="text-base font-semibold truncate" style={{ color: '#f1f5f9' }}>
           {title || 'ArchiTechIA'}
         </h1>
-        {live !== null && (
-          <span
-            className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full flex-shrink-0"
-            style={{
-              background: live ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-              border:     `1px solid ${live ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-            }}
-          >
-            <span className="relative flex">
-              {live && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping-slow opacity-40" />}
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: live ? '#34d399' : '#f87171' }} />
-            </span>
-            <span className="text-[10px] font-medium" style={{ color: live ? '#34d399' : '#f87171' }}>
-              {live ? 'live' : 'sin conexión'}
-            </span>
-          </span>
-        )}
       </div>
 
       <div className="flex-1" />
@@ -337,9 +320,15 @@ export default function TopBar({
 
       {/* Reloj */}
       <div
-        className="select-none pl-3 clock-text"
+        className="select-none pl-3 clock-text flex items-center gap-2"
         style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}
       >
+        {live && (
+          <span className="relative flex flex-shrink-0">
+            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping-slow opacity-40" />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#34d399' }} />
+          </span>
+        )}
         <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em' }}>
           {hora}
         </span>
