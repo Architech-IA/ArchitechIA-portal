@@ -5,13 +5,17 @@ import React from 'react'
 import Link from 'next/link'
 import { Loader2, ExternalLink, DollarSign, FlaskConical, Briefcase, Handshake, GraduationCap, Package } from 'lucide-react'
 
-interface Solucion {
+export interface Solucion {
   id: string
   nombre: string
   descripcion: string | null
   tipo: string
   estado: string
   valorEstimado: number
+  repositorio: string | null
+  arquitectura: string | null
+  planTrabajo: string | null
+  cronograma: string | null
   leadId: string | null
   lead: { id: string; companyName: string; contactName: string; status: string } | null
   createdAt: string
@@ -24,6 +28,7 @@ interface SolucionesListProps {
   refreshKey?: number
   headerAction?: React.ReactNode
   hideIcon?: boolean
+  onSelect?: (solucion: Solucion) => void
 }
 
 const colorMap = {
@@ -41,7 +46,7 @@ const TIPO_ICON: Record<SolucionesListProps['tipo'], typeof FlaskConical> = {
   PRODUCT: Package,
 }
 
-export default function SolucionesList({ tipo, color, title, refreshKey, headerAction, hideIcon }: SolucionesListProps) {
+export default function SolucionesList({ tipo, color, title, refreshKey, headerAction, hideIcon, onSelect }: SolucionesListProps) {
   const [soluciones, setSoluciones] = useState<Solucion[]>([])
   const [loading, setLoading] = useState(true)
   const c = colorMap[color]
@@ -106,7 +111,8 @@ export default function SolucionesList({ tipo, color, title, refreshKey, headerA
         {soluciones.map(s => (
           <div
             key={s.id}
-            className="card card-hover p-5"
+            onClick={() => onSelect?.(s)}
+            className={`card card-hover p-5 ${onSelect ? 'cursor-pointer' : ''}`}
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-3 min-w-0">
@@ -119,6 +125,7 @@ export default function SolucionesList({ tipo, color, title, refreshKey, headerA
                   {s.lead && (
                     <Link
                       href={`/leads/lista`}
+                      onClick={e => e.stopPropagation()}
                       className={`text-xs ${c.text} hover:underline flex items-center gap-1 mt-1`}
                     >
                       Lead: {s.lead.companyName}

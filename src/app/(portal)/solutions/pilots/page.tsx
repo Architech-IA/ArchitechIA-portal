@@ -5,8 +5,9 @@ import Link from 'next/link'
 import {
   FlaskConical, CheckCircle2, ArrowRight, Zap, Gauge,
   Target, ShieldCheck, Plus, X, Loader2, FolderGit2, Sliders, LayoutGrid, Code2, ExternalLink,
+  FileText, Calendar, Trash2, Pencil,
 } from 'lucide-react'
-import SolucionesList from '@/components/SolucionesList'
+import SolucionesList, { type Solucion } from '@/components/SolucionesList'
 import ArchitectureCanvas, { type ArchNode } from '@/components/ArchitectureCanvas'
 
 const benefits = [
@@ -40,12 +41,21 @@ const deliverables = [
 ]
 
 const ESTADOS = ['ACTIVO', 'EN_DESARROLLO', 'PENDIENTE', 'PAUSADO', 'FINALIZADO']
+const ESTADOS_FASE = ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
 
 interface LeadOption {
   id: string
   companyName: string
   contactName: string
   solucion: { id: string } | null
+}
+
+interface FaseCronograma {
+  id: string
+  fase: string
+  fechaInicio: string
+  fechaFin: string
+  estado: string
 }
 
 interface FormState {
@@ -55,6 +65,7 @@ interface FormState {
   valorEstimado: string
   leadId: string
   repositorio: string
+  planTrabajo: string
 }
 
 const defaultForm: FormState = {
@@ -64,33 +75,37 @@ const defaultForm: FormState = {
   valorEstimado: '0',
   leadId: '',
   repositorio: '',
+  planTrabajo: '',
 }
 
-type TabKey = 'general' | 'arquitectura' | 'codigo'
+type TabKey = 'general' | 'arquitectura' | 'plan' | 'cronograma' | 'codigo'
 
 const TABS: { key: TabKey; label: string; icon: typeof Sliders }[] = [
   { key: 'general', label: 'General', icon: Sliders },
   { key: 'arquitectura', label: 'Arquitectura', icon: LayoutGrid },
+  { key: 'plan', label: 'Plan de Trabajo', icon: FileText },
+  { key: 'cronograma', label: 'Cronograma', icon: Calendar },
   { key: 'codigo', label: 'Código fuente', icon: Code2 },
 ]
 
+function makeId() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
 export default function PocSolutionPage() {
   const [showModal, setShowModal] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('general')
   const [form, setForm] = useState<FormState>(defaultForm)
   const [archNodes, setArchNodes] = useState<ArchNode[]>([])
+  const [fases, setFases] = useState<FaseCronograma[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [loadingLeads, setLoadingLeads] = useState(false)
 
-  async function openModal() {
-    setForm(defaultForm)
-    setArchNodes([])
-    setActiveTab('general')
-    setError('')
-    setShowModal(true)
+  async function loadLeads() {
     setLoadingLeads(true)
     try {
       const res = await fetch('/api/leads')
@@ -101,6 +116,44 @@ export default function PocSolutionPage() {
     } finally {
       setLoadingLeads(false)
     }
+  }
+
+  async function openCreateModal() {
+    setEditingId(null)
+    setForm(defaultForm)
+    setArchNodes([])
+    setFases([])
+    setActiveTab('general')
+    setError('')
+    setShowModal(true)
+    await loadLeads()
+  }
+
+  async function openEditModal(solucion: Solucion) {
+    setEditingId(solucion.id)
+    setForm({
+      nombre: solucion.nombre,
+      descripcion: solucion.descripcion || '',
+      estado: solucion.estado,
+      valorEstimado: String(solucion.valorEstimado ?? 0),
+      leadId: solucion.leadId || '',
+      repositorio: solucion.repositorio || '',
+      planTrabajo: solucion.planTrabajo || '',
+    })
+    try {
+      setArchNodes(solucion.arquitectura ? JSON.parse(solucion.arquitectura) : [])
+    } catch {
+      setArchNodes([])
+    }
+    try {
+      setFases(solucion.cronograma ? JSON.parse(solucion.cronograma) : [])
+    } catch {
+      setFases([])
+    }
+    setActiveTab('general')
+    setError('')
+    setShowModal(true)
+    await loadLeads()
   }
 
   function closeModal() {
@@ -115,6 +168,18 @@ export default function PocSolutionPage() {
       leadId,
       nombre: lead && !f.nombre.trim() ? `${lead.companyName} — Demo` : f.nombre,
     }))
+  }
+
+  function addFase() {
+    setFases(prev => [...prev, { id: makeId(), fase: '', fechaInicio: '', fechaFin: '', estado: 'PENDIENTE' }])
+  }
+
+  function updateFase(id: string, patch: Partial<FaseCronograma>) {
+    setFases(prev => prev.map(f => f.id === id ? { ...f, ...patch } : f))
+  }
+
+  function removeFase(id: string) {
+    setFases(prev => prev.filter(f => f.id !== id))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,23 +197,26 @@ export default function PocSolutionPage() {
     setSaving(true)
     setError('')
     try {
-      const res = await fetch('/api/soluciones', {
-        method: 'POST',
+      const payload = {
+        nombre: form.nombre.trim(),
+        descripcion: form.descripcion.trim() || null,
+        tipo: 'DEMO',
+        estado: form.estado,
+        valorEstimado: parseFloat(form.valorEstimado) || 0,
+        leadId: form.leadId,
+        repositorio: form.repositorio.trim() || null,
+        arquitectura: JSON.stringify(archNodes),
+        planTrabajo: form.planTrabajo.trim() || null,
+        cronograma: JSON.stringify(fases),
+      }
+      const res = await fetch(editingId ? `/api/soluciones/${editingId}` : '/api/soluciones', {
+        method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: form.nombre.trim(),
-          descripcion: form.descripcion.trim() || null,
-          tipo: 'DEMO',
-          estado: form.estado,
-          valorEstimado: parseFloat(form.valorEstimado) || 0,
-          leadId: form.leadId,
-          repositorio: form.repositorio.trim() || null,
-          arquitectura: JSON.stringify(archNodes),
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Error al crear el PoC.')
+        throw new Error(data?.error || 'Error al guardar el PoC.')
       }
       setRefreshKey(k => k + 1)
       setShowModal(false)
@@ -159,12 +227,12 @@ export default function PocSolutionPage() {
     }
   }
 
-  // Solo leads que todavía no tienen una solución asociada (la relación es 1:1)
-  const availableLeads = leads.filter(l => !l.solucion)
+  // Leads sin solución asociada, más el lead actual de la PoC que se está editando (si aplica)
+  const availableLeads = leads.filter(l => !l.solucion || l.solucion.id === editingId)
 
   const addButton = (
     <button
-      onClick={openModal}
+      onClick={openCreateModal}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg transition-colors"
     >
       <Plus size={14} />
@@ -242,6 +310,7 @@ export default function PocSolutionPage() {
         hideIcon
         refreshKey={refreshKey}
         headerAction={addButton}
+        onSelect={openEditModal}
       />
 
       {/* CTA */}
@@ -266,7 +335,7 @@ export default function PocSolutionPage() {
         </Link>
       </div>
 
-      {/* Modal: Nueva PoC */}
+      {/* Modal: Nueva/Editar PoC */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -278,10 +347,10 @@ export default function PocSolutionPage() {
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800 bg-gradient-to-r from-cyan-900/40 to-gray-900">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center">
-                  <Plus className="text-cyan-400" size={18} />
+                  {editingId ? <Pencil className="text-cyan-400" size={16} /> : <Plus className="text-cyan-400" size={18} />}
                 </div>
                 <div>
-                  <h2 className="text-white font-bold text-lg leading-none">Nueva PoC</h2>
+                  <h2 className="text-white font-bold text-lg leading-none">{editingId ? 'Editar PoC' : 'Nueva PoC'}</h2>
                   <p className="text-cyan-400/70 text-xs mt-0.5">Tipo: DEMO</p>
                 </div>
               </div>
@@ -295,7 +364,7 @@ export default function PocSolutionPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 px-6 pt-4 border-b border-gray-800">
+            <div className="flex items-center gap-1 px-6 pt-4 border-b border-gray-800 overflow-x-auto">
               {TABS.map(t => {
                 const active = activeTab === t.key
                 return (
@@ -303,7 +372,7 @@ export default function PocSolutionPage() {
                     key={t.key}
                     type="button"
                     onClick={() => setActiveTab(t.key)}
-                    className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors"
+                    className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors flex-shrink-0"
                     style={{ color: active ? '#22d3ee' : '#64748b' }}
                   >
                     <t.icon size={14} />
@@ -433,6 +502,88 @@ export default function PocSolutionPage() {
                   <ArchitectureCanvas nodes={archNodes} onChange={setArchNodes} />
                 )}
 
+                {/* ── Tab: Plan de Trabajo ───────────────────────────────── */}
+                {activeTab === 'plan' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                      <FileText size={14} className="text-gray-500" />
+                      Plan de trabajo <span className="text-gray-600 font-normal">(Markdown o texto libre)</span>
+                    </label>
+                    <textarea
+                      value={form.planTrabajo}
+                      onChange={e => setForm(f => ({ ...f, planTrabajo: e.target.value }))}
+                      placeholder={'# Plan de trabajo\n\n## Contexto\n...\n\n## Pasos de ejecución\n1. ...'}
+                      rows={16}
+                      disabled={saving}
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-xs font-mono leading-relaxed resize-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
+                    />
+                    <p className="text-gray-600 text-xs mt-1.5">Pegá acá el plan completo (por ejemplo, el que armamos en la conversación con Claude) para que quede guardado junto a la PoC.</p>
+                  </div>
+                )}
+
+                {/* ── Tab: Cronograma ────────────────────────────────────── */}
+                {activeTab === 'cronograma' && (
+                  <div className="space-y-3">
+                    {fases.length === 0 && (
+                      <p className="text-gray-600 text-sm text-center py-4">Sin fases todavía. Agregá la primera abajo.</p>
+                    )}
+                    {fases.map(f => (
+                      <div key={f.id} className="bg-gray-950 border border-gray-700 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={f.fase}
+                            onChange={e => updateFase(f.id, { fase: e.target.value })}
+                            placeholder="Nombre de la fase (ej. Scaffold + modelo de datos)"
+                            disabled={saving}
+                            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeFase(f.id)}
+                            disabled={saving}
+                            className="w-8 h-8 flex-shrink-0 rounded-lg bg-gray-900 hover:bg-red-900/30 text-gray-500 hover:text-red-400 flex items-center justify-center transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="date"
+                            value={f.fechaInicio}
+                            onChange={e => updateFase(f.id, { fechaInicio: e.target.value })}
+                            disabled={saving}
+                            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60"
+                          />
+                          <input
+                            type="date"
+                            value={f.fechaFin}
+                            onChange={e => updateFase(f.id, { fechaFin: e.target.value })}
+                            disabled={saving}
+                            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60"
+                          />
+                          <select
+                            value={f.estado}
+                            onChange={e => updateFase(f.id, { estado: e.target.value })}
+                            disabled={saving}
+                            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60 appearance-none cursor-pointer"
+                          >
+                            {ESTADOS_FASE.map(es => <option key={es} value={es}>{es}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addFase}
+                      disabled={saving}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-gray-700 text-gray-500 hover:text-cyan-400 hover:border-cyan-500/40 text-sm transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={14} /> Agregar fase
+                    </button>
+                  </div>
+                )}
+
                 {/* ── Tab: Código fuente ─────────────────────────────────── */}
                 {activeTab === 'codigo' && (
                   <div className="space-y-3">
@@ -496,6 +647,11 @@ export default function PocSolutionPage() {
                     <>
                       <Loader2 size={15} className="animate-spin" />
                       Guardando…
+                    </>
+                  ) : editingId ? (
+                    <>
+                      <CheckCircle2 size={15} />
+                      Guardar cambios
                     </>
                   ) : (
                     <>

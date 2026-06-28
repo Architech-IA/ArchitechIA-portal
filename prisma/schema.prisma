@@ -67,6 +67,8 @@ model Solucion {
   valorEstimado Float         @default(0)
   repositorio   String?
   arquitectura  String?       @default("[]") // JSON: nodos del lienzo de arquitectura
+  planTrabajo   String?       // Markdown/texto libre del plan de trabajo
+  cronograma    String?       @default("[]") // JSON: [{ fase, fechaInicio, fechaFin, estado }]
   leadId        String?       @unique
   lead          Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
   backlogItems  BacklogItem[]
