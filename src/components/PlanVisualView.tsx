@@ -24,14 +24,14 @@ function parsePlan(md: string): { titulo: string; secciones: Seccion[] } {
       continue
     }
     if (h2) {
-      if (current) secciones.push(current)
+      if (current && !(current.title === 'Resumen' && !current.body.trim())) secciones.push(current)
       current = { title: h2[1].trim(), body: '' }
       continue
     }
     if (!current) current = { title: 'Resumen', body: '' }
     current.body += raw + '\n'
   }
-  if (current) secciones.push(current)
+  if (current && !(current.title === 'Resumen' && !current.body.trim())) secciones.push(current)
   return { titulo, secciones }
 }
 
