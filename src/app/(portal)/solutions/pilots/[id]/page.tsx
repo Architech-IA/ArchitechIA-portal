@@ -268,78 +268,50 @@ export default function PocDetailPage() {
         </nav>
       </div>
 
-      <div className="p-4 md:p-8 space-y-6 max-w-5xl">
+      <div className="p-4 md:p-8 space-y-6 max-w-6xl">
       {/* Contenido */}
       <div className="card p-6 md:p-8 space-y-5">
         {/* ── Tab: General ───────────────────────────────────────── */}
         {activeTab === 'general' && (
           <>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Lead asociado <span className="text-cyan-400">*</span>
-              </label>
-              {loadingLeads ? (
-                <div className="flex items-center gap-2 text-gray-500 text-sm py-3">
-                  <Loader2 size={14} className="animate-spin" /> Cargando leads…
-                </div>
-              ) : (
-                <select
-                  value={form.leadId}
-                  onChange={e => handleLeadChange(e.target.value)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Lead asociado <span className="text-cyan-400">*</span>
+                </label>
+                {loadingLeads ? (
+                  <div className="flex items-center gap-2 text-gray-500 text-sm py-3">
+                    <Loader2 size={14} className="animate-spin" /> Cargando leads…
+                  </div>
+                ) : (
+                  <select
+                    value={form.leadId}
+                    onChange={e => handleLeadChange(e.target.value)}
+                    disabled={saving}
+                    required
+                    className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60 appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Selecciona un lead…</option>
+                    {availableLeads.map(l => (
+                      <option key={l.id} value={l.id}>{l.companyName} — {l.contactName}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Nombre <span className="text-cyan-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
                   disabled={saving}
-                  required
-                  className="w-full max-w-md bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60 appearance-none cursor-pointer"
-                >
-                  <option value="" disabled>Selecciona un lead…</option>
-                  {availableLeads.map(l => (
-                    <option key={l.id} value={l.id}>{l.companyName} — {l.contactName}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Nombre <span className="text-cyan-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.nombre}
-                onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                disabled={saving}
-                className="w-full max-w-md bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Descripción <span className="text-gray-600 font-normal">(opcional)</span>
-              </label>
-              <textarea
-                value={form.descripcion}
-                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-                rows={3}
-                disabled={saving}
-                className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm resize-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
-                <FolderGit2 size={14} className="text-gray-500" />
-                Repositorio <span className="text-gray-600 font-normal">(opcional)</span>
-              </label>
-              <input
-                type="url"
-                value={form.repositorio}
-                onChange={e => setForm(f => ({ ...f, repositorio: e.target.value }))}
-                placeholder="https://github.com/Architech-IA/..."
-                disabled={saving}
-                className="w-full max-w-md bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 max-w-md">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Estado</label>
                 <select
@@ -351,6 +323,7 @@ export default function PocDetailPage() {
                   {ESTADOS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Valor estimado ($)</label>
                 <input
@@ -361,6 +334,34 @@ export default function PocDetailPage() {
                   onChange={e => setForm(f => ({ ...f, valorEstimado: e.target.value }))}
                   disabled={saving}
                   className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
+                  <FolderGit2 size={14} className="text-gray-500" />
+                  Repositorio <span className="text-gray-600 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={form.repositorio}
+                  onChange={e => setForm(f => ({ ...f, repositorio: e.target.value }))}
+                  placeholder="https://github.com/Architech-IA/..."
+                  disabled={saving}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Descripción <span className="text-gray-600 font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  value={form.descripcion}
+                  onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+                  rows={5}
+                  disabled={saving}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm resize-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
                 />
               </div>
             </div>
