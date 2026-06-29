@@ -285,7 +285,7 @@ export default function PocDetailPage() {
         </nav>
       </div>
 
-      <div className="p-4 md:p-8 space-y-4">
+      <div className="p-4 space-y-4">
       {/* Contenido */}
       <div className="card p-6 md:p-8 space-y-5">
         {/* ── Tab: General ───────────────────────────────────────── */}
