@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, FlaskConical, Sliders, LayoutGrid, FileText, Calendar, Code2,
+  ArrowLeft, Sliders, LayoutGrid, FileText, Calendar, Code2,
   Loader2, FolderGit2, ExternalLink, Upload, Eye, Code, Wand2, List, BarChart3,
   Trash2, Save, Plus,
 } from 'lucide-react'
@@ -237,60 +237,17 @@ export default function PocDetailPage() {
     )
   }
 
-  const lead = leads.find(l => l.id === form.leadId)
-
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-5xl">
-      {/* Header */}
-      <div>
-        <Link href="/solutions/pilots" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-cyan-400 transition-colors mb-4">
+    <div className="p-4 md:p-8 space-y-6 max-w-5xl pb-24">
+      {/* Tabs (con "Volver a Pilots" integrado) */}
+      <div className="flex items-center gap-1 border-b border-gray-800 overflow-x-auto">
+        <Link
+          href="/solutions/pilots"
+          className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-500 hover:text-cyan-400 transition-colors flex-shrink-0"
+        >
           <ArrowLeft size={14} /> Volver a Pilots
         </Link>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-cyan-600/15 border border-cyan-500/25 flex items-center justify-center flex-shrink-0">
-              <FlaskConical className="text-cyan-400" size={20} />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold text-white truncate">{form.nombre || 'Sin nombre'}</h1>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="badge badge-cyan">{form.estado}</span>
-                {lead && (
-                  <Link href="/leads/lista" className="text-xs text-cyan-400 hover:underline flex items-center gap-1">
-                    Lead: {lead.companyName} <ExternalLink size={10} />
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting || saving}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-red-900/30 text-gray-400 hover:text-red-400 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              Eliminar
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || deleting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-white text-sm font-semibold transition-colors"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-          </div>
-        </div>
-        {savedAt && !saving && (
-          <p className="text-emerald-400 text-xs mt-2">Guardado {new Date(savedAt).toLocaleTimeString('es-CO')}</p>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-gray-800 overflow-x-auto">
+        <span className="w-px h-5 bg-gray-800 flex-shrink-0" />
         {TABS.map(t => {
           const active = activeTab === t.key
           return (
@@ -403,6 +360,21 @@ export default function PocDetailPage() {
                   className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors disabled:opacity-60"
                 />
               </div>
+            </div>
+
+            {/* Zona de peligro */}
+            <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-4 mt-6">
+              <p className="text-red-400 text-sm font-semibold mb-1">Eliminar esta PoC</p>
+              <p className="text-gray-500 text-xs mb-3">Esta acción no se puede deshacer — se borra junto con su arquitectura, plan, cronograma y código asociado.</p>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Eliminar PoC
+              </button>
             </div>
           </>
         )}
@@ -563,6 +535,22 @@ export default function PocDetailPage() {
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
+      </div>
+
+      {/* Guardar cambios: siempre al final, en cualquier pestaña */}
+      <div className="sticky bottom-4 z-10 flex items-center justify-end gap-3 bg-gray-900/90 backdrop-blur border border-gray-800 rounded-xl px-4 py-3">
+        {savedAt && !saving && (
+          <p className="text-emerald-400 text-xs">Guardado {new Date(savedAt).toLocaleTimeString('es-CO')}</p>
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || deleting}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-white text-sm font-semibold transition-colors"
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </button>
       </div>
     </div>
   )
