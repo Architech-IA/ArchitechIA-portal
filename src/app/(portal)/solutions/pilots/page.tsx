@@ -5,11 +5,12 @@ import Link from 'next/link'
 import {
   FlaskConical, CheckCircle2, ArrowRight, Zap, Gauge,
   Target, ShieldCheck, Plus, X, Loader2, FolderGit2, Sliders, LayoutGrid, Code2, ExternalLink,
-  FileText, Calendar, Trash2, Pencil, Upload, Eye, Code,
+  FileText, Calendar, Trash2, Pencil, Upload, Eye, Code, Wand2, List, BarChart3,
 } from 'lucide-react'
 import SolucionesList, { type Solucion } from '@/components/SolucionesList'
 import ArchitectureCanvas, { type ArchNode } from '@/components/ArchitectureCanvas'
 import PlanVisualView from '@/components/PlanVisualView'
+import CronogramaTimeline from '@/components/CronogramaTimeline'
 
 const benefits = [
   {
@@ -93,6 +94,47 @@ function makeId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
+/** Busca una sección "Pasos de ejecución" (o similar) en el markdown y extrae su lista numerada.
+ *  Si no encuentra esa sección, cae al primer bloque de lista numerada que encuentre en todo el documento. */
+function extractStepsFromPlan(markdown: string): string[] {
+  const lines = markdown.split('\n')
+  let inTarget = false
+  let foundSection = false
+  let collected: string[] = []
+
+  for (const line of lines) {
+    const heading = line.match(/^#{1,3}\s+(.*)/)
+    if (heading) {
+      if (/pasos|ejecuci[oó]n|roadmap|implementaci[oó]n/i.test(heading[1])) {
+        inTarget = true
+        foundSection = true
+        continue
+      } else if (inTarget) {
+        break
+      }
+    }
+    if (inTarget) {
+      const item = line.match(/^\s*\d+\.\s+(.*)/)
+      if (item) collected.push(item[1].trim())
+    }
+  }
+  if (foundSection && collected.length > 0) return collected.map(s => s.replace(/\*\*/g, ''))
+
+  // Fallback: primer bloque de lista numerada en todo el documento
+  collected = []
+  let collecting = false
+  for (const line of lines) {
+    const item = line.match(/^\s*\d+\.\s+(.*)/)
+    if (item) {
+      collecting = true
+      collected.push(item[1].trim())
+    } else if (collecting && line.trim() !== '') {
+      break
+    }
+  }
+  return collected.map(s => s.replace(/\*\*/g, ''))
+}
+
 export default function PocSolutionPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -108,6 +150,7 @@ export default function PocSolutionPage() {
   const [draggingPlan, setDraggingPlan] = useState(false)
   const [planFileError, setPlanFileError] = useState('')
   const [planView, setPlanView] = useState<'markdown' | 'visual'>('visual')
+  const [cronogramaView, setCronogramaView] = useState<'lista' | 'linea'>('lista')
   const planFileInputRef = useRef<HTMLInputElement>(null)
 
   function importPlanFile(file: File | undefined) {
@@ -202,6 +245,19 @@ export default function PocSolutionPage() {
 
   function removeFase(id: string) {
     setFases(prev => prev.filter(f => f.id !== id))
+  }
+
+  function generarCronogramaDesdePlan() {
+    const steps = extractStepsFromPlan(form.planTrabajo)
+    if (steps.length === 0) {
+      setError('No se encontraron pasos numerados en el Plan de Trabajo (buscá una sección "Pasos de ejecución" o una lista 1. 2. 3...).')
+      return
+    }
+    if (fases.length > 0 && !window.confirm(`Esto va a reemplazar las ${fases.length} fase(s) actuales por ${steps.length} fase(s) extraídas del plan. ¿Continuar?`)) {
+      return
+    }
+    setError('')
+    setFases(steps.map(s => ({ id: makeId(), fase: s, fechaInicio: '', fechaFin: '', estado: 'PENDIENTE' })))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -616,8 +672,44 @@ export default function PocSolutionPage() {
                 {/* ── Tab: Cronograma ────────────────────────────────────── */}
                 {activeTab === 'cronograma' && (
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setCronogramaView('lista')}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                            cronogramaView === 'lista' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <List size={12} /> Lista
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCronogramaView('linea')}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                            cronogramaView === 'linea' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <BarChart3 size={12} /> Línea de tiempo
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={generarCronogramaDesdePlan}
+                        disabled={saving}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs font-medium transition-colors disabled:opacity-50"
+                      >
+                        <Wand2 size={12} />
+                        Generar desde el Plan
+                      </button>
+                    </div>
+
+                    {cronogramaView === 'linea' ? (
+                      <CronogramaTimeline fases={fases} />
+                    ) : (
+                      <>
                     {fases.length === 0 && (
-                      <p className="text-gray-600 text-sm text-center py-4">Sin fases todavía. Agregá la primera abajo.</p>
+                      <p className="text-gray-600 text-sm text-center py-4">Sin fases todavía. Agregá la primera abajo, o generalas desde el Plan de Trabajo.</p>
                     )}
                     {fases.map(f => (
                       <div key={f.id} className="bg-gray-950 border border-gray-700 rounded-xl p-3 space-y-2">
@@ -673,6 +765,8 @@ export default function PocSolutionPage() {
                     >
                       <Plus size={14} /> Agregar fase
                     </button>
+                      </>
+                    )}
                   </div>
                 )}
 
