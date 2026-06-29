@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarRange, X, Trash2 } from 'lucide-react'
+import { CalendarRange, X, Trash2, ListPlus, CheckCircle2, Loader2 } from 'lucide-react'
 
 export interface FaseCronograma {
   id: string
@@ -10,6 +10,13 @@ export interface FaseCronograma {
   fechaInicio: string
   fechaFin: string
   estado: string
+  backlogItemId?: string
+}
+
+const ESTADO_A_BACKLOG: Record<string, string> = {
+  PENDIENTE: 'BACKLOG',
+  EN_CURSO: 'IN_PROGRESS',
+  COMPLETADA: 'DONE',
 }
 
 const ESTADOS_FASE = ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
@@ -41,13 +48,42 @@ interface CronogramaTimelineProps {
   fases: FaseCronograma[]
   onUpdate?: (id: string, patch: Partial<FaseCronograma>) => void
   onRemove?: (id: string) => void
+  solucionId?: string
 }
 
-export default function CronogramaTimeline({ fases, onUpdate, onRemove }: CronogramaTimelineProps) {
+export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucionId }: CronogramaTimelineProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [cargandoBacklog, setCargandoBacklog] = useState(false)
+  const [backlogError, setBacklogError] = useState('')
   const completas = fases.filter(f => f.fechaInicio && f.fechaFin)
   const incompletas = fases.length - completas.length
   const selected = fases.find(f => f.id === selectedId) || null
+
+  async function cargarEnBacklog(f: FaseCronograma) {
+    if (!onUpdate || !solucionId) return
+    setCargandoBacklog(true)
+    setBacklogError('')
+    try {
+      const res = await fetch('/api/backlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: f.fase || 'Sin nombre',
+          solucionId,
+          type: 'TASK',
+          priority: 'MEDIUM',
+          status: ESTADO_A_BACKLOG[f.estado] || 'BACKLOG',
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const created = await res.json()
+      onUpdate(f.id, { backlogItemId: created.id })
+    } catch {
+      setBacklogError('No se pudo cargar al backlog.')
+    } finally {
+      setCargandoBacklog(false)
+    }
+  }
 
   if (fases.length === 0) {
     return (
@@ -110,7 +146,7 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove }: Cronog
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => setSelectedId(f.id)}
+                  onClick={() => { setSelectedId(f.id); setBacklogError('') }}
                   className={`flex items-stretch w-full text-left transition-colors hover:bg-gray-800/50 cursor-pointer ${idx % 2 === 0 ? 'bg-gray-900/30' : 'bg-transparent'}`}
                 >
                   <div className="w-44 flex-shrink-0 border-r border-gray-800 px-3 py-3 min-w-0">
@@ -161,7 +197,7 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove }: Cronog
           <div className="relative w-full max-w-sm bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
               <h3 className="text-white font-semibold text-sm truncate pr-2">{selected.fase || 'Sin nombre'}</h3>
-              <button onClick={() => setSelectedId(null)}
+              <button onClick={() => { setSelectedId(null); setBacklogError('') }}
                 className="w-7 h-7 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors flex-shrink-0">
                 <X size={14} />
               </button>
@@ -206,6 +242,27 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove }: Cronog
               <p className="text-gray-500 text-xs">
                 {fmtLarga(selected.fechaInicio)} → {fmtLarga(selected.fechaFin)}
               </p>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Backlog</label>
+                {selected.backlogItemId ? (
+                  <div className="flex items-center gap-2 bg-emerald-900/20 border border-emerald-800/40 rounded-lg px-3 py-2">
+                    <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
+                    <p className="text-emerald-400 text-xs">Ya está cargada en el Backlog.</p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => cargarEnBacklog(selected)}
+                    disabled={cargandoBacklog || !onUpdate || !solucionId}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {cargandoBacklog ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
+                    {cargandoBacklog ? 'Cargando…' : 'Cargar al backlog'}
+                  </button>
+                )}
+                {backlogError && <p className="text-red-400 text-xs mt-1.5">{backlogError}</p>}
+              </div>
 
               {onRemove && (
                 <button
