@@ -225,6 +225,7 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   const [showImport, setShowImport] = useState(false)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState('')
+  const [replaceOnImport, setReplaceOnImport] = useState(false)
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
   const [hoverConnId, setHoverConnId] = useState<string | null>(null)
@@ -382,7 +383,12 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
       setImportError('No se detectaron componentes. Pegá el JSON exportado del lienzo o un diagrama Mermaid (flowchart/graph).')
       return
     }
-    const startIdx = nodes.length
+    if (replaceOnImport && nodes.length > 0 && !window.confirm(`Esto va a borrar los ${nodes.length} componente(s) actuales y dejar solo los ${result.items.length} importados. ¿Continuar?`)) {
+      return
+    }
+    const baseNodes = replaceOnImport ? [] : nodes
+    const baseConnections = replaceOnImport ? [] : connections
+    const startIdx = baseNodes.length
     const newIds: string[] = []
     const newNodes: ArchNode[] = result.items.map((item, i) => {
       const idx = startIdx + i
@@ -397,8 +403,8 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
       from: newIds[e.fromIdx],
       to: newIds[e.toIdx],
     }))
-    const allNodes = [...nodes, ...newNodes]
-    const allConnections = [...connections, ...newConnections]
+    const allNodes = [...baseNodes, ...newNodes]
+    const allConnections = [...baseConnections, ...newConnections]
     onChange(autoLayout(allNodes, allConnections), allConnections)
     setShowImport(false)
     setImportText('')
@@ -450,7 +456,7 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
         </button>
         <button
           type="button"
-          onClick={() => { setShowImport(true); setImportError('') }}
+          onClick={() => { setShowImport(true); setImportError(''); setReplaceOnImport(false) }}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs font-medium transition-colors"
         >
           <Upload size={12} /> Importar
@@ -488,6 +494,15 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
                 className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-xs font-mono leading-relaxed resize-none focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 transition-colors"
               />
               {importError && <p className="text-red-400 text-xs">{importError}</p>}
+              <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={replaceOnImport}
+                  onChange={e => setReplaceOnImport(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500/40"
+                />
+                Reemplazar el lienzo actual (en vez de agregar a lo que ya hay)
+              </label>
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button type="button" onClick={() => setShowImport(false)}
                   className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-sm font-medium transition-colors">
