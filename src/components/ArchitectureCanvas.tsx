@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Monitor, Server, Database, Workflow, Brain, Clock, Zap, Globe2, Trash2, Plus, Upload, X, Wand2,
-  ZoomIn, ZoomOut, Maximize,
+  ZoomIn, ZoomOut, Maximize, ArrowUpRight, ArrowDownLeft,
 } from 'lucide-react'
 
 export interface ArchNode {
@@ -231,6 +231,9 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 })
   const [panning, setPanning] = useState(false)
   const panStart = useRef({ x: 0, y: 0, viewX: 0, viewY: 0 })
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const dragMoved = useRef(false)
+  const dragStartScreen = useRef({ x: 0, y: 0 })
 
   const toWorld = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -303,11 +306,16 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   const renameNode = (id: string, label: string) =>
     onChange(nodes.map(n => (n.id === id ? { ...n, label } : n)), connections)
 
+  const changeNodeType = (id: string, type: ArchNodeType) =>
+    onChange(nodes.map(n => (n.id === id ? { ...n, type } : n)), connections)
+
   const removeConnection = (id: string) => onChange(nodes, connections.filter(c => c.id !== id))
 
   const onPointerDownNode = (e: React.PointerEvent, node: ArchNode) => {
     e.stopPropagation()
     if (editingId) return
+    dragStartScreen.current = { x: e.clientX, y: e.clientY }
+    dragMoved.current = false
     const w = toWorld(e.clientX, e.clientY)
     setDragId(node.id)
     dragOffset.current = { x: w.x - node.x, y: w.y - node.y }
@@ -340,6 +348,9 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
       return
     }
     if (!dragId) return
+    const dx = e.clientX - dragStartScreen.current.x
+    const dy = e.clientY - dragStartScreen.current.y
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved.current = true
     const w = toWorld(e.clientX, e.clientY)
     onChange(nodes.map(n => (n.id === dragId ? { ...n, x: w.x - dragOffset.current.x, y: w.y - dragOffset.current.y } : n)), connections)
   }, [panning, dragId, connectingFrom, nodes, connections, onChange, toWorld])
@@ -357,7 +368,10 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
       setCursorPos(null)
       return
     }
-    setDragId(null)
+    if (dragId) {
+      if (!dragMoved.current) setSelectedNodeId(dragId)
+      setDragId(null)
+    }
   }
 
   const handleImport = () => {
@@ -392,6 +406,17 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   }
 
   const handleAutoOrganize = () => onChange(autoLayout(nodes, connections), connections)
+
+  const selectedNode = nodes.find(n => n.id === selectedNodeId) || null
+  const relatedConnections = selectedNode
+    ? connections
+        .map(c => {
+          if (c.from === selectedNode.id) return { conn: c, dir: 'out' as const, other: nodes.find(n => n.id === c.to) }
+          if (c.to === selectedNode.id) return { conn: c, dir: 'in' as const, other: nodes.find(n => n.id === c.from) }
+          return null
+        })
+        .filter((r): r is { conn: ArchConnection; dir: 'in' | 'out'; other: ArchNode | undefined } => r !== null)
+    : []
 
   return (
     <div className="space-y-3">
@@ -471,6 +496,94 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
                 <button type="button" onClick={handleImport}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold transition-colors">
                   <Upload size={14} /> Importar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Popup con el detalle del componente seleccionado: click simple (sin arrastrar) en un nodo. */}
+      {selectedNode && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setSelectedNodeId(null) }}
+        >
+          <div className="relative w-full max-w-sm bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${NODE_TYPES[selectedNode.type].color}25` }}>
+                  {(() => {
+                    const SelectedIcon = NODE_TYPES[selectedNode.type].icon
+                    return <SelectedIcon size={15} style={{ color: NODE_TYPES[selectedNode.type].color }} />
+                  })()}
+                </div>
+                <h3 className="text-white font-semibold text-sm truncate">{selectedNode.label || 'Sin nombre'}</h3>
+              </div>
+              <button onClick={() => setSelectedNodeId(null)}
+                className="w-7 h-7 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors flex-shrink-0">
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Nombre</label>
+                <input
+                  type="text"
+                  value={selectedNode.label}
+                  onChange={e => renameNode(selectedNode.id, e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Tipo</label>
+                <select
+                  value={selectedNode.type}
+                  onChange={e => changeNodeType(selectedNode.id, e.target.value as ArchNodeType)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors appearance-none cursor-pointer"
+                >
+                  {(Object.keys(NODE_TYPES) as ArchNodeType[]).map(type => (
+                    <option key={type} value={type}>{NODE_TYPES[type].label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                  Conexiones relacionadas {relatedConnections.length > 0 && `(${relatedConnections.length})`}
+                </label>
+                {relatedConnections.length === 0 ? (
+                  <p className="text-gray-600 text-xs">Sin conexiones todavía. Arrastrá desde el borde derecho del nodo para crear una.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {relatedConnections.map(({ conn, dir, other }) => (
+                      <div key={conn.id} className="flex items-center justify-between gap-2 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2">
+                        <span className="text-xs text-gray-300 truncate flex items-center gap-1.5">
+                          {dir === 'out' ? <ArrowUpRight size={12} className="text-gray-500 flex-shrink-0" /> : <ArrowDownLeft size={12} className="text-gray-500 flex-shrink-0" />}
+                          {other?.label || 'Sin nombre'}
+                        </span>
+                        <button type="button" onClick={() => removeConnection(conn.id)}
+                          className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-3">
+                <button
+                  type="button"
+                  onClick={() => { removeNode(selectedNode.id); setSelectedNodeId(null) }}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                >
+                  <Trash2 size={14} /> Eliminar componente
                 </button>
               </div>
             </div>
