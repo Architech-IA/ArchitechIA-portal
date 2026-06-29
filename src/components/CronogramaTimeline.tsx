@@ -1,6 +1,7 @@
 'use client'
 
-import { CalendarRange } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarRange, X, Trash2 } from 'lucide-react'
 
 export interface FaseCronograma {
   id: string
@@ -9,6 +10,8 @@ export interface FaseCronograma {
   fechaFin: string
   estado: string
 }
+
+const ESTADOS_FASE = ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
 
 const ESTADO_COLOR: Record<string, { bg: string; text: string }> = {
   PENDIENTE: { bg: '#475569', text: '#94a3b8' },
@@ -30,9 +33,24 @@ function fmtTs(ts: number) {
   return fmt(new Date(ts).toISOString().slice(0, 10))
 }
 
-export default function CronogramaTimeline({ fases }: { fases: FaseCronograma[] }) {
+function fmtLarga(d: string) {
+  if (!d) return '—'
+  const date = new Date(d + 'T00:00:00')
+  if (isNaN(date.getTime())) return d
+  return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+interface CronogramaTimelineProps {
+  fases: FaseCronograma[]
+  onUpdate?: (id: string, patch: Partial<FaseCronograma>) => void
+  onRemove?: (id: string) => void
+}
+
+export default function CronogramaTimeline({ fases, onUpdate, onRemove }: CronogramaTimelineProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const completas = fases.filter(f => f.fechaInicio && f.fechaFin)
   const incompletas = fases.length - completas.length
+  const selected = fases.find(f => f.id === selectedId) || null
 
   if (fases.length === 0) {
     return (
@@ -98,7 +116,12 @@ export default function CronogramaTimeline({ fases }: { fases: FaseCronograma[] 
               const widthPct = Math.max(((e - s) / span) * 100, 1.5)
               const color = ESTADO_COLOR[f.estado] || ESTADO_COLOR.PENDIENTE
               return (
-                <div key={f.id} className="flex items-stretch">
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setSelectedId(f.id)}
+                  className="flex items-stretch w-full text-left hover:bg-gray-900/40 transition-colors cursor-pointer"
+                >
                   <div className="w-44 flex-shrink-0 border-r border-gray-800 px-3 py-3 min-w-0">
                     <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
                     <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
@@ -114,7 +137,7 @@ export default function CronogramaTimeline({ fases }: { fases: FaseCronograma[] 
                     ))}
                     <div className="relative h-6">
                       <div
-                        className="absolute top-0 h-6 rounded-md"
+                        className="absolute top-0 h-6 rounded-md hover:brightness-125 transition-[filter]"
                         style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color.bg, boxShadow: `0 0 10px ${color.bg}60` }}
                       />
                       <span
@@ -125,12 +148,82 @@ export default function CronogramaTimeline({ fases }: { fases: FaseCronograma[] 
                       </span>
                     </div>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
         </div>
       </div>
+
+      {/* Popup con el detalle/edición de la fase seleccionada */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setSelectedId(null) }}
+        >
+          <div className="relative w-full max-w-sm bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h3 className="text-white font-semibold text-sm truncate pr-2">{selected.fase || 'Sin nombre'}</h3>
+              <button onClick={() => setSelectedId(null)}
+                className="w-7 h-7 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors flex-shrink-0">
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Estado</label>
+                <select
+                  value={selected.estado}
+                  onChange={e => onUpdate?.(selected.id, { estado: e.target.value })}
+                  disabled={!onUpdate}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60 appearance-none cursor-pointer"
+                >
+                  {ESTADOS_FASE.map(es => <option key={es} value={es}>{es}</option>)}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Inicio</label>
+                  <input
+                    type="date"
+                    value={selected.fechaInicio}
+                    onChange={e => onUpdate?.(selected.id, { fechaInicio: e.target.value })}
+                    disabled={!onUpdate}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Fin</label>
+                  <input
+                    type="date"
+                    value={selected.fechaFin}
+                    onChange={e => onUpdate?.(selected.id, { fechaFin: e.target.value })}
+                    disabled={!onUpdate}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              <p className="text-gray-500 text-xs">
+                {fmtLarga(selected.fechaInicio)} → {fmtLarga(selected.fechaFin)}
+              </p>
+
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => { onRemove(selected.id); setSelectedId(null) }}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                >
+                  <Trash2 size={14} /> Eliminar fase
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -467,7 +467,7 @@ export default function PocDetailPage() {
             </div>
 
             {cronogramaView === 'linea' ? (
-              <CronogramaTimeline fases={fases} />
+              <CronogramaTimeline fases={fases} onUpdate={updateFase} onRemove={removeFase} />
             ) : (
               <>
                 {fases.length === 0 && (
