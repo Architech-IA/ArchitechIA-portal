@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Monitor, Server, Database, Workflow, Brain, Clock, Zap, Globe2, Trash2, Plus, Upload, X, Wand2,
+  ZoomIn, ZoomOut, Maximize,
 } from 'lucide-react'
 
 export interface ArchNode {
@@ -213,6 +214,9 @@ interface ArchitectureCanvasProps {
   onChange: (nodes: ArchNode[], connections: ArchConnection[]) => void
 }
 
+const MIN_SCALE = 0.4
+const MAX_SCALE = 2
+
 export default function ArchitectureCanvas({ nodes, connections, onChange }: ArchitectureCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [dragId, setDragId] = useState<string | null>(null)
@@ -224,6 +228,58 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
   const [hoverConnId, setHoverConnId] = useState<string | null>(null)
+  const [view, setView] = useState({ x: 0, y: 0, scale: 1 })
+  const [panning, setPanning] = useState(false)
+  const panStart = useRef({ x: 0, y: 0, viewX: 0, viewY: 0 })
+
+  const toWorld = useCallback((clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return { x: (clientX - rect.left - view.x) / view.scale, y: (clientY - rect.top - view.y) / view.scale }
+  }, [view])
+
+  const zoomAt = useCallback((factor: number, anchorX?: number, anchorY?: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    const cx = anchorX ?? (rect ? rect.width / 2 : 0)
+    const cy = anchorY ?? (rect ? rect.height / 2 : 0)
+    setView(v => {
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor))
+      const worldX = (cx - v.x) / v.scale
+      const worldY = (cy - v.y) / v.scale
+      return { scale: newScale, x: cx - worldX * newScale, y: cy - worldY * newScale }
+    })
+  }, [])
+
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - rect.left, e.clientY - rect.top)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [zoomAt])
+
+  const fitToView = () => {
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return
+    if (nodes.length === 0) { setView({ x: 0, y: 0, scale: 1 }); return }
+    const minX = Math.min(...nodes.map(n => n.x))
+    const minY = Math.min(...nodes.map(n => n.y))
+    const maxX = Math.max(...nodes.map(n => n.x + NODE_W))
+    const maxY = Math.max(...nodes.map(n => n.y + NODE_H))
+    const pad = 32
+    const contentW = Math.max(maxX - minX, 1)
+    const contentH = Math.max(maxY - minY, 1)
+    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.min((rect.width - pad * 2) / contentW, (rect.height - pad * 2) / contentH, 1)))
+    setView({
+      x: (rect.width - contentW * scale) / 2 - minX * scale,
+      y: (rect.height - contentH * scale) / 2 - minY * scale,
+      scale,
+    })
+  }
 
   const addNode = (type: ArchNodeType) => {
     const idx = nodes.length
@@ -250,52 +306,52 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
   const removeConnection = (id: string) => onChange(nodes, connections.filter(c => c.id !== id))
 
   const onPointerDownNode = (e: React.PointerEvent, node: ArchNode) => {
+    e.stopPropagation()
     if (editingId) return
-    const canvasRect = canvasRef.current?.getBoundingClientRect()
-    if (!canvasRect) return
+    const w = toWorld(e.clientX, e.clientY)
     setDragId(node.id)
-    dragOffset.current = {
-      x: e.clientX - canvasRect.left - node.x,
-      y: e.clientY - canvasRect.top - node.y,
-    }
+    dragOffset.current = { x: w.x - node.x, y: w.y - node.y }
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const startConnection = (e: React.PointerEvent, nodeId: string) => {
     e.stopPropagation()
-    const canvasRect = canvasRef.current?.getBoundingClientRect()
-    if (!canvasRect) return
     setConnectingFrom(nodeId)
-    setCursorPos({ x: e.clientX - canvasRect.left, y: e.clientY - canvasRect.top })
+    setCursorPos(toWorld(e.clientX, e.clientY))
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  const onCanvasPointerDown = (e: React.PointerEvent) => {
+    if (editingId) return
+    panStart.current = { x: e.clientX, y: e.clientY, viewX: view.x, viewY: view.y }
+    setPanning(true)
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    const canvasRect = canvasRef.current?.getBoundingClientRect()
-    if (!canvasRect) return
+    if (panning) {
+      const dx = e.clientX - panStart.current.x
+      const dy = e.clientY - panStart.current.y
+      setView(v => ({ ...v, x: panStart.current.viewX + dx, y: panStart.current.viewY + dy }))
+      return
+    }
     if (connectingFrom) {
-      setCursorPos({ x: e.clientX - canvasRect.left, y: e.clientY - canvasRect.top })
+      setCursorPos(toWorld(e.clientX, e.clientY))
       return
     }
     if (!dragId) return
-    const maxX = canvasRect.width - NODE_W
-    const maxY = canvasRect.height - NODE_H
-    const x = Math.min(Math.max(0, e.clientX - canvasRect.left - dragOffset.current.x), Math.max(0, maxX))
-    const y = Math.min(Math.max(0, e.clientY - canvasRect.top - dragOffset.current.y), Math.max(0, maxY))
-    onChange(nodes.map(n => (n.id === dragId ? { ...n, x, y } : n)), connections)
-  }, [dragId, connectingFrom, nodes, connections, onChange])
+    const w = toWorld(e.clientX, e.clientY)
+    onChange(nodes.map(n => (n.id === dragId ? { ...n, x: w.x - dragOffset.current.x, y: w.y - dragOffset.current.y } : n)), connections)
+  }, [panning, dragId, connectingFrom, nodes, connections, onChange, toWorld])
 
   const onPointerUp = (e: React.PointerEvent) => {
+    if (panning) { setPanning(false); return }
     if (connectingFrom) {
-      const canvasRect = canvasRef.current?.getBoundingClientRect()
-      if (canvasRect) {
-        const px = e.clientX - canvasRect.left
-        const py = e.clientY - canvasRect.top
-        const target = nodes.find(n => n.id !== connectingFrom && px >= n.x && px <= n.x + NODE_W && py >= n.y && py <= n.y + NODE_H)
-        if (target) {
-          const exists = connections.some(c => (c.from === connectingFrom && c.to === target.id) || (c.from === target.id && c.to === connectingFrom))
-          if (!exists) onChange(nodes, [...connections, { id: makeId(), from: connectingFrom, to: target.id }])
-        }
+      const w = toWorld(e.clientX, e.clientY)
+      const target = nodes.find(n => n.id !== connectingFrom && w.x >= n.x && w.x <= n.x + NODE_W && w.y >= n.y && w.y <= n.y + NODE_H)
+      if (target) {
+        const exists = connections.some(c => (c.from === connectingFrom && c.to === target.id) || (c.from === target.id && c.to === connectingFrom))
+        if (!exists) onChange(nodes, [...connections, { id: makeId(), from: connectingFrom, to: target.id }])
       }
       setConnectingFrom(null)
       setCursorPos(null)
@@ -423,134 +479,157 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
         document.body
       )}
 
-      {/* Lienzo */}
+      {/* Lienzo: pan arrastrando el fondo vacío, zoom con la rueda del mouse */}
       <div
         ref={canvasRef}
+        onPointerDown={onCanvasPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         className="relative w-full rounded-xl border border-gray-700 overflow-hidden select-none"
         style={{
           height: 340,
-          background: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px) 0 0 / 18px 18px, #0a0a1c',
+          cursor: panning ? 'grabbing' : 'grab',
+          background: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px) ${view.x}px ${view.y}px / ${18 * view.scale}px ${18 * view.scale}px, #0a0a1c`,
         }}
       >
         {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-gray-600 text-sm">Agrega componentes desde los botones de arriba y arrástralos al lienzo.</p>
           </div>
         )}
 
-        {/* Conexiones */}
-        <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%">
-          <defs>
-            <marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
-            </marker>
-            <marker id="arch-arrow-hover" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#EF4444" />
-            </marker>
-          </defs>
-          {connections.map(c => {
-            const from = nodes.find(n => n.id === c.from)
-            const to = nodes.find(n => n.id === c.to)
-            if (!from || !to) return null
-            const x1 = from.x + NODE_W / 2, y1 = from.y + NODE_H / 2
-            const x2 = to.x + NODE_W / 2, y2 = to.y + NODE_H / 2
-            const hovered = hoverConnId === c.id
+        {/* Contenido del mundo: pan/zoom aplicado vía transform */}
+        <div style={{ position: 'absolute', top: 0, left: 0, transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, transformOrigin: '0 0' }}>
+          {/* Conexiones */}
+          <svg className="absolute pointer-events-none" style={{ left: 0, top: 0, width: 4000, height: 4000, overflow: 'visible' }}>
+            <defs>
+              <marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
+              </marker>
+              <marker id="arch-arrow-hover" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#EF4444" />
+              </marker>
+            </defs>
+            {connections.map(c => {
+              const from = nodes.find(n => n.id === c.from)
+              const to = nodes.find(n => n.id === c.to)
+              if (!from || !to) return null
+              const x1 = from.x + NODE_W / 2, y1 = from.y + NODE_H / 2
+              const x2 = to.x + NODE_W / 2, y2 = to.y + NODE_H / 2
+              const hovered = hoverConnId === c.id
+              return (
+                <g key={c.id}>
+                  <line
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke="transparent" strokeWidth={14}
+                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                    onPointerEnter={() => setHoverConnId(c.id)}
+                    onPointerLeave={() => setHoverConnId(null)}
+                    onClick={() => removeConnection(c.id)}
+                  />
+                  <line
+                    x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={hovered ? '#EF4444' : '#94a3b8'}
+                    strokeWidth={hovered ? 2.5 : 1.5}
+                    markerEnd={hovered ? 'url(#arch-arrow-hover)' : 'url(#arch-arrow)'}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                </g>
+              )
+            })}
+            {connectingFrom && cursorPos && (() => {
+              const from = nodes.find(n => n.id === connectingFrom)
+              if (!from) return null
+              return (
+                <line
+                  x1={from.x + NODE_W / 2} y1={from.y + NODE_H / 2}
+                  x2={cursorPos.x} y2={cursorPos.y}
+                  stroke="#06B6D4" strokeWidth={2} strokeDasharray="4 3"
+                />
+              )
+            })()}
+          </svg>
+
+          {nodes.map(node => {
+            const t = NODE_TYPES[node.type]
+            const isEditing = editingId === node.id
             return (
-              <g key={c.id}>
-                <line
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke="transparent" strokeWidth={14}
-                  style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                  onPointerEnter={() => setHoverConnId(c.id)}
-                  onPointerLeave={() => setHoverConnId(null)}
-                  onClick={() => removeConnection(c.id)}
+              <div
+                key={node.id}
+                onPointerDown={e => onPointerDownNode(e, node)}
+                className="absolute flex items-center gap-2 px-3 py-2.5 rounded-xl shadow-lg cursor-move group"
+                style={{
+                  left: node.x, top: node.y, width: NODE_W, height: NODE_H,
+                  background: 'rgba(20,20,40,0.92)',
+                  border: `1px solid ${t.color}55`,
+                  boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px ${t.color}22`,
+                  touchAction: 'none',
+                }}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${t.color}25` }}>
+                  <t.icon size={14} style={{ color: t.color }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      defaultValue={node.label}
+                      onPointerDown={e => e.stopPropagation()}
+                      onBlur={e => { renameNode(node.id, e.target.value.trim() || t.label); setEditingId(null) }}
+                      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                      className="w-full bg-transparent border-b border-white/20 text-white text-xs font-medium outline-none"
+                    />
+                  ) : (
+                    <p
+                      onDoubleClick={e => { e.stopPropagation(); setEditingId(node.id) }}
+                      className="text-white text-xs font-medium truncate"
+                      title="Doble click para renombrar"
+                    >
+                      {node.label}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-500 truncate">{t.label}</p>
+                </div>
+                <button
+                  type="button"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => removeNode(node.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center flex-shrink-0"
+                >
+                  <Trash2 size={10} className="text-white" />
+                </button>
+                <div
+                  onPointerDown={e => startConnection(e, node.id)}
+                  title="Arrastrá para conectar con otro componente"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-gray-600 hover:bg-cyan-400 border border-gray-900 cursor-crosshair flex-shrink-0"
+                  style={{ touchAction: 'none' }}
                 />
-                <line
-                  x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={hovered ? '#EF4444' : '#94a3b8'}
-                  strokeWidth={hovered ? 2.5 : 1.5}
-                  markerEnd={hovered ? 'url(#arch-arrow-hover)' : 'url(#arch-arrow)'}
-                  style={{ pointerEvents: 'none' }}
-                />
-              </g>
+              </div>
             )
           })}
-          {connectingFrom && cursorPos && (() => {
-            const from = nodes.find(n => n.id === connectingFrom)
-            if (!from) return null
-            return (
-              <line
-                x1={from.x + NODE_W / 2} y1={from.y + NODE_H / 2}
-                x2={cursorPos.x} y2={cursorPos.y}
-                stroke="#06B6D4" strokeWidth={2} strokeDasharray="4 3"
-              />
-            )
-          })()}
-        </svg>
+        </div>
 
-        {nodes.map(node => {
-          const t = NODE_TYPES[node.type]
-          const isEditing = editingId === node.id
-          return (
-            <div
-              key={node.id}
-              onPointerDown={e => onPointerDownNode(e, node)}
-              className="absolute flex items-center gap-2 px-3 py-2.5 rounded-xl shadow-lg cursor-move group"
-              style={{
-                left: node.x, top: node.y, width: NODE_W, height: NODE_H,
-                background: 'rgba(20,20,40,0.92)',
-                border: `1px solid ${t.color}55`,
-                boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px ${t.color}22`,
-                touchAction: 'none',
-              }}
-            >
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: `${t.color}25` }}>
-                <t.icon size={14} style={{ color: t.color }} />
-              </div>
-              <div className="min-w-0 flex-1">
-                {isEditing ? (
-                  <input
-                    autoFocus
-                    defaultValue={node.label}
-                    onPointerDown={e => e.stopPropagation()}
-                    onBlur={e => { renameNode(node.id, e.target.value.trim() || t.label); setEditingId(null) }}
-                    onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                    className="w-full bg-transparent border-b border-white/20 text-white text-xs font-medium outline-none"
-                  />
-                ) : (
-                  <p
-                    onDoubleClick={e => { e.stopPropagation(); setEditingId(node.id) }}
-                    className="text-white text-xs font-medium truncate"
-                    title="Doble click para renombrar"
-                  >
-                    {node.label}
-                  </p>
-                )}
-                <p className="text-[10px] text-gray-500 truncate">{t.label}</p>
-              </div>
-              <button
-                type="button"
-                onPointerDown={e => e.stopPropagation()}
-                onClick={() => removeNode(node.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center flex-shrink-0"
-              >
-                <Trash2 size={10} className="text-white" />
-              </button>
-              <div
-                onPointerDown={e => startConnection(e, node.id)}
-                title="Arrastrá para conectar con otro componente"
-                className="opacity-0 group-hover:opacity-100 transition-opacity absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-gray-600 hover:bg-cyan-400 border border-gray-900 cursor-crosshair flex-shrink-0"
-                style={{ touchAction: 'none' }}
-              />
-            </div>
-          )
-        })}
+        {/* Controles de zoom: fijos, no se mueven con el pan */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 bg-gray-900/90 border border-gray-700 rounded-lg p-1">
+          <button type="button" onClick={() => zoomAt(1 / 1.2)} title="Alejar"
+            className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <ZoomOut size={13} />
+          </button>
+          <span className="text-[10px] text-gray-500 font-mono w-9 text-center select-none">{Math.round(view.scale * 100)}%</span>
+          <button type="button" onClick={() => zoomAt(1.2)} title="Acercar"
+            className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <ZoomIn size={13} />
+          </button>
+          <span className="w-px h-4 bg-gray-700 mx-0.5" />
+          <button type="button" onClick={fitToView} title="Ajustar a la vista"
+            className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <Maximize size={13} />
+          </button>
+        </div>
       </div>
       <p className="text-[11px] text-gray-600">
-        Arrastra los componentes para ubicarlos, doble click para renombrar. Arrastrá desde el punto del borde derecho para conectar dos componentes; click en una flecha para borrarla.
+        Arrastra los componentes para ubicarlos, doble click para renombrar. Arrastrá el fondo vacío para mover la vista, rueda del mouse para zoom. Arrastrá desde el punto del borde derecho para conectar dos componentes; click en una flecha para borrarla.
       </p>
     </div>
   )
