@@ -12,6 +12,7 @@ import ArchitectureCanvas, { type ArchNode } from '@/components/ArchitectureCanv
 import PlanVisualView from '@/components/PlanVisualView'
 import CronogramaTimeline from '@/components/CronogramaTimeline'
 import { extractStepsFromPlan } from '@/lib/planUtils'
+import { useSetPageTitle } from '@/lib/pageTitleContext'
 
 const ESTADOS = ['ACTIVO', 'EN_DESARROLLO', 'PENDIENTE', 'PAUSADO', 'FINALIZADO']
 const ESTADOS_FASE = ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
@@ -84,6 +85,8 @@ export default function PocDetailPage() {
   const [planView, setPlanView] = useState<'markdown' | 'visual'>('visual')
   const [cronogramaView, setCronogramaView] = useState<'lista' | 'linea'>('lista')
   const planFileInputRef = useRef<HTMLInputElement>(null)
+
+  useSetPageTitle(form.nombre || null)
 
   useEffect(() => {
     let cancelled = false

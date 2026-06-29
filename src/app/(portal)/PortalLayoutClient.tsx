@@ -7,6 +7,7 @@ import GlobalSearch from "@/components/GlobalSearch";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { usePageTitleOverride } from "@/lib/pageTitleContext";
 
 type NavItem = { href: string; label: string; icon: string };
 type NavSection = { id: string; label: string; superAdmin?: boolean; items: NavItem[] };
@@ -81,8 +82,9 @@ export default function PortalLayoutClient({
   isSuperAdmin: boolean;
 }) {
   const pathname = usePathname();
+  const { title: pageTitleOverride } = usePageTitleOverride();
 
-  const pageTitle = (() => {
+  const computedTitle = (() => {
     if (pathname === '/') return 'Dashboard';
     if (pathname === '/apps') return 'Mini-Apps Hub';
     if (pathname === '/apps/catalogo') return 'Catálogo de Apps';
@@ -121,6 +123,7 @@ export default function PortalLayoutClient({
       ?.replace(/[-_]/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase()) || 'ArchiTechIA';
   })();
+  const pageTitle = pageTitleOverride || computedTitle;
   const { data: session } = useSession();
   const clientRole = (session?.user as { role?: string })?.role ?? '';
   // Doble capa: server prop O verificación client-side

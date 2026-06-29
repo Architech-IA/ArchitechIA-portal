@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
 import PortalLayoutClient from './PortalLayoutClient';
+import { PageTitleProvider } from '@/lib/pageTitleContext';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -29,8 +30,10 @@ export default async function PortalLayout({ children }: { children: React.React
   const isSuperAdmin = role === 'SUPERADMIN';
 
   return (
-    <PortalLayoutClient isSuperAdmin={isSuperAdmin}>
-      {children}
-    </PortalLayoutClient>
+    <PageTitleProvider>
+      <PortalLayoutClient isSuperAdmin={isSuperAdmin}>
+        {children}
+      </PortalLayoutClient>
+    </PageTitleProvider>
   );
 }
