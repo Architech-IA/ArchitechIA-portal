@@ -241,7 +241,7 @@ export default function PocDetailPage() {
     <div>
       {/* Tabs (con "Volver a Pilots" integrado) — mismo estilo visual que SolutionsTabs */}
       <div className="border-b border-gray-800 px-4 md:px-8">
-        <nav className="flex gap-1 overflow-x-auto">
+        <nav className="flex gap-1 overflow-x-auto overflow-y-hidden">
           <Link
             href="/solutions/pilots"
             className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-400 border-b-2 border-transparent -mb-px hover:text-white transition-colors flex-shrink-0"
@@ -268,7 +268,7 @@ export default function PocDetailPage() {
         </nav>
       </div>
 
-      <div className="p-4 md:p-8 space-y-6 max-w-6xl">
+      <div className="p-4 md:p-8 space-y-6">
       {/* Contenido */}
       <div className="card p-6 md:p-8 space-y-5">
         {/* ── Tab: General ───────────────────────────────────────── */}
