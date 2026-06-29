@@ -268,7 +268,7 @@ export default function PocDetailPage() {
         </nav>
       </div>
 
-      <div className="p-4 md:p-8 space-y-6 max-w-5xl pb-24">
+      <div className="p-4 md:p-8 space-y-6 max-w-5xl">
       {/* Contenido */}
       <div className="card p-6 md:p-8 space-y-5">
         {/* ── Tab: General ───────────────────────────────────────── */}
@@ -541,7 +541,7 @@ export default function PocDetailPage() {
       </div>
 
       {/* Guardar cambios: siempre al final, en cualquier pestaña */}
-      <div className="sticky bottom-4 z-10 flex items-center justify-end gap-3 bg-gray-900/90 backdrop-blur border border-gray-800 rounded-xl px-4 py-3">
+      <div className="flex items-center justify-end gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
         {savedAt && !saving && (
           <p className="text-emerald-400 text-xs">Guardado {new Date(savedAt).toLocaleTimeString('es-CO')}</p>
         )}
