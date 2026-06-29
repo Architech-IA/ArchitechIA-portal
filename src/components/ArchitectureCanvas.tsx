@@ -514,21 +514,38 @@ export default function ArchitectureCanvas({ nodes, connections, onChange }: Arc
               const from = nodes.find(n => n.id === c.from)
               const to = nodes.find(n => n.id === c.to)
               if (!from || !to) return null
-              const x1 = from.x + NODE_W / 2, y1 = from.y + NODE_H / 2
-              const x2 = to.x + NODE_W / 2, y2 = to.y + NODE_H / 2
+
+              // Ruta en escuadra: sale por el borde derecho/izquierdo (no del centro),
+              // y solo dobla en ángulo recto si el destino no está en la misma fila —
+              // evita las diagonales que cruzan el lienzo sin necesidad.
+              const fromCY = from.y + NODE_H / 2
+              const toCY = to.y + NODE_H / 2
+              let x1: number, y1: number, x2: number, y2: number
+              if (to.x >= from.x + NODE_W) {
+                x1 = from.x + NODE_W; y1 = fromCY
+                x2 = to.x; y2 = toCY
+              } else if (to.x + NODE_W <= from.x) {
+                x1 = from.x; y1 = fromCY
+                x2 = to.x + NODE_W; y2 = toCY
+              } else {
+                x1 = from.x + NODE_W / 2; y1 = fromCY
+                x2 = to.x + NODE_W / 2; y2 = toCY
+              }
+              const midX = (x1 + x2) / 2
+              const d = y1 === y2 ? `M${x1},${y1} L${x2},${y2}` : `M${x1},${y1} L${midX},${y1} L${midX},${y2} L${x2},${y2}`
               const hovered = hoverConnId === c.id
               return (
                 <g key={c.id}>
-                  <line
-                    x1={x1} y1={y1} x2={x2} y2={y2}
+                  <path
+                    d={d} fill="none"
                     stroke="transparent" strokeWidth={14}
                     style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
                     onPointerEnter={() => setHoverConnId(c.id)}
                     onPointerLeave={() => setHoverConnId(null)}
                     onClick={() => removeConnection(c.id)}
                   />
-                  <line
-                    x1={x1} y1={y1} x2={x2} y2={y2}
+                  <path
+                    d={d} fill="none"
                     stroke={hovered ? '#EF4444' : '#94a3b8'}
                     strokeWidth={hovered ? 2.5 : 1.5}
                     markerEnd={hovered ? 'url(#arch-arrow-hover)' : 'url(#arch-arrow)'}
