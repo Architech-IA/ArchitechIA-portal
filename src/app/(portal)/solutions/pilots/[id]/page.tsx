@@ -8,7 +8,7 @@ import {
   Loader2, FolderGit2, ExternalLink, Upload, Eye, Code, Wand2, List, BarChart3,
   Trash2, Save, Plus,
 } from 'lucide-react'
-import ArchitectureCanvas, { type ArchNode } from '@/components/ArchitectureCanvas'
+import ArchitectureCanvas, { type ArchNode, type ArchConnection } from '@/components/ArchitectureCanvas'
 import PlanVisualView from '@/components/PlanVisualView'
 import CronogramaTimeline from '@/components/CronogramaTimeline'
 import { extractStepsFromPlan } from '@/lib/planUtils'
@@ -70,6 +70,7 @@ export default function PocDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('general')
   const [form, setForm] = useState<FormState>(emptyForm)
   const [archNodes, setArchNodes] = useState<ArchNode[]>([])
+  const [archConnections, setArchConnections] = useState<ArchConnection[]>([])
   const [fases, setFases] = useState<FaseCronograma[]>([])
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [loadingLeads, setLoadingLeads] = useState(true)
@@ -106,7 +107,19 @@ export default function PocDetailPage() {
           planTrabajo: s.planTrabajo || '',
         })
         setCurrentLeadId(s.leadId || null)
-        try { setArchNodes(s.arquitectura ? JSON.parse(s.arquitectura) : []) } catch { setArchNodes([]) }
+        try {
+          const parsedArch = s.arquitectura ? JSON.parse(s.arquitectura) : null
+          if (Array.isArray(parsedArch)) {
+            setArchNodes(parsedArch)
+            setArchConnections([])
+          } else if (parsedArch && typeof parsedArch === 'object') {
+            setArchNodes(Array.isArray(parsedArch.nodes) ? parsedArch.nodes : [])
+            setArchConnections(Array.isArray(parsedArch.connections) ? parsedArch.connections : [])
+          } else {
+            setArchNodes([])
+            setArchConnections([])
+          }
+        } catch { setArchNodes([]); setArchConnections([]) }
         try { setFases(s.cronograma ? JSON.parse(s.cronograma) : []) } catch { setFases([]) }
       } catch {
         setNotFound(true)
@@ -182,7 +195,7 @@ export default function PocDetailPage() {
           valorEstimado: parseFloat(form.valorEstimado) || 0,
           leadId: form.leadId,
           repositorio: form.repositorio.trim() || null,
-          arquitectura: JSON.stringify(archNodes),
+          arquitectura: JSON.stringify({ nodes: archNodes, connections: archConnections }),
           planTrabajo: form.planTrabajo.trim() || null,
           cronograma: JSON.stringify(fases),
         }),
@@ -389,7 +402,11 @@ export default function PocDetailPage() {
 
         {/* ── Tab: Arquitectura ──────────────────────────────────── */}
         {activeTab === 'arquitectura' && (
-          <ArchitectureCanvas nodes={archNodes} onChange={setArchNodes} />
+          <ArchitectureCanvas
+            nodes={archNodes}
+            connections={archConnections}
+            onChange={(n, c) => { setArchNodes(n); setArchConnections(c) }}
+          />
         )}
 
         {/* ── Tab: Plan de Trabajo ───────────────────────────────── */}

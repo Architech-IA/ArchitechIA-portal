@@ -14,6 +14,12 @@ export interface ArchNode {
   y: number
 }
 
+export interface ArchConnection {
+  id: string
+  from: string
+  to: string
+}
+
 type ArchNodeType = 'frontend' | 'backend' | 'database' | 'api' | 'ia' | 'queue' | 'cache' | 'externo'
 
 const NODE_TYPES: Record<ArchNodeType, { label: string; icon: typeof Monitor; color: string }> = {
@@ -40,7 +46,7 @@ function guessType(label: string): ArchNodeType {
   if (/\b(ia|ai|llm|claude|gpt|openai|modelo)\b/.test(s)) return 'ia'
   if (/\b(cola|queue|job|worker|cron|kafka|sqs|rabbitmq)\b/.test(s)) return 'queue'
   if (/\b(cache|redis|memcache)\b/.test(s)) return 'cache'
-  if (/\b(base de datos|database|postgres|mysql|mongo|sql|db)\b/.test(s)) return 'database'
+  if (/\b(base de datos|database|postgres\w*|mysql|mongo\w*|sql|\bdb\b)/.test(s)) return 'database'
   if (/\bapi\b/.test(s)) return 'api'
   if (/\b(frontend|front|react|next\.?js|vue|ui|cliente|spa|web app)\b/.test(s)) return 'frontend'
   if (/\b(backend|back|server|servidor|node|express|servicio)\b/.test(s)) return 'backend'
@@ -48,39 +54,87 @@ function guessType(label: string): ArchNodeType {
 }
 
 interface ImportItem { label: string; type: ArchNodeType }
+interface ImportEdge { fromIdx: number; toIdx: number }
+interface ImportResult { items: ImportItem[]; edges: ImportEdge[] }
 
-/** Acepta el JSON propio del lienzo (array de nodos con label/type). */
-function parseJsonImport(text: string): ImportItem[] | null {
+/** Acepta el JSON propio del lienzo: { nodes, connections } (formato completo) o un array plano legado. */
+function parseJsonImport(text: string): ImportResult | null {
   let data: unknown
   try { data = JSON.parse(text) } catch { return null }
-  if (!Array.isArray(data)) return null
-  const items: ImportItem[] = data
-    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && typeof item.label === 'string')
-    .map(item => {
-      const label = String(item.label).trim()
-      const rawType = item.type
-      const type = typeof rawType === 'string' && rawType in NODE_TYPES ? (rawType as ArchNodeType) : guessType(label)
-      return { label, type }
+
+  if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray((data as Record<string, unknown>).nodes)) {
+    const rawNodes = (data as Record<string, unknown>).nodes as Record<string, unknown>[]
+    const rawConns = Array.isArray((data as Record<string, unknown>).connections)
+      ? (data as Record<string, unknown>).connections as Record<string, unknown>[]
+      : []
+    const idToIndex = new Map<string, number>()
+    const items: ImportItem[] = []
+    rawNodes.forEach(n => {
+      if (typeof n.label !== 'string') return
+      const label = n.label.trim()
+      if (!label) return
+      const type = typeof n.type === 'string' && n.type in NODE_TYPES ? (n.type as ArchNodeType) : guessType(label)
+      if (typeof n.id === 'string') idToIndex.set(n.id, items.length)
+      items.push({ label, type })
     })
-    .filter(item => item.label)
-  return items.length > 0 ? items : null
+    const edges: ImportEdge[] = rawConns
+      .map(c => ({ fromIdx: idToIndex.get(String(c.from)), toIdx: idToIndex.get(String(c.to)) }))
+      .filter((e): e is ImportEdge => e.fromIdx !== undefined && e.toIdx !== undefined && e.fromIdx !== e.toIdx)
+    return items.length > 0 ? { items, edges } : null
+  }
+
+  if (Array.isArray(data)) {
+    const items: ImportItem[] = data
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && typeof item.label === 'string')
+      .map(item => {
+        const label = String(item.label).trim()
+        const rawType = item.type
+        const type = typeof rawType === 'string' && rawType in NODE_TYPES ? (rawType as ArchNodeType) : guessType(label)
+        return { label, type }
+      })
+      .filter(item => item.label)
+    return items.length > 0 ? { items, edges: [] } : null
+  }
+
+  return null
 }
 
-/** Extrae los nodos definidos en un diagrama Mermaid (flowchart/graph): A[Label], B(Label), C{Label}, D((Label)), etc. */
-function parseMermaidImport(text: string): ImportItem[] | null {
-  const re = /([A-Za-z_][\w-]*)\s*(?:\(\(|\[\(|\[\[|\{\{|[[({>])\s*"?([^"\]})]+?)"?\s*(?:\)\)|\)\]|\]\]|\}\}|[\])}])/g
-  const seen = new Map<string, string>()
+/** Extrae nodos (A[Label], B(Label), C{Label}, D((Label)), etc.) y flechas (A --> B) de un diagrama Mermaid. */
+function parseMermaidImport(text: string): ImportResult | null {
+  const nodeRe = /([A-Za-z_][\w-]*)\s*(?:\(\(|\[\(|\[\[|\{\{|[[({>])\s*"?([^"\]})]+?)"?\s*(?:\)\)|\)\]|\]\]|\}\}|[\])}])/g
+  const idToIndex = new Map<string, number>()
+  const items: ImportItem[] = []
   let m: RegExpExecArray | null
-  while ((m = re.exec(text))) {
+  while ((m = nodeRe.exec(text))) {
     const id = m[1]
     const label = m[2].trim()
-    if (label && !seen.has(id)) seen.set(id, label)
+    if (label && !idToIndex.has(id)) {
+      idToIndex.set(id, items.length)
+      items.push({ label, type: guessType(label) })
+    }
   }
-  if (seen.size === 0) return null
-  return Array.from(seen.values()).map(label => ({ label, type: guessType(label) }))
+  if (items.length === 0) return null
+
+  const edgeRe = /([A-Za-z_][\w-]*)\s*(?:-->|---|==>|-\.->|-\.-)\s*(?:\|[^|]*\|\s*)?([A-Za-z_][\w-]*)/g
+  const edges: ImportEdge[] = []
+  let e: RegExpExecArray | null
+  while ((e = edgeRe.exec(text))) {
+    const fromIdx = idToIndex.get(e[1])
+    const toIdx = idToIndex.get(e[2])
+    if (fromIdx !== undefined && toIdx !== undefined && fromIdx !== toIdx) {
+      edges.push({ fromIdx, toIdx })
+    }
+  }
+  return { items, edges }
 }
 
-export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNode[]; onChange: (nodes: ArchNode[]) => void }) {
+interface ArchitectureCanvasProps {
+  nodes: ArchNode[]
+  connections: ArchConnection[]
+  onChange: (nodes: ArchNode[], connections: ArchConnection[]) => void
+}
+
+export default function ArchitectureCanvas({ nodes, connections, onChange }: ArchitectureCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [dragId, setDragId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -88,6 +142,9 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
   const [showImport, setShowImport] = useState(false)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState('')
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
+  const [hoverConnId, setHoverConnId] = useState<string | null>(null)
 
   const addNode = (type: ArchNodeType) => {
     const idx = nodes.length
@@ -102,13 +159,16 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
         x: 16 + col * (NODE_W + 16),
         y: 16 + row * (NODE_H + 16),
       },
-    ])
+    ], connections)
   }
 
-  const removeNode = (id: string) => onChange(nodes.filter(n => n.id !== id))
+  const removeNode = (id: string) =>
+    onChange(nodes.filter(n => n.id !== id), connections.filter(c => c.from !== id && c.to !== id))
 
   const renameNode = (id: string, label: string) =>
-    onChange(nodes.map(n => (n.id === id ? { ...n, label } : n)))
+    onChange(nodes.map(n => (n.id === id ? { ...n, label } : n)), connections)
+
+  const removeConnection = (id: string) => onChange(nodes, connections.filter(c => c.id !== id))
 
   const onPointerDownNode = (e: React.PointerEvent, node: ArchNode) => {
     if (editingId) return
@@ -122,41 +182,73 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragId) return
+  const startConnection = (e: React.PointerEvent, nodeId: string) => {
+    e.stopPropagation()
     const canvasRect = canvasRef.current?.getBoundingClientRect()
     if (!canvasRect) return
+    setConnectingFrom(nodeId)
+    setCursorPos({ x: e.clientX - canvasRect.left, y: e.clientY - canvasRect.top })
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    const canvasRect = canvasRef.current?.getBoundingClientRect()
+    if (!canvasRect) return
+    if (connectingFrom) {
+      setCursorPos({ x: e.clientX - canvasRect.left, y: e.clientY - canvasRect.top })
+      return
+    }
+    if (!dragId) return
     const maxX = canvasRect.width - NODE_W
     const maxY = canvasRect.height - NODE_H
     const x = Math.min(Math.max(0, e.clientX - canvasRect.left - dragOffset.current.x), Math.max(0, maxX))
     const y = Math.min(Math.max(0, e.clientY - canvasRect.top - dragOffset.current.y), Math.max(0, maxY))
-    onChange(nodes.map(n => (n.id === dragId ? { ...n, x, y } : n)))
-  }, [dragId, nodes, onChange])
+    onChange(nodes.map(n => (n.id === dragId ? { ...n, x, y } : n)), connections)
+  }, [dragId, connectingFrom, nodes, connections, onChange])
 
-  const onPointerUp = () => setDragId(null)
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (connectingFrom) {
+      const canvasRect = canvasRef.current?.getBoundingClientRect()
+      if (canvasRect) {
+        const px = e.clientX - canvasRect.left
+        const py = e.clientY - canvasRect.top
+        const target = nodes.find(n => n.id !== connectingFrom && px >= n.x && px <= n.x + NODE_W && py >= n.y && py <= n.y + NODE_H)
+        if (target) {
+          const exists = connections.some(c => (c.from === connectingFrom && c.to === target.id) || (c.from === target.id && c.to === connectingFrom))
+          if (!exists) onChange(nodes, [...connections, { id: makeId(), from: connectingFrom, to: target.id }])
+        }
+      }
+      setConnectingFrom(null)
+      setCursorPos(null)
+      return
+    }
+    setDragId(null)
+  }
 
   const handleImport = () => {
     const text = importText.trim()
     if (!text) { setImportError('Pegá un JSON o un diagrama Mermaid primero.'); return }
-    const items = parseJsonImport(text) || parseMermaidImport(text)
-    if (!items) {
+    const result = parseJsonImport(text) || parseMermaidImport(text)
+    if (!result) {
       setImportError('No se detectaron componentes. Pegá el JSON exportado del lienzo o un diagrama Mermaid (flowchart/graph).')
       return
     }
     const startIdx = nodes.length
-    const newNodes: ArchNode[] = items.map((item, i) => {
+    const newIds: string[] = []
+    const newNodes: ArchNode[] = result.items.map((item, i) => {
       const idx = startIdx + i
       const col = idx % 4
       const row = Math.floor(idx / 4)
-      return {
-        id: makeId(),
-        label: item.label,
-        type: item.type,
-        x: 16 + col * (NODE_W + 16),
-        y: 16 + row * (NODE_H + 16),
-      }
+      const id = makeId()
+      newIds.push(id)
+      return { id, label: item.label, type: item.type, x: 16 + col * (NODE_W + 16), y: 16 + row * (NODE_H + 16) }
     })
-    onChange([...nodes, ...newNodes])
+    const newConnections: ArchConnection[] = result.edges.map(e => ({
+      id: makeId(),
+      from: newIds[e.fromIdx],
+      to: newIds[e.toIdx],
+    }))
+    onChange([...nodes, ...newNodes], [...connections, ...newConnections])
     setShowImport(false)
     setImportText('')
     setImportError('')
@@ -212,7 +304,7 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
             </div>
             <div className="p-5 space-y-3">
               <p className="text-gray-500 text-xs">
-                Pegá el <strong className="text-gray-300">JSON</strong> exportado de otro lienzo, o un diagrama <strong className="text-gray-300">Mermaid</strong> (flowchart/graph) — se agregan como componentes nuevos al lienzo actual.
+                Pegá el <strong className="text-gray-300">JSON</strong> exportado de otro lienzo, o un diagrama <strong className="text-gray-300">Mermaid</strong> (flowchart/graph) — se agregan como componentes nuevos al lienzo actual, junto con sus flechas.
               </p>
               <textarea
                 autoFocus
@@ -255,6 +347,56 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
             <p className="text-gray-600 text-sm">Agrega componentes desde los botones de arriba y arrástralos al lienzo.</p>
           </div>
         )}
+
+        {/* Conexiones */}
+        <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%">
+          <defs>
+            <marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
+            </marker>
+            <marker id="arch-arrow-hover" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#EF4444" />
+            </marker>
+          </defs>
+          {connections.map(c => {
+            const from = nodes.find(n => n.id === c.from)
+            const to = nodes.find(n => n.id === c.to)
+            if (!from || !to) return null
+            const x1 = from.x + NODE_W / 2, y1 = from.y + NODE_H / 2
+            const x2 = to.x + NODE_W / 2, y2 = to.y + NODE_H / 2
+            const hovered = hoverConnId === c.id
+            return (
+              <g key={c.id}>
+                <line
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke="transparent" strokeWidth={14}
+                  style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                  onPointerEnter={() => setHoverConnId(c.id)}
+                  onPointerLeave={() => setHoverConnId(null)}
+                  onClick={() => removeConnection(c.id)}
+                />
+                <line
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke={hovered ? '#EF4444' : '#94a3b8'}
+                  strokeWidth={hovered ? 2.5 : 1.5}
+                  markerEnd={hovered ? 'url(#arch-arrow-hover)' : 'url(#arch-arrow)'}
+                  style={{ pointerEvents: 'none' }}
+                />
+              </g>
+            )
+          })}
+          {connectingFrom && cursorPos && (() => {
+            const from = nodes.find(n => n.id === connectingFrom)
+            if (!from) return null
+            return (
+              <line
+                x1={from.x + NODE_W / 2} y1={from.y + NODE_H / 2}
+                x2={cursorPos.x} y2={cursorPos.y}
+                stroke="#06B6D4" strokeWidth={2} strokeDasharray="4 3"
+              />
+            )
+          })()}
+        </svg>
 
         {nodes.map(node => {
           const t = NODE_TYPES[node.type]
@@ -305,11 +447,19 @@ export default function ArchitectureCanvas({ nodes, onChange }: { nodes: ArchNod
               >
                 <Trash2 size={10} className="text-white" />
               </button>
+              <div
+                onPointerDown={e => startConnection(e, node.id)}
+                title="Arrastrá para conectar con otro componente"
+                className="opacity-0 group-hover:opacity-100 transition-opacity absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-gray-600 hover:bg-cyan-400 border border-gray-900 cursor-crosshair flex-shrink-0"
+                style={{ touchAction: 'none' }}
+              />
             </div>
           )
         })}
       </div>
-      <p className="text-[11px] text-gray-600">Arrastra los componentes para ubicarlos, doble click para renombrar.</p>
+      <p className="text-[11px] text-gray-600">
+        Arrastra los componentes para ubicarlos, doble click para renombrar. Arrastrá desde el punto del borde derecho para conectar dos componentes; click en una flecha para borrarla.
+      </p>
     </div>
   )
 }
