@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Sliders, LayoutGrid, FileText, Calendar, Code2,
   Loader2, FolderGit2, ExternalLink, Upload, Eye, Code, Wand2, List, BarChart3,
-  Trash2, Save, Plus,
+  Trash2, Save, Plus, ListPlus,
 } from 'lucide-react'
 import ArchitectureCanvas, { type ArchNode, type ArchConnection } from '@/components/ArchitectureCanvas'
 import PlanVisualView from '@/components/PlanVisualView'
@@ -30,6 +30,13 @@ interface FaseCronograma {
   fechaInicio: string
   fechaFin: string
   estado: string
+  backlogItemId?: string
+}
+
+const ESTADO_A_BACKLOG: Record<string, string> = {
+  PENDIENTE: 'BACKLOG',
+  EN_CURSO: 'IN_PROGRESS',
+  COMPLETADA: 'DONE',
 }
 
 interface FormState {
@@ -80,6 +87,7 @@ export default function PocDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [savedAt, setSavedAt] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [cargandoBacklogMasivo, setCargandoBacklogMasivo] = useState(false)
 
   const [draggingPlan, setDraggingPlan] = useState(false)
   const [planFileError, setPlanFileError] = useState('')
@@ -172,6 +180,36 @@ export default function PocDetailPage() {
     if (fases.length > 0 && !window.confirm(`Esto va a reemplazar las ${fases.length} fase(s) actuales por ${steps.length} fase(s) extraídas del plan. ¿Continuar?`)) return
     setError('')
     setFases(steps.map(s => ({ id: makeId(), fase: s, fechaInicio: '', fechaFin: '', estado: 'PENDIENTE' })))
+  }
+
+  async function cargarTodasAlBacklog() {
+    const pendientes = fases.filter(f => !f.backlogItemId)
+    if (pendientes.length === 0) return
+    if (!window.confirm(`Esto va a crear ${pendientes.length} tarea(s) nueva(s) en el Backlog (las que ya estén cargadas se omiten). ¿Continuar?`)) return
+    setCargandoBacklogMasivo(true)
+    setError('')
+    try {
+      for (const f of pendientes) {
+        const res = await fetch('/api/backlog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: f.fase || 'Sin nombre',
+            solucionId: id,
+            type: 'TASK',
+            priority: 'MEDIUM',
+            status: ESTADO_A_BACKLOG[f.estado] || 'BACKLOG',
+          }),
+        })
+        if (!res.ok) continue
+        const created = await res.json()
+        updateFase(f.id, { backlogItemId: created.id })
+      }
+    } catch {
+      setError('Hubo un error cargando algunas fases al backlog.')
+    } finally {
+      setCargandoBacklogMasivo(false)
+    }
   }
 
   function handleLeadChange(leadId: string) {
@@ -471,20 +509,27 @@ export default function PocDetailPage() {
         {activeTab === 'cronograma' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5">
+              <div className="flex items-center gap-0.5 bg-gray-800 border border-gray-700 rounded-lg p-0.5">
                 <button type="button" onClick={() => setCronogramaView('lista')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${cronogramaView === 'lista' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${cronogramaView === 'lista' ? 'bg-cyan-600 text-white' : 'text-gray-300 hover:text-white'}`}>
                   <List size={12} /> Lista
                 </button>
                 <button type="button" onClick={() => setCronogramaView('linea')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${cronogramaView === 'linea' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${cronogramaView === 'linea' ? 'bg-cyan-600 text-white' : 'text-gray-300 hover:text-white'}`}>
                   <BarChart3 size={12} /> Línea de tiempo
                 </button>
               </div>
-              <button type="button" onClick={generarCronogramaDesdePlan} disabled={saving}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs font-medium transition-colors disabled:opacity-50">
-                <Wand2 size={12} /> Generar desde el Plan
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={cargarTodasAlBacklog} disabled={cargandoBacklogMasivo || fases.length === 0}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-200 hover:text-white text-xs font-medium transition-colors disabled:opacity-50">
+                  {cargandoBacklogMasivo ? <Loader2 size={12} className="animate-spin" /> : <ListPlus size={12} />}
+                  {cargandoBacklogMasivo ? 'Cargando…' : 'Agregar todas al backlog'}
+                </button>
+                <button type="button" onClick={generarCronogramaDesdePlan} disabled={saving}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-200 hover:text-white text-xs font-medium transition-colors disabled:opacity-50">
+                  <Wand2 size={12} /> Generar desde el Plan
+                </button>
+              </div>
             </div>
 
             {cronogramaView === 'linea' ? (
