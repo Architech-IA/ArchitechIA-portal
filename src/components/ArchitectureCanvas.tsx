@@ -136,26 +136,28 @@ function parseMermaidImport(text: string): ImportResult | null {
 function autoLayout(nodes: ArchNode[], connections: ArchConnection[]): ArchNode[] {
   if (nodes.length === 0) return nodes
   const ids = new Set(nodes.map(n => n.id))
-  const children = new Map<string, string[]>()
+  const childrenMap = new Map<string, string[]>()
+  const parentsMap = new Map<string, string[]>()
   const inDegree = new Map<string, number>()
-  nodes.forEach(n => { children.set(n.id, []); inDegree.set(n.id, 0) })
+  nodes.forEach(n => { childrenMap.set(n.id, []); parentsMap.set(n.id, []); inDegree.set(n.id, 0) })
   connections.forEach(c => {
     if (!ids.has(c.from) || !ids.has(c.to) || c.from === c.to) return
-    children.get(c.from)!.push(c.to)
+    childrenMap.get(c.from)!.push(c.to)
+    parentsMap.get(c.to)!.push(c.from)
     inDegree.set(c.to, (inDegree.get(c.to) || 0) + 1)
   })
 
+  // 1) Nivel (columna) de cada nodo por BFS desde las raíces: izquierda = sin entradas.
   const level = new Map<string, number>()
   const queue: string[] = []
   nodes.forEach(n => { if ((inDegree.get(n.id) || 0) === 0) { level.set(n.id, 0); queue.push(n.id) } })
   if (queue.length === 0) { level.set(nodes[0].id, 0); queue.push(nodes[0].id) }
-
   let qi = 0
   const guard = nodes.length * 6 + 10
   while (qi < queue.length && qi < guard) {
     const id = queue[qi++]
     const lvl = level.get(id) ?? 0
-    for (const childId of children.get(id) || []) {
+    for (const childId of childrenMap.get(id) || []) {
       if ((level.get(childId) ?? -1) < lvl + 1) {
         level.set(childId, lvl + 1)
         queue.push(childId)
@@ -164,20 +166,42 @@ function autoLayout(nodes: ArchNode[], connections: ArchConnection[]): ArchNode[
   }
   nodes.forEach(n => { if (!level.has(n.id)) level.set(n.id, 0) })
 
-  const byLevel = new Map<number, string[]>()
-  nodes.forEach(n => {
-    const lvl = level.get(n.id)!
-    if (!byLevel.has(lvl)) byLevel.set(lvl, [])
-    byLevel.get(lvl)!.push(n.id)
-  })
+  const maxLevel = Math.max(...Array.from(level.values()))
+  const levels: string[][] = Array.from({ length: maxLevel + 1 }, () => [])
+  nodes.forEach(n => levels[level.get(n.id)!].push(n.id))
 
-  const GAP_X = NODE_W + 28
-  const GAP_Y = NODE_H + 44
+  // 2) Reducir cruces: orden dentro de cada columna según la posición promedio
+  //    de sus vecinos en la columna adyacente (heurística de "barycenter").
+  const order = new Map<string, number>()
+  levels.forEach(col => col.forEach((id, i) => order.set(id, i)))
+
+  const sweep = (neighborsOf: Map<string, string[]>, from: number, to: number, step: number) => {
+    for (let li = from; step > 0 ? li <= to : li >= to; li += step) {
+      const scored = levels[li].map(id => {
+        const positions = (neighborsOf.get(id) || [])
+          .map(nb => order.get(nb))
+          .filter((p): p is number => p !== undefined)
+        const score = positions.length > 0
+          ? positions.reduce((a, b) => a + b, 0) / positions.length
+          : order.get(id)!
+        return { id, score }
+      })
+      scored.sort((a, b) => a.score - b.score)
+      levels[li] = scored.map(s => s.id)
+      levels[li].forEach((id, i) => order.set(id, i))
+    }
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    if (levels.length > 1) sweep(parentsMap, 1, levels.length - 1, 1)
+    if (levels.length > 1) sweep(childrenMap, levels.length - 2, 0, -1)
+  }
+
+  // 3) Posicionar: nivel = columna (x), orden = fila (y) -> flujo de izquierda a derecha.
+  const GAP_X = NODE_W + 36
+  const GAP_Y = NODE_H + 24
   const positioned = new Map<string, { x: number; y: number }>()
-  Array.from(byLevel.keys()).sort((a, b) => a - b).forEach((lvl, rowIdx) => {
-    byLevel.get(lvl)!.forEach((id, colIdx) => {
-      positioned.set(id, { x: 16 + colIdx * GAP_X, y: 16 + rowIdx * GAP_Y })
-    })
+  levels.forEach((col, li) => {
+    col.forEach((id, idx) => positioned.set(id, { x: 16 + li * GAP_X, y: 16 + idx * GAP_Y }))
   })
 
   return nodes.map(n => ({ ...n, ...positioned.get(n.id)! }))
