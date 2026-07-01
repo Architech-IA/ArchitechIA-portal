@@ -67,6 +67,7 @@ model Solucion {
   valorEstimado Float         @default(0)
   repositorio   String?
   arquitectura  String?       @default("[]") // JSON: nodos del lienzo de arquitectura
+  arquitecturaHtml String?    // HTML del diagrama de arquitectura importado
   planTrabajo   String?       // Markdown/texto libre del plan de trabajo
   cronograma    String?       @default("[]") // JSON: [{ fase, fechaInicio, fechaFin, estado }]
   leadId        String?       @unique
