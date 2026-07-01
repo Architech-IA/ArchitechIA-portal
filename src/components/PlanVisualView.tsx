@@ -1,10 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronDown, ListChecks } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ChevronDown, ListChecks, X, Copy, Check, Terminal, ChevronRight } from 'lucide-react'
 
 interface Seccion {
   title: string
+  body: string
+}
+
+interface SesionCard {
+  numero: string
+  titulo: string
   body: string
 }
 
@@ -35,6 +42,38 @@ function parsePlan(md: string): { titulo: string; secciones: Seccion[] } {
   return { titulo, secciones }
 }
 
+function parseSesionesSection(body: string): { intro: string; sesiones: SesionCard[] } {
+  const lines = body.split('\n')
+  let intro = ''
+  let current: SesionCard | null = null
+  const sesiones: SesionCard[] = []
+  let inIntro = true
+
+  for (const line of lines) {
+    const h3 = line.match(/^###\s+Sesión\s+(\d+)\s*[—\-]+\s*(.+)/)
+    if (h3) {
+      if (current) sesiones.push(current)
+      current = { numero: h3[1], titulo: h3[2].trim(), body: '' }
+      inIntro = false
+      continue
+    }
+    if (inIntro) intro += line + '\n'
+    else if (current) current.body += line + '\n'
+  }
+  if (current) sesiones.push(current)
+  return { intro, sesiones }
+}
+
+function extractObjetivo(body: string): string {
+  const match = body.match(/\*\*Objetivo\*\*\s*:\s*([^\n]+)/)
+  return match ? match[1].trim() : ''
+}
+
+function extractPrompt(body: string): string {
+  const match = body.match(/\*\*Prompt de inicio\*\*[^`]*```[^\n]*\n([\s\S]*?)```/)
+  return match ? match[1].trim() : ''
+}
+
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const parts: React.ReactNode[] = []
   const regex = /(\*\*([^*]+)\*\*|`([^`]+)`)/g
@@ -54,12 +93,8 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return parts
 }
 
-interface Segment {
-  type: 'code' | 'text'
-  content: string
-}
+interface Segment { type: 'code' | 'text'; content: string }
 
-/** Separa bloques ```fenced``` (preservando indentación/saltos de línea) del resto del texto normal. */
 function splitFences(body: string): Segment[] {
   const lines = body.split('\n')
   const segments: Segment[] = []
@@ -89,51 +124,51 @@ function splitFences(body: string): Segment[] {
 }
 
 function renderTextBlock(block: string, blockKey: string) {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
-    const isList = lines.length > 0 && lines.every(l => /^[-*]\s+/.test(l))
-    const isOrdered = lines.length > 0 && lines.every(l => /^\d+\.\s+/.test(l))
+  const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
+  const isList = lines.length > 0 && lines.every(l => /^[-*]\s+/.test(l))
+  const isOrdered = lines.length > 0 && lines.every(l => /^\d+\.\s+/.test(l))
 
-    if (isList) {
-      return (
-        <ul key={blockKey} className="space-y-1.5 my-2">
-          {lines.map((l, li) => (
-            <li key={li} className="flex gap-2 text-sm text-gray-300">
-              <span className="mt-2 w-1 h-1 rounded-full bg-cyan-500 flex-shrink-0" />
-              <span>{renderInline(l.replace(/^[-*]\s+/, ''), `${blockKey}-${li}`)}</span>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    if (isOrdered) {
-      return (
-        <ol key={blockKey} className="space-y-1.5 my-2">
-          {lines.map((l, li) => (
-            <li key={li} className="flex gap-2 text-sm text-gray-300">
-              <span className="text-cyan-400 font-mono text-xs flex-shrink-0 mt-0.5">{li + 1}.</span>
-              <span>{renderInline(l.replace(/^\d+\.\s+/, ''), `${blockKey}-${li}`)}</span>
-            </li>
-          ))}
-        </ol>
-      )
-    }
-
-    const subHeader = lines[0]?.match(/^###\s+(.*)/)
-    if (subHeader) {
-      const rest = lines.slice(1).join(' ')
-      return (
-        <div key={blockKey} className="my-2.5">
-          <p className="text-cyan-300 text-[11px] font-semibold uppercase tracking-wide mb-1">{subHeader[1]}</p>
-          {rest && <p className="text-sm text-gray-300 leading-relaxed">{renderInline(rest, `${blockKey}-r`)}</p>}
-        </div>
-      )
-    }
-
+  if (isList) {
     return (
-      <p key={blockKey} className="text-sm text-gray-300 leading-relaxed my-2">
-        {renderInline(lines.join(' '), blockKey)}
-      </p>
+      <ul key={blockKey} className="space-y-1.5 my-2">
+        {lines.map((l, li) => (
+          <li key={li} className="flex gap-2 text-sm text-gray-300">
+            <span className="mt-2 w-1 h-1 rounded-full bg-cyan-500 flex-shrink-0" />
+            <span>{renderInline(l.replace(/^[-*]\s+/, ''), `${blockKey}-${li}`)}</span>
+          </li>
+        ))}
+      </ul>
     )
+  }
+  if (isOrdered) {
+    return (
+      <ol key={blockKey} className="space-y-1.5 my-2">
+        {lines.map((l, li) => (
+          <li key={li} className="flex gap-2 text-sm text-gray-300">
+            <span className="text-cyan-400 font-mono text-xs flex-shrink-0 mt-0.5">{li + 1}.</span>
+            <span>{renderInline(l.replace(/^\d+\.\s+/, ''), `${blockKey}-${li}`)}</span>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+
+  const subHeader = lines[0]?.match(/^###\s+(.*)/)
+  if (subHeader) {
+    const rest = lines.slice(1).join(' ')
+    return (
+      <div key={blockKey} className="my-2.5">
+        <p className="text-cyan-300 text-[11px] font-semibold uppercase tracking-wide mb-1">{subHeader[1]}</p>
+        {rest && <p className="text-sm text-gray-300 leading-relaxed">{renderInline(rest, `${blockKey}-r`)}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <p key={blockKey} className="text-sm text-gray-300 leading-relaxed my-2">
+      {renderInline(lines.join(' '), blockKey)}
+    </p>
+  )
 }
 
 function renderBody(body: string, keyPrefix: string) {
@@ -155,6 +190,114 @@ function renderBody(body: string, keyPrefix: string) {
     const blocks = seg.content.trim().split(/\n\s*\n/).filter(Boolean)
     return blocks.map((block, bi) => renderTextBlock(block, `${segKey}-b${bi}`))
   })
+}
+
+function SesionPopup({ sesion, onClose }: { sesion: SesionCard; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const prompt = useMemo(() => extractPrompt(sesion.body), [sesion.body])
+
+  function copyPrompt() {
+    if (!prompt) return
+    navigator.clipboard.writeText(prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-800 flex-shrink-0">
+          <span className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/25 text-cyan-300 text-sm font-bold flex items-center justify-center flex-shrink-0">
+            {sesion.numero}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Sesión {sesion.numero}</p>
+            <h3 className="text-white font-semibold text-sm leading-tight">{sesion.titulo}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors flex-shrink-0"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Copy prompt bar */}
+        {prompt && (
+          <div className="flex items-center gap-2.5 px-5 py-2.5 bg-cyan-950/40 border-b border-cyan-800/30 flex-shrink-0">
+            <Terminal size={13} className="text-cyan-400 flex-shrink-0" />
+            <span className="text-xs text-cyan-300/80 flex-1">Prompt listo para iniciar esta sesión en Claude Code</span>
+            <button
+              onClick={copyPrompt}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/25 transition-colors flex-shrink-0"
+            >
+              {copied ? <Check size={11} /> : <Copy size={11} />}
+              {copied ? 'Copiado' : 'Copiar prompt'}
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {renderBody(sesion.body, `pop-${sesion.numero}`)}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function SesionesView({ body, sectionIndex }: { body: string; sectionIndex: number }) {
+  const { intro, sesiones } = useMemo(() => parseSesionesSection(body), [body])
+  const [selected, setSelected] = useState<SesionCard | null>(null)
+
+  return (
+    <div>
+      {/* Intro text */}
+      {intro.trim() && (
+        <div className="mb-4">
+          {renderBody(intro, `ses-intro-${sectionIndex}`)}
+        </div>
+      )}
+
+      {/* Session cards grid */}
+      <div className="space-y-2">
+        {sesiones.map((s) => {
+          const objetivo = extractObjetivo(s.body)
+          return (
+            <button
+              key={s.numero}
+              type="button"
+              onClick={() => setSelected(s)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 hover:border-cyan-700/50 hover:bg-gray-900/80 transition-all text-left group"
+            >
+              <span className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+                {s.numero}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white leading-tight truncate">Sesión {s.numero} — {s.titulo}</p>
+                {objetivo && (
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{objetivo}</p>
+                )}
+              </div>
+              <ChevronRight size={14} className="text-gray-600 group-hover:text-cyan-400 transition-colors flex-shrink-0" />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Popup */}
+      {selected && (
+        <SesionPopup sesion={selected} onClose={() => setSelected(null)} />
+      )}
+    </div>
+  )
 }
 
 export default function PlanVisualView({ markdown }: { markdown: string }) {
@@ -182,6 +325,7 @@ export default function PlanVisualView({ markdown }: { markdown: string }) {
       )}
       {secciones.map((s, i) => {
         const isOpen = !!open[i]
+        const isSesiones = s.title.toLowerCase().includes('sesiones de trabajo')
         return (
           <div key={i} className="bg-gray-950 border border-gray-700 rounded-xl overflow-hidden">
             <button
@@ -203,7 +347,10 @@ export default function PlanVisualView({ markdown }: { markdown: string }) {
             </button>
             {isOpen && (
               <div className="px-4 pb-4 pt-0.5 border-t border-gray-800/60">
-                {renderBody(s.body, `s${i}`)}
+                {isSesiones
+                  ? <SesionesView body={s.body} sectionIndex={i} />
+                  : renderBody(s.body, `s${i}`)
+                }
               </div>
             )}
           </div>
