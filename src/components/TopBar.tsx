@@ -158,7 +158,7 @@ export default function TopBar({
 
   return (
     <div
-      className=”h-11 flex items-center px-4 gap-3 print:hidden”
+      className="h-11 flex items-center px-4 gap-3 print:hidden"
       style={{
         background:          'rgba(8,8,26,0.97)',
         backdropFilter:      'blur(20px)',
@@ -168,11 +168,11 @@ export default function TopBar({
     >
       {/* Logo ⚡ */}
       <div
-        className=”w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0”
+        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', boxShadow: '0 0 10px rgba(124,58,237,0.45)' }}
       >
-        <svg className=”w-3.5 h-3.5 text-white” fill=”none” stroke=”currentColor” viewBox=”0 0 24 24”>
-          <path strokeLinecap=”round” strokeLinejoin=”round” strokeWidth={2.5} d=”M13 10V3L4 14h7v7l9-11h-7z” />
+        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       </div>
 
@@ -183,49 +183,49 @@ export default function TopBar({
         onMouseEnter={e => btnHoverIn(e.currentTarget as HTMLElement)}
         onMouseLeave={e => btnHoverOut(e.currentTarget as HTMLElement)}
       >
-        <svg className=”w-4 h-4” fill=”none” stroke=”currentColor” strokeWidth={2} viewBox=”0 0 24 24” style={{ color: '#94a3b8' }}>
-          <path strokeLinecap=”round” strokeLinejoin=”round” d=”M4 6h16M4 12h16M4 18h16” />
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ color: '#94a3b8' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       {/* Live badge + separador + título */}
-      <div className=”flex items-center gap-2.5 flex-shrink-0”>
-        <div className=”flex items-center gap-1.5 px-2 py-0.5 rounded-md”
+      <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md"
           style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
-          <span className=”relative flex”>
-            <span className=”absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40” style={{ animationDuration: '2s' }} />
-            <span className=”w-1.5 h-1.5 rounded-full bg-emerald-400” />
+          <span className="relative flex">
+            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40" style={{ animationDuration: '2s' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           </span>
-          <span className=”text-[11px] font-medium” style={{ color: '#34d399' }}>live</span>
+          <span className="text-[11px] font-medium" style={{ color: '#34d399' }}>live</span>
         </div>
         <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '14px' }}>|</span>
-        <h1 className=”text-sm font-semibold truncate” style={{ color: '#f1f5f9' }}>
+        <h1 className="text-sm font-semibold truncate" style={{ color: '#f1f5f9' }}>
           {title || 'ArchiTechIA'}
         </h1>
       </div>
 
-      <div className=”flex-1” />
+      <div className="flex-1" />
 
       {/* Búsqueda global */}
       <button
         onClick={() => window.dispatchEvent(new Event('open-global-search'))}
-        className=”relative hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 transition-all”
+        className="relative hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 transition-all"
         style={{ width: '200px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,90,0,0.3)'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}
       >
-        <svg className=”w-3.5 h-3.5 flex-shrink-0” style={{ color: '#475569' }} fill=”none” stroke=”currentColor” viewBox=”0 0 24 24”>
-          <path strokeLinecap=”round” strokeLinejoin=”round” strokeWidth={2} d=”M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z” />
+        <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#475569' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
         </svg>
-        <span className=”text-sm flex-1 text-left” style={{ color: '#64748b' }}>Buscar...</span>
-        <kbd className=”text-[10px] font-semibold px-1.5 py-0.5 rounded”
+        <span className="text-sm flex-1 text-left" style={{ color: '#64748b' }}>Buscar...</span>
+        <kbd className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
           style={{ color: '#64748b', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
           ⌘K
         </kbd>
       </button>
 
       {/* Notificaciones */}
-      <div className=”relative” ref={notifRef}>
+      <div className="relative" ref={notifRef}>
         <button
           onClick={() => setShowNotifs(!showNotifs)}
           style={{ ...glassBtn, position: 'relative' }}
