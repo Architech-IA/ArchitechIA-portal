@@ -134,7 +134,7 @@ export default function TopBar({
       style={{
         height: '52px',
         fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
-        background: 'rgba(8,8,15,0.85)',
+        background: 'rgba(8,8,26,0.97)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
