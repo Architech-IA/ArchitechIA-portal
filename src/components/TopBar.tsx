@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface Notif {
   id: string;
@@ -82,6 +83,14 @@ export default function TopBar({
 }) {
   const { theme, toggle } = useTheme();
   const router = useRouter();
+  const { data: session } = useSession();
+  const userName = (session?.user as { name?: string })?.name ?? '';
+  const initials = userName
+    .split(' ')
+    .slice(0, 2)
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase() || 'A';
 
   const [notifs, setNotifs]         = useState<Notif[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -149,78 +158,74 @@ export default function TopBar({
 
   return (
     <div
-      className="h-10 flex items-center px-4 gap-2.5 print:hidden"
+      className=”h-11 flex items-center px-4 gap-3 print:hidden”
       style={{
         background:          'rgba(8,8,26,0.97)',
         backdropFilter:      'blur(20px)',
         WebkitBackdropFilter:'blur(20px)',
-        borderBottom:        '1px solid rgba(255,255,255,0.06)',
+        borderBottom:        '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      {/* Hamburger â€” mÃ³vil */}
-      {isMobile && (
-        <button
-          onClick={onMenuClick}
-          style={glassBtn}
-          onMouseEnter={e => btnHoverIn(e.currentTarget as HTMLElement)}
-          onMouseLeave={e => btnHoverOut(e.currentTarget as HTMLElement)}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ color: '#94a3b8' }}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
-
-      {/* Titulo de la pagina */}
-      <div className="flex-shrink-0 min-w-0 flex items-center gap-2.5">
-        <h1 className="text-base font-semibold truncate" style={{ color: '#f1f5f9' }}>
-          {title || 'ArchiTechIA'}
-        </h1>
+      {/* Logo ⚡ */}
+      <div
+        className=”w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0”
+        style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', boxShadow: '0 0 10px rgba(124,58,237,0.45)' }}
+      >
+        <svg className=”w-3.5 h-3.5 text-white” fill=”none” stroke=”currentColor” viewBox=”0 0 24 24”>
+          <path strokeLinecap=”round” strokeLinejoin=”round” strokeWidth={2.5} d=”M13 10V3L4 14h7v7l9-11h-7z” />
+        </svg>
       </div>
 
-      <div className="flex-1" />
-
-      {/* Busqueda global */}
+      {/* Hamburger */}
       <button
-        onClick={() => window.dispatchEvent(new Event('open-global-search'))}
-        className="relative hidden sm:flex items-center gap-2 rounded-xl px-3 py-2 transition-all"
-        style={{ width: '240px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,90,0,0.3)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}
-      >
-        <svg className="w-4 h-4 flex-shrink-0" style={{ color: '#475569' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-        </svg>
-        <span className="text-sm flex-1 text-left" style={{ color: '#64748b' }}>Buscar...</span>
-        <kbd
-          className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-          style={{ color: '#64748b', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          ⌘K
-        </kbd>
-      </button>
-
-      {/* Toggle tema */}
-      <button
-        onClick={toggle}
-        title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        onClick={onMenuClick}
         style={glassBtn}
         onMouseEnter={e => btnHoverIn(e.currentTarget as HTMLElement)}
         onMouseLeave={e => btnHoverOut(e.currentTarget as HTMLElement)}
       >
-        {theme === 'dark' ? (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style={{ color: '#fbbf24' }}>
-            <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 001.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 6.166a.75.75 0 001.06 1.06l-1.59 1.591a.75.75 0 01-1.061-1.06l1.59-1.591z" />
-          </svg>
-        ) : (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style={{ color: '#94a3b8' }}>
-            <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
-          </svg>
-        )}
+        <svg className=”w-4 h-4” fill=”none” stroke=”currentColor” strokeWidth={2} viewBox=”0 0 24 24” style={{ color: '#94a3b8' }}>
+          <path strokeLinecap=”round” strokeLinejoin=”round” d=”M4 6h16M4 12h16M4 18h16” />
+        </svg>
+      </button>
+
+      {/* Live badge + separador + título */}
+      <div className=”flex items-center gap-2.5 flex-shrink-0”>
+        <div className=”flex items-center gap-1.5 px-2 py-0.5 rounded-md”
+          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <span className=”relative flex”>
+            <span className=”absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40” style={{ animationDuration: '2s' }} />
+            <span className=”w-1.5 h-1.5 rounded-full bg-emerald-400” />
+          </span>
+          <span className=”text-[11px] font-medium” style={{ color: '#34d399' }}>live</span>
+        </div>
+        <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '14px' }}>|</span>
+        <h1 className=”text-sm font-semibold truncate” style={{ color: '#f1f5f9' }}>
+          {title || 'ArchiTechIA'}
+        </h1>
+      </div>
+
+      <div className=”flex-1” />
+
+      {/* Búsqueda global */}
+      <button
+        onClick={() => window.dispatchEvent(new Event('open-global-search'))}
+        className=”relative hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 transition-all”
+        style={{ width: '200px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,90,0,0.3)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}
+      >
+        <svg className=”w-3.5 h-3.5 flex-shrink-0” style={{ color: '#475569' }} fill=”none” stroke=”currentColor” viewBox=”0 0 24 24”>
+          <path strokeLinecap=”round” strokeLinejoin=”round” strokeWidth={2} d=”M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z” />
+        </svg>
+        <span className=”text-sm flex-1 text-left” style={{ color: '#64748b' }}>Buscar...</span>
+        <kbd className=”text-[10px] font-semibold px-1.5 py-0.5 rounded”
+          style={{ color: '#64748b', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          ⌘K
+        </kbd>
       </button>
 
       {/* Notificaciones */}
-      <div className="relative" ref={notifRef}>
+      <div className=”relative” ref={notifRef}>
         <button
           onClick={() => setShowNotifs(!showNotifs)}
           style={{ ...glassBtn, position: 'relative' }}
@@ -318,21 +323,16 @@ export default function TopBar({
         )}
       </div>
 
-      {/* Reloj */}
-      <div
-        className="select-none pl-3 clock-text flex items-center gap-2"
-        style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}
+      {/* Avatar con iniciales */}
+      <a href="/profile" title={userName || 'Mi Perfil'}
+        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 select-none transition-opacity hover:opacity-80"
+        style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', boxShadow: '0 0 0 2px rgba(124,58,237,0.3)' }}
       >
-        {live && (
-          <span className="relative flex flex-shrink-0">
-            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping-slow opacity-40" />
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#34d399' }} />
-          </span>
-        )}
-        <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em' }}>
-          {hora}
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>
+          {initials}
         </span>
-      </div>
+      </a>
     </div>
   );
 }
+
