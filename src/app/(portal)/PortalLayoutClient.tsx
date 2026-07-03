@@ -236,8 +236,8 @@ export default function PortalLayoutClient({
       <>
         {/* Header: selector de workspace + toggle */}
         <div
-          className="flex items-center justify-between px-3 py-3"
-          style={{ minHeight: '52px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          className="flex items-center justify-between px-3"
+          style={{ height: '52px', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}
         >
           {!isCollapsed ? (
             <button
@@ -253,9 +253,6 @@ export default function PortalLayoutClient({
               >
                 ArchiTechIA
               </span>
-              <svg className="w-4 h-4 flex-shrink-0" style={{ color: '#475569' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
             </button>
           ) : (
                         <img src="/icon.png" alt="ArchiTechIA" className="w-9 h-9 rounded-xl mx-auto object-cover" style={{ boxShadow: '0 0 16px rgba(255,90,0,0.4)' }} />
