@@ -149,7 +149,7 @@ export default function TopBar({
 
   return (
     <div
-      className="h-14 flex items-center px-4 gap-3 print:hidden"
+      className="h-10 flex items-center px-4 gap-2.5 print:hidden"
       style={{
         background:          'rgba(8,8,26,0.97)',
         backdropFilter:      'blur(20px)',

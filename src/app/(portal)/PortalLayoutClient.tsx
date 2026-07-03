@@ -189,8 +189,8 @@ export default function PortalLayoutClient({
         style={{
           fontSize: '12px',
           fontWeight: 300,
-          gap: isCollapsed ? '0' : '10px',
-          padding: isCollapsed ? '8px 0' : '6px 8px',
+          gap: isCollapsed ? '0' : '8px',
+          padding: isCollapsed ? '6px 0' : '5px 8px',
           marginLeft: !isCollapsed && sub ? '8px' : '0',
           justifyContent: isCollapsed ? 'center' : 'flex-start',
           color: active ? '#FF7A2F' : '#e2e8f0',
@@ -207,7 +207,7 @@ export default function PortalLayoutClient({
         <span
           className="flex items-center justify-center rounded-lg flex-shrink-0 transition-all"
           style={{
-            width: '26px', height: '26px',
+            width: '22px', height: '22px',
             background: active ? mc.bg : 'rgba(255,255,255,0.03)',
             border: `1px solid ${active ? mc.border : 'rgba(255,255,255,0.05)'}`,
             boxShadow: active ? mc.glow : 'none',
@@ -231,8 +231,8 @@ export default function PortalLayoutClient({
       <>
         {/* Header: selector de workspace + toggle */}
         <div
-          className="flex items-center justify-between px-4 py-5"
-          style={{ minHeight: '72px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          className="flex items-center justify-between px-3 py-3"
+          style={{ minHeight: '52px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           {!isCollapsed ? (
             <button
@@ -296,7 +296,7 @@ export default function PortalLayoutClient({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
+        <nav className="flex-1 px-2 py-2 overflow-y-auto overflow-x-hidden">
           {isCollapsed && (
             <button onClick={toggleCollapse} title="Expandir sidebar"
               className="w-full flex items-center justify-center py-2 mb-2 rounded-lg transition-all"
