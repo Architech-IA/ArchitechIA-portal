@@ -366,7 +366,7 @@ export default function PortalLayoutClient({
   }
 
   return (
-    <div className="flex h-screen" style={{ background: '#06060f' }}>
+    <div className="flex h-screen" style={{ background: '#07070f' }}>
       {!isMobile && (
         <aside
           style={{ width: collapsed ? '64px' : '240px', minWidth: collapsed ? '64px' : '240px', background: 'linear-gradient(180deg, #08081a 0%, #0b0b1f 100%)', borderRight: '1px solid rgba(255,90,0,0.12)', transition: 'width 0.25s ease, min-width 0.25s ease', overflow: 'hidden' }}
@@ -391,14 +391,19 @@ export default function PortalLayoutClient({
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopBar onMenuClick={() => setMobileOpen(true)} isMobile={isMobile} title={pageTitle} />
-        <main className="flex-1 overflow-y-auto" style={{ background: [
-          'radial-gradient(circle at 8% 8%, rgba(59,130,246,0.13) 0%, transparent 32%)',
-          'radial-gradient(circle at 90% 12%, rgba(34,197,94,0.10) 0%, transparent 32%)',
-          'radial-gradient(circle at 80% 85%, rgba(139,92,246,0.13) 0%, transparent 38%)',
-          'radial-gradient(circle at 12% 88%, rgba(255,90,0,0.10) 0%, transparent 34%)',
-          'radial-gradient(circle at 50% 45%, rgba(6,182,212,0.07) 0%, transparent 55%)',
-          '#08081a',
-        ].join(', ') }}>
+
+        {/* Blobs decorativos — efecto liquid glass identico a GD-DATOSHUB */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute -top-10 right-[5%] w-[480px] h-[420px] bg-indigo-500/25 blur-[120px]"
+            style={{ borderRadius: '62% 38% 45% 55% / 55% 45% 60% 40%' }} />
+          <div className="absolute top-[22%] left-[28%] w-[380px] h-[340px] bg-sky-500/20 blur-[110px]"
+            style={{ borderRadius: '40% 60% 55% 45% / 45% 55% 40% 60%' }} />
+          <div className="absolute top-[2%] left-[8%] w-[340px] h-[380px] bg-slate-300/10 blur-[120px]"
+            style={{ borderRadius: '55% 45% 60% 40% / 40% 60% 45% 55%' }} />
+          <div className="absolute top-[48%] right-[18%] w-[320px] h-[300px] bg-teal-400/20 blur-[110px]"
+            style={{ borderRadius: '45% 55% 40% 60% / 60% 40% 55% 45%' }} />
+        </div>
+        <main className="flex-1 overflow-y-auto" style={{ background: '#07070f' }}>
           {children}
         </main>
         <GlobalSearch />
