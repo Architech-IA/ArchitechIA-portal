@@ -163,7 +163,7 @@ export default function Home() {
   return (
     <div className="page-wrap space-y-5 animate-fade-in">
       {/* Header FJ-style */}
-      <div className="relative overflow-hidden -mx-6 -mt-6 px-6 pt-7 pb-5">
+      <div className="relative overflow-hidden -mx-5 -mt-5 px-5 pt-7 pb-5">
         <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 100% at 20% -20%, rgba(255,90,0,0.08) 0%, transparent 70%)' }} />
         <div className="relative flex items-start justify-between">
@@ -720,5 +720,6 @@ function translateStatus(status: string): string {
   };
   return t[status] || status;
 }
+
 
 
