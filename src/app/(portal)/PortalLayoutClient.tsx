@@ -369,7 +369,7 @@ export default function PortalLayoutClient({
     <div className="flex h-screen" style={{ background: 'transparent' }}>
       {!isMobile && (
         <aside
-          style={{ width: collapsed ? '64px' : '240px', minWidth: collapsed ? '64px' : '240px', background: 'rgba(8,8,20,0.65)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,90,0,0.12)', transition: 'width 0.25s ease, min-width 0.25s ease', overflow: 'hidden' }}
+          style={{ width: collapsed ? '64px' : '240px', minWidth: collapsed ? '64px' : '240px', background: 'rgba(8,8,26,0.97)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRight: '1px solid rgba(255,255,255,0.05)', transition: 'width 0.25s ease, min-width 0.25s ease', overflow: 'hidden' }}
           className="flex flex-col flex-shrink-0"
         >
           {sidebarContent()}
@@ -383,7 +383,7 @@ export default function PortalLayoutClient({
       {isMobile && (
         <aside
           className="fixed top-0 left-0 h-full z-50 flex flex-col"
-          style={{ width: '260px', background: 'rgba(8,8,20,0.65)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,90,0,0.15)', transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease' }}
+          style={{ width: '260px', background: 'rgba(8,8,26,0.97)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRight: '1px solid rgba(255,255,255,0.05)', transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease' }}
         >
           {sidebarContent(true)}
         </aside>
