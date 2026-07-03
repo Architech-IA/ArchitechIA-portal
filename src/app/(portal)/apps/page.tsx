@@ -142,21 +142,35 @@ function AppCard({ app }: { app: AppInstance }) {
 
   return (
     <div
-      className="relative rounded-2xl p-5 border transition-all duration-200 flex flex-col"
-      style={{ background: 'var(--bg-card)', borderColor: 'rgba(255,255,255,0.06)' }}
-      onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.14)'}
-      onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'}
+      className="relative rounded-2xl p-6 border flex flex-col transition-all duration-200"
+      style={{
+        background: '#0d0d1a',
+        borderColor: 'rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = cs.border;
+        (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${cs.border}`;
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 24px rgba(0,0,0,0.4)';
+      }}
     >
       {/* Icono + badge categoria */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div
           className={`h-12 w-12 flex items-center justify-center rounded-xl bg-gradient-to-br ${app.appType.color} text-white shadow-lg flex-shrink-0`}
         >
           <Icon className="h-6 w-6" />
         </div>
         <span
-          className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex-shrink-0 ml-2"
-          style={{ color: cs.color, background: cs.bg, border: `1px solid ${cs.border}` }}
+          className="text-[11px] font-semibold px-3 py-1 rounded-full flex-shrink-0 ml-3"
+          style={{
+            color: cs.color,
+            background: cs.bg,
+            border: `1px solid ${cs.border}`,
+          }}
         >
           {category?.label ?? app.appType.category}
         </span>
@@ -164,21 +178,21 @@ function AppCard({ app }: { app: AppInstance }) {
 
       {/* Titulo */}
       <h3
-        className="text-sm font-bold mb-2 leading-snug"
+        className="text-base font-bold mb-2 leading-snug"
         style={{ color: cs.color }}
       >
         {app.name}
       </h3>
 
       {/* Descripcion */}
-      <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed flex-1 mb-5">
+      <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed flex-1 mb-6">
         {app.description ?? 'Sin descripcion'}
       </p>
 
       {/* Boton Abrir */}
       <button
         onClick={() => router.push(`/apps/${app.slug}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold text-white transition-colors"
+        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors"
         style={{ background: '#ea580c' }}
         onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = '#c2410c'}
         onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = '#ea580c'}
