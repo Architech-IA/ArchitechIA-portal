@@ -3,7 +3,7 @@
 /* ─── Design Tokens ──────────────────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg-base:     #06060f;
+  --bg-base:     #07070f;
   --bg-surface:  #09091a;
   --bg-elevated: rgba(32, 32, 60, 0.49);
   --bg-card:     rgba(30, 30, 56, 0.48);
