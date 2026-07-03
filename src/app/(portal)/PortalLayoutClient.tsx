@@ -84,8 +84,13 @@ export default function PortalLayoutClient({
   const pathname = usePathname();
   const { title: pageTitleOverride } = usePageTitleOverride();
 
+  const { data: sessionForGreeting } = useSession();
+  const _greetingFirstName = ((sessionForGreeting?.user as { name?: string })?.name ?? '').split(' ')[0] || 'ArchiTechIA';
+  const _greetingHour = new Date().getHours();
+  const _greeting = _greetingHour < 12 ? 'Buenos días' : _greetingHour < 18 ? 'Buenas tardes' : 'Buenas noches';
+
   const computedTitle = (() => {
-    if (pathname === '/') return 'Dashboard';
+    if (pathname === '/') return `${_greeting}, ${_greetingFirstName}`;
     if (pathname === '/apps') return 'Mini-Apps Hub';
     if (pathname === '/apps/catalogo') return 'Catálogo de Apps';
     if (pathname === '/apps/nueva/crm') return 'Nueva App: CRM';
@@ -124,7 +129,7 @@ export default function PortalLayoutClient({
       .replace(/\b\w/g, c => c.toUpperCase()) || 'ArchiTechIA';
   })();
   const pageTitle = pageTitleOverride || computedTitle;
-  const { data: session } = useSession();
+  const session = sessionForGreeting;
   const clientRole = (session?.user as { role?: string })?.role ?? '';
   // Doble capa: server prop O verificación client-side
   const isSuperAdmin = serverIsSuperAdmin || clientRole === 'SUPERADMIN';
@@ -415,3 +420,4 @@ export default function PortalLayoutClient({
     </div>
   );
 }
+
