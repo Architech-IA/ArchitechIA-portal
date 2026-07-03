@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import PersonalDashboard from '@/components/PersonalDashboard';
+import { SkeletonKPI, SkeletonCard } from '@/components/SkeletonCard';
 
 interface DashboardData {
   counts: { leads: number; proposals: number; projects: number; activities: number };
@@ -102,8 +103,16 @@ export default function Home() {
   if (!isSuperAdmin) return <PersonalDashboard />;
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+    <div className="page-wrap space-y-5 animate-pulse">
+      <div className="skeleton skeleton-title w-40" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => <SkeletonKPI key={i} />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <SkeletonCard rows={5} />
+        <SkeletonCard rows={5} />
+      </div>
+      <SkeletonCard rows={3} />
     </div>
   );
 
@@ -117,7 +126,7 @@ export default function Home() {
   const alertas = (data?.leadsInactivos.length ?? 0) + (data?.propuestasSinRespuesta.length ?? 0) + (data?.proximosDeadlines.length ?? 0) + (data?.registrosPendientes.length ?? 0);
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
+    <div className="page-wrap space-y-5 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
@@ -288,8 +297,51 @@ export default function Home() {
       )}
 
 
+      {/* Meta Mensual */}
+      {widgets.meta && data && (
+        <div className="card p-5">
+          <SectionHeader
+            color="#22C55E"
+            title="Meta Mensual"
+            icon="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+            badge={
+              <span className={`badge ${metaPct >= 100 ? 'badge-success' : metaPct >= 60 ? 'badge-warning' : 'badge-danger'}`}>
+                {metaPct}%
+              </span>
+            }
+          />
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <p className="text-2xl font-bold text-white tabular-nums">${data.ingresosMes.toLocaleString()}</p>
+              <p className="text-xs text-gray-600 mt-0.5">de ${data.metaMensual.toLocaleString()} meta</p>
+            </div>
+            <p className="text-xs text-gray-600 mb-1">
+              {new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out"
+              style={{
+                width: `${metaPct}%`,
+                background: metaPct >= 100
+                  ? 'linear-gradient(90deg,#10b981,#34d399)'
+                  : metaPct >= 60
+                  ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
+                  : 'linear-gradient(90deg,#ef4444,#f87171)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1.5">
+            <span className="text-[10px] text-gray-700">$0</span>
+            <span className="text-[10px] text-gray-700">${Math.round(data.metaMensual / 2).toLocaleString()}</span>
+            <span className="text-[10px] text-gray-700">${data.metaMensual.toLocaleString()}</span>
+          </div>
+        </div>
+      )}
+
       {/* Embudo de ventas + Tendencias */}
-      {widgets.embudo && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {widgets.embudo && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
         {/* Embudo de ventas */}
         <div className="card p-6">
@@ -464,7 +516,7 @@ export default function Home() {
       )}
 
       {/* Distribución por fuente + Estados */}
-      {widgets.fuentes && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {widgets.fuentes && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Fuentes de leads */}
         <div className="card p-6">
           <SectionHeader color="#22D3EE" title="Fuentes de Leads"
@@ -541,8 +593,56 @@ export default function Home() {
         </div>
       </div>}
 
+      {/* Actividad Reciente */}
+      {widgets.actividad && (data?.recentActivities?.length ?? 0) > 0 && (
+        <div className="card p-5">
+          <SectionHeader
+            color="#94A3B8"
+            title="Actividad Reciente"
+            icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            badge={
+              <a href="/traceability" className="text-xs transition-colors" style={{ color: '#FF7A2F' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#FF5A00'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#FF7A2F'}
+              >
+                Ver todo →
+              </a>
+            }
+          />
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            {data?.recentActivities.slice(0, 8).map(a => (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 py-2"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ background: getActivityDot(a.type) }}
+                />
+                <p className="text-xs text-gray-300 flex-1 truncate">{a.description}</p>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-[10px] text-gray-600">{a.user.name}</span>
+                  <span className="text-[10px] text-gray-700 font-mono">
+                    {new Date(a.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
+}
+
+function getActivityDot(type: string): string {
+  const map: Record<string, string> = {
+    CREATED: '#34d399', UPDATED: '#60a5fa', STATUS_CHANGED: '#fbbf24',
+    NOTE_ADDED: '#a78bfa', PROPOSAL_SENT: '#fb923c', MILESTONE_COMPLETED: '#10b981',
+  };
+  return map[type] ?? '#475569';
 }
 
 function translateStatus(status: string): string {

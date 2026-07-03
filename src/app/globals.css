@@ -317,6 +317,41 @@ body::before {
   background: linear-gradient(90deg, transparent, var(--border-base), transparent);
 }
 
+/* ─── Page wrap — padding estándar de todas las páginas ────────  */
+.page-wrap { padding: 20px; }
+@media (max-width: 767px) { .page-wrap { padding: 14px; } }
+
+/* ─── Form labels ───────────────────────────────────────────────  */
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 6px;
+}
+
+/* ─── Table dark ────────────────────────────────────────────────  */
+.table-dark { width: 100%; text-align: left; font-size: 11px; border-collapse: collapse; }
+.table-dark thead th {
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.table-dark tbody td {
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.1s;
+}
+.table-dark tbody tr:last-child td { border-bottom: none; }
+.table-dark tbody tr:hover td { background: rgba(255,255,255,0.025); }
+
 /* ─── Skeleton loading ─────────────────────────────────────────  */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
@@ -324,6 +359,10 @@ body::before {
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
 }
+.skeleton-sm   { height: 10px; border-radius: 4px; }
+.skeleton-line { height: 14px; border-radius: 4px; }
+.skeleton-title{ height: 22px; width: 45%; border-radius: 6px; }
+.skeleton-kpi  { height: 40px; width: 60px; border-radius: 6px; }
 
 /* ─── Scrollbars ─────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 5px; height: 5px; }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useAsyncAction } from '@/hooks/useAsyncAction';
 
 interface Activity {
   id: string;
@@ -145,7 +146,10 @@ export default function TraceabilityPage() {
     return map[action] || action;
   };
 
-  const handleExportPDF = () => window.print();
+  const exportFn = useCallback(() => new Promise<void>(resolve => {
+    setTimeout(() => { window.print(); resolve(); }, 80);
+  }), []);
+  const { run: handleExportPDF, loading: exporting, success: exported } = useAsyncAction(exportFn);
 
   const parseBrowser = (ua: string | null) => {
     if (!ua) return '—';
@@ -208,12 +212,35 @@ export default function TraceabilityPage() {
           </span>
           <button
             onClick={handleExportPDF}
-            className="no-print flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] text-gray-400 hover:text-white hover:border-orange-500/40 hover:bg-orange-500/10 rounded-lg transition-all text-xs"
+            disabled={exporting}
+            className={`no-print flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-all text-xs ${
+              exported
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : exporting
+                ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 cursor-not-allowed'
+                : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:border-orange-500/40 hover:bg-orange-500/10'
+            }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Exportar PDF
+            {exporting ? (
+              <>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-orange-400/30 border-t-orange-400 animate-spin" />
+                Exportando...
+              </>
+            ) : exported ? (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Listo
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Exportar PDF
+              </>
+            )}
           </button>
         </div>
       </div>
