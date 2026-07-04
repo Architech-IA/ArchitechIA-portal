@@ -143,7 +143,7 @@ export default function TopBar({
     >
       <div className="flex-1 min-w-0">
         {title && (
-          <span className="text-xs font-medium truncate block" style={{ color: '#64748b' }}>
+          <span className="text-xs font-medium truncate block" style={{ color: '#cbd5e1' }}>
             {title}
           </span>
         )}
