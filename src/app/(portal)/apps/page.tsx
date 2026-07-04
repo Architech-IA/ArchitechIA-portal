@@ -68,7 +68,7 @@ export default function AppsHubPage() {
   }), [apps, search, categoryFilter]);
 
   return (
-    <div className="page-wrap space-y-4">
+    <div style={{ padding: '10px 20px 20px' }} className="space-y-4">
 
       {/* Filtros: pills + search en una sola fila */}
       <div className="flex items-center gap-2 mb-4">
