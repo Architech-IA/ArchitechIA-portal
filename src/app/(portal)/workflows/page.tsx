@@ -73,12 +73,7 @@ export default function WorkflowsPage() {
       {/* ── Header ── */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f1f5f9' }}>Procesos Organizacionales</h1>
-            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#475569' }}>
-              {procesos.length} procesos definidos · {totalAuto} con automatización activa · {areas.filter(a => procesos.some(p => p.area === a)).length} áreas
-            </p>
-          </div>
+          <div />
           <button
             onClick={() => setShowCreate(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg,#f97316,#ea580c)', border: 'none', borderRadius: '9px', padding: '8px 16px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
