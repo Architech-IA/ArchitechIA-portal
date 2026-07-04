@@ -102,6 +102,18 @@ export default function AppsHubPage() {
             style={{ width: '200px' }}
           />
         </div>
+        <button
+          onClick={() => router.push('/apps/catalogo')}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition-colors"
+          style={{ background: '#FF5A00' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#e04f00'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#FF5A00'}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Demo
+        </button>
       </div>
 
       {/* Contenido */}
