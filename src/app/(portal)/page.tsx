@@ -163,20 +163,11 @@ export default function Home() {
   return (
     <div className="page-wrap space-y-5 animate-fade-in">
       {/* Header FJ-style */}
-      <div className="relative overflow-hidden -mx-5 -mt-5 px-5 pt-7 pb-5">
+      <div className="relative overflow-hidden -mx-5 -mt-5 px-5 pt-4 pb-4">
         <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 100% at 20% -20%, rgba(255,90,0,0.08) 0%, transparent 70%)' }} />
         <div className="relative flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-5 h-5 rounded-md flex items-center justify-center"
-                style={{ background: '#FF5A00', boxShadow: '0 0 10px rgba(255,90,0,0.5)' }}>
-                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span className="text-xs text-slate-600 font-medium">ArchiTechIA</span>
-            </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
               {greeting}, <span className="gradient-text">{firstName}</span>
             </h1>

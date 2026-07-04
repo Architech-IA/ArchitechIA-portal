@@ -141,12 +141,7 @@ export default function TopBar({
         flexShrink: 0,
       }}
     >
-      {/* Titulo / breadcrumb */}
-      <div className="flex-1 min-w-0">
-        <span className="text-xs font-medium truncate block" style={{ color: '#94a3b8' }}>
-          {title || 'ArchiTechIA'}
-        </span>
-      </div>
+      <div className="flex-1 min-w-0" />
 
       {/* Busqueda global */}
       <button
