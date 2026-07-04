@@ -340,7 +340,7 @@ export default function LeadsPage() {
   const tasaConversion  = leads.length > 0 ? Math.round((leadsGanados / leads.length) * 100) : 0;
 
   return (
-    <div className="p-8">
+    <div style={{ padding: '10px 32px 32px' }}>
       {/* Header */}
       <LeadsNav />
 

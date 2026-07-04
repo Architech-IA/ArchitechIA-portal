@@ -23,7 +23,7 @@ export default function PipelinePage() {
   );
 
   return (
-    <div className="p-8">
+    <div style={{ padding: '10px 32px 32px' }}>
       <LeadsNav />
       <div className="mb-6">
         <p className="text-gray-400 mt-1">Visualización del pipeline de ventas por etapas</p>
