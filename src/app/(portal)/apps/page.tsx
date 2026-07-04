@@ -67,10 +67,10 @@ export default function AppsHubPage() {
   }), [apps, search, categoryFilter]);
 
   return (
-    <div className="px-6 md:px-8 py-6 space-y-5">
+    <div className="page-wrap space-y-4">
 
       {/* Filtros: pills + search en una sola fila */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <div className="flex items-center gap-1.5 flex-1 overflow-x-auto pb-0.5 no-scrollbar">
           {(['', ...categories] as string[]).map((cat) => {
             const meta = cat ? APP_CATEGORIES[cat] : null;
