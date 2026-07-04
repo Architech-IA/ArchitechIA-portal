@@ -420,7 +420,7 @@ export default function PortalLayoutClient({
         }} />
       </div>
 
-        <TopBar onMenuClick={() => setMobileOpen(true)} isMobile={isMobile} title={pageTitle} />
+        <TopBar onMenuClick={() => setMobileOpen(true)} isMobile={isMobile} title={pathname === '/' ? '' : pageTitle} />
         <main className="flex-1 overflow-y-auto relative" style={{ zIndex: 1, background: 'transparent' }}>
           {children}
         </main>

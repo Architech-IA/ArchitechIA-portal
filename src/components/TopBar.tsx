@@ -141,7 +141,13 @@ export default function TopBar({
         flexShrink: 0,
       }}
     >
-      <div className="flex-1 min-w-0" />
+      <div className="flex-1 min-w-0">
+        {title && (
+          <span className="text-xs font-medium truncate block" style={{ color: '#64748b' }}>
+            {title}
+          </span>
+        )}
+      </div>
 
       {/* Busqueda global */}
       <button
