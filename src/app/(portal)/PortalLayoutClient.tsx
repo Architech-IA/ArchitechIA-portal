@@ -26,6 +26,7 @@ const sections: NavSection[] = [
   {
     id: 'operacion', label: 'Operación',
     items: [
+      { href: '/workflows', label: 'Workflows', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
       { href: '/backlog',  label: 'Backlog',   icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
       { href: '/hub',      label: 'HUB',       icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
     ],
@@ -60,6 +61,7 @@ const MODULE_COLORS: Record<string, { icon: string; bg: string; border: string; 
   '/leads':             { icon: '#60a5fa', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.25)', glow: '0 0 12px rgba(59,130,246,0.3)' },
   '/meetings':          { icon: '#fbbf24', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', glow: '0 0 12px rgba(245,158,11,0.3)' },
   '/calculador':        { icon: '#2dd4bf', bg: 'rgba(20,184,166,0.12)', border: 'rgba(20,184,166,0.25)', glow: '0 0 12px rgba(20,184,166,0.3)' },
+  '/workflows':         { icon: '#f472b6', bg: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.25)', glow: '0 0 12px rgba(244,114,182,0.3)' },
   '/backlog':           { icon: '#c084fc', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', glow: '0 0 12px rgba(168,85,247,0.3)' },
   '/hub':               { icon: '#f472b6', bg: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.25)', glow: '0 0 12px rgba(236,72,153,0.3)' },
   '/solutions':         { icon: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.25)', glow: '0 0 12px rgba(16,185,129,0.3)' },
@@ -102,6 +104,7 @@ export default function PortalLayoutClient({
     if (pathname === '/leads/prospector') return 'Prospector';
     if (pathname === '/leads/mercado') return 'Mercado';
     if (pathname === '/proposals') return 'Propuestas';
+    if (pathname === '/workflows') return 'Workflows';
     if (pathname === '/traceability') return 'Trazabilidad';
     if (pathname === '/hub') return 'HUB';
     if (pathname === '/hub/team') return 'Equipo';
