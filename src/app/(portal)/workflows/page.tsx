@@ -68,22 +68,10 @@ export default function WorkflowsPage() {
   const areas     = Object.keys(AREAS) as Area[];
 
   return (
-    <div className="page-wrap" style={{ minHeight: 'calc(100vh - 52px)', background: '#070716' }}>
+    <div style={{ minHeight: 'calc(100vh - 52px)', background: '#070716', padding: '0 20px 20px' }}>
 
-      {/* ── Header ── */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setShowCreate(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg,#f97316,#ea580c)', border: 'none', borderRadius: '9px', padding: '8px 16px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nuevo Proceso
-          </button>
-        </div>
-
-        {/* ── Filter row ── */}
-        <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ── Filter + action row ── */}
+      <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Search */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -114,7 +102,13 @@ export default function WorkflowsPage() {
               </button>
             );
           })}
-        </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg,#f97316,#ea580c)', border: 'none', borderRadius: '9px', padding: '8px 16px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo Proceso
+          </button>
       </div>
 
       {/* ── Process groups ── */}
