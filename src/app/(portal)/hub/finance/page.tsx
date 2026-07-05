@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Area = 'comercial' | 'operacion' | 'tecnologia' | 'rrhh' | 'legal' | 'administracion';
@@ -728,275 +728,453 @@ function Conciliacion({ movs, centros, onSave }: { movs: Movimiento[]; centros: 
 }
 
 // ── Tab 5: Reportes ───────────────────────────────────────────────────────
+function deltaBadge(v: number | null): React.ReactNode {
+  if (v === null) return null;
+  const up = v >= 0;
+  return (
+    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '5px', background: up ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)', color: up ? '#34d399' : '#f87171', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
+      {up ? '▲' : '▼'} {Math.abs(v).toFixed(1)}%
+    </span>
+  );
+}
+
 function Reportes({ movs, centros, presups }: { movs: Movimiento[]; centros: CentroCosto[]; presups: Presupuesto[] }) {
   const [periodo, setPeriodo] = useState('2025-Q2');
+  const [plView, setPlView] = useState<'tabla' | 'waterfall'>('tabla');
 
-  // ── helpers ──
-  const movsEnPeriodo = (meses: number[], year: number) =>
-    movs.filter(m => {
-      const d = new Date(m.fecha + 'T12:00:00');
-      return d.getFullYear() === year && meses.includes(d.getMonth() + 1);
-    });
-
-  const periodoToRange = (p: string): { year: number; meses: number[] } => {
+  // ── Range helpers ──
+  const periodoToRange = (p: string) => {
     const [y, q] = p.split('-Q');
     const qn = Number(q);
     const start = (qn - 1) * 3 + 1;
     return { year: Number(y), meses: [start, start + 1, start + 2] };
   };
 
-  const { year, meses } = periodoToRange(periodo);
-  const movsP = movsEnPeriodo(meses, year);
+  const prevPeriodo = (p: string) => {
+    const [y, q] = p.split('-Q');
+    const qn = Number(q);
+    return qn === 1 ? `${Number(y) - 1}-Q4` : `${y}-Q${qn - 1}`;
+  };
 
-  const totalIng = movsP.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
-  const totalEgr = movsP.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
-  const resultado = totalIng - totalEgr;
-  const margen = totalIng > 0 ? Math.round((resultado / totalIng) * 100) : 0;
-
-  // ── P&L por categoría ──
-  const catMap: Record<string, { ing: number; egr: number }> = {};
-  movsP.forEach(m => {
-    if (!catMap[m.categoria]) catMap[m.categoria] = { ing: 0, egr: 0 };
-    catMap[m.categoria][m.tipo === 'ingreso' ? 'ing' : 'egr'] += m.monto;
-  });
-  const cats = Object.entries(catMap).sort((a, b) => (b[1].ing + b[1].egr) - (a[1].ing + a[1].egr));
-
-  // ── Gastos por centro ──
-  const gastosPorCentro = centros.map(c => ({
-    centro: c,
-    total: movsP.filter(m => m.centroCostoId === c.id && m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
-  })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
-  const maxGasto = gastosPorCentro[0]?.total ?? 1;
-
-  // ── Proyección mensual (últimos 6 meses + 3 futuros) ──
-  const hoy = new Date();
-  const mesesProyeccion: { label: string; mes: number; year: number }[] = [];
-  for (let i = -5; i <= 3; i++) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
-    mesesProyeccion.push({ label: d.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }), mes: d.getMonth() + 1, year: d.getFullYear() });
-  }
-
-  const proyData = mesesProyeccion.map(({ label, mes, year: y }) => {
-    const mMovs = movs.filter(m => {
+  const movsEnPeriodo = (meses: number[], year: number) =>
+    movs.filter(m => {
       const d = new Date(m.fecha + 'T12:00:00');
-      return d.getFullYear() === y && d.getMonth() + 1 === mes;
+      return d.getFullYear() === year && meses.includes(d.getMonth() + 1);
     });
-    const ing = mMovs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
-    const egr = mMovs.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
-    return { label, ing, egr, neto: ing - egr };
+
+  const { year, meses } = periodoToRange(periodo);
+  const prev = prevPeriodo(periodo);
+  const { year: pyear, meses: pmeses } = periodoToRange(prev);
+
+  const movsP  = movsEnPeriodo(meses, year);
+  const movsAnt = movsEnPeriodo(pmeses, pyear);
+
+  // ── Totales período actual y anterior ──────────────────────────────────────
+  const totalIng  = movsP.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+  const totalEgr  = movsP.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+  const resultado = totalIng - totalEgr;
+  const margen    = totalIng > 0 ? (resultado / totalIng) * 100 : 0;
+
+  const prevIng     = movsAnt.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+  const prevEgr     = movsAnt.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+  const prevRes     = prevIng - prevEgr;
+  const prevMargen  = prevIng > 0 ? (prevRes / prevIng) * 100 : 0;
+
+  const calcDelta = (curr: number, p: number) => p === 0 ? null : ((curr - p) / Math.abs(p)) * 100;
+  const deltaIng = calcDelta(totalIng, prevIng);
+  const deltaEgr = calcDelta(totalEgr, prevEgr);
+  const deltaRes = calcDelta(resultado, prevRes);
+  const deltaMar: number | null = prevMargen !== 0 ? margen - prevMargen : null;
+
+  // ── Burn rate & runway ──────────────────────────────────────────────────────
+  const burnRate = totalEgr / 3;
+  const runway   = burnRate > 0 ? resultado / burnRate : Infinity;
+
+  // ── P&L estructurado ────────────────────────────────────────────────────────
+  const COGS_CATS = ['produccion', 'operacion', 'proveedor', 'servicio'];
+  const costoVentas = movsP.filter(m => m.tipo === 'egreso' && COGS_CATS.some(c => m.categoria.toLowerCase().includes(c))).reduce((s, m) => s + m.monto, 0);
+  const gastosOp    = movsP.filter(m => m.tipo === 'egreso' && !COGS_CATS.some(c => m.categoria.toLowerCase().includes(c))).reduce((s, m) => s + m.monto, 0);
+  const utilBruta   = totalIng - costoVentas;
+  const ebitda      = utilBruta - gastosOp;
+  const margenBruto = totalIng > 0 ? (utilBruta / totalIng) * 100 : 0;
+
+  const prevCostoV  = movsAnt.filter(m => m.tipo === 'egreso' && COGS_CATS.some(c => m.categoria.toLowerCase().includes(c))).reduce((s, m) => s + m.monto, 0);
+  const prevGastOp  = movsAnt.filter(m => m.tipo === 'egreso' && !COGS_CATS.some(c => m.categoria.toLowerCase().includes(c))).reduce((s, m) => s + m.monto, 0);
+  const prevUtilB   = prevIng - prevCostoV;
+  const prevEbitda  = prevUtilB - prevGastOp;
+
+  // ── Desglose mensual dentro del trimestre ────────────────────────────────────
+  const MESES_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const monthlyData = meses.map(mes => {
+    const mm = movs.filter(m => { const d = new Date(m.fecha + 'T12:00:00'); return d.getFullYear() === year && d.getMonth() + 1 === mes; });
+    const ing = mm.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+    const egr = mm.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+    return { mes, ing, egr, neto: ing - egr };
   });
 
-  // acumular saldo
-  let acum = 0;
-  const proyConAcum = proyData.map(d => { acum += d.neto; return { ...d, acum }; });
+  // ── SVG grouped bar chart ────────────────────────────────────────────────────
+  const GW = 500, GH = 150, GPAD = 28;
+  const maxBar  = Math.max(1, ...monthlyData.flatMap(d => [d.ing, d.egr]));
+  const barW    = 26, barGap = 5, groupW = barW * 2 + barGap;
+  const groups  = monthlyData.length;
+  const totalGW = GW - GPAD * 2;
+  const groupSp = groups > 1 ? (totalGW - groupW * groups) / (groups - 1) : 0;
+  const bH      = (v: number) => Math.max(2, (v / maxBar) * (GH - GPAD * 2));
+  const gX      = (i: number) => GPAD + i * (groupW + groupSp);
 
-  // SVG line chart
-  const W = 600, H = 140, PAD = 20;
-  const vals = proyConAcum.map(d => d.acum);
-  const minV = Math.min(0, ...vals), maxV = Math.max(1, ...vals);
-  const xStep = (W - PAD * 2) / (proyConAcum.length - 1);
-  const yScale = (v: number) => PAD + (1 - (v - minV) / (maxV - minV)) * (H - PAD * 2);
-  const points = proyConAcum.map((d, i) => `${PAD + i * xStep},${yScale(d.acum)}`).join(' ');
-  const areaPoints = `${PAD},${H - PAD} ` + proyConAcum.map((d, i) => `${PAD + i * xStep},${yScale(d.acum)}`).join(' ') + ` ${PAD + (proyConAcum.length - 1) * xStep},${H - PAD}`;
-  const zeroY = yScale(0);
+  // ── SVG waterfall chart ──────────────────────────────────────────────────────
+  const WFW = 500, WFH = 150, WFPAD = 28;
+  const wfCols = [
+    { label: 'Ingresos',    value: totalIng,    isTotal: false, positive: true },
+    { label: 'Costo Vtas',  value: costoVentas, isTotal: false, positive: false },
+    { label: 'Util. Bruta', value: utilBruta,   isTotal: true,  positive: utilBruta >= 0 },
+    { label: 'Gastos Op.',  value: gastosOp,    isTotal: false, positive: false },
+    { label: 'EBITDA',      value: ebitda,      isTotal: true,  positive: ebitda >= 0 },
+  ];
+  const wfMax = Math.max(1, totalIng);
+  const wfAvH = WFH - WFPAD * 2;
+  const wfColW = Math.floor((WFW - WFPAD * 2) / wfCols.length) - 10;
+  const wfXi  = (i: number) => WFPAD + i * ((WFW - WFPAD * 2) / wfCols.length) + 5;
+  const wfHv  = (v: number) => Math.max(2, (Math.abs(v) / wfMax) * wfAvH);
+  const BOTTOM = WFH - WFPAD;
 
-  // presupuesto vs real por periodo
+  let wfRun = 0;
+  const wfBars = wfCols.map((col, i) => {
+    let barY: number, barH: number;
+    if (col.isTotal) {
+      barH = wfHv(col.value);
+      barY = col.value >= 0 ? BOTTOM - barH : BOTTOM;
+    } else if (col.positive) {
+      barH = wfHv(col.value);
+      barY = BOTTOM - wfHv(wfRun) - barH;
+      wfRun += col.value;
+    } else {
+      barH = wfHv(col.value);
+      barY = BOTTOM - wfHv(wfRun);
+      wfRun -= col.value;
+    }
+    const color = col.isTotal
+      ? (col.positive ? '#34d399' : '#f87171')
+      : (col.positive ? 'rgba(52,211,153,0.8)' : 'rgba(248,113,113,0.8)');
+    return { ...col, x: wfXi(i), y: barY, h: barH, color };
+  });
+
+  // ── Presupuesto vs Real ──────────────────────────────────────────────────────
   const presupPeriodo = presups.filter(p => p.periodo === periodo);
-  const totPresupEgr = presupPeriodo.filter(p => p.tipo === 'egreso').reduce((s, p) => s + p.monto, 0);
-  const totPresupIng = presupPeriodo.filter(p => p.tipo === 'ingreso').reduce((s, p) => s + p.monto, 0);
+  const totPresupEgr  = presupPeriodo.filter(p => p.tipo === 'egreso').reduce((s, p) => s + p.monto, 0);
+  const totPresupIng  = presupPeriodo.filter(p => p.tipo === 'ingreso').reduce((s, p) => s + p.monto, 0);
 
   return (
     <>
-      {/* Selector período */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ ...G.input, width: 'auto', padding: '7px 12px', fontSize: '13px', fontWeight: 600 }}>
-          {PERIODOS.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <span style={{ fontSize: '12px', color: '#334155' }}>Mostrando datos del período seleccionado</span>
-      </div>
-
-      {/* ── KPIs P&L ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
-        {[
-          { label: 'Ingresos',   value: fmt(totalIng), color: '#34d399', glow: 'rgba(52,211,153,0.08)',  icon: 'M7 11l5-5m0 0l5 5m-5-5v12', sub: `${movsP.filter(m => m.tipo === 'ingreso').length} movs` },
-          { label: 'Egresos',    value: fmt(totalEgr), color: '#f87171', glow: 'rgba(248,113,113,0.08)', icon: 'M17 13l-5 5m0 0l-5-5m5 5V6',  sub: `${movsP.filter(m => m.tipo === 'egreso').length} movs` },
-          { label: 'Resultado',  value: fmt(Math.abs(resultado)), color: resultado >= 0 ? '#34d399' : '#f87171', glow: resultado >= 0 ? 'rgba(52,211,153,0.08)' : 'rgba(248,113,113,0.08)', icon: resultado >= 0 ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12', sub: resultado >= 0 ? 'utilidad' : 'pérdida' },
-          { label: 'Margen',     value: `${margen}%`, color: margen >= 20 ? '#34d399' : margen >= 0 ? '#fbbf24' : '#f87171', glow: 'rgba(255,255,255,0.04)', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', sub: 'sobre ingresos' },
-        ].map(k => (
-          <div key={k.label} style={{ ...G.card, padding: '18px 20px', background: k.glow, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '60px', height: '60px', background: `radial-gradient(circle at 100% 0%, ${k.color}18, transparent 70%)` }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
-              <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: `${k.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={k.color} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={k.icon}/></svg>
-              </div>
-            </div>
-            <p style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: k.color, letterSpacing: '-0.02em' }}>{k.value}</p>
-            <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#334155' }}>{k.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Fila: P&L por categoría + Gastos por centro ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-
-        {/* P&L por categoría */}
-        <div style={{ ...G.card, padding: '20px' }}>
-          <p style={{ margin: '0 0 16px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>P&L por Categoría</p>
-          {cats.length === 0 ? (
-            <p style={{ color: '#334155', fontSize: '13px' }}>Sin datos para este período</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {cats.map(([cat, { ing, egr }]) => {
-                const neto = ing - egr;
-                const maxBar = Math.max(...cats.map(([, v]) => v.ing + v.egr), 1);
-                const pct = Math.round(((ing + egr) / maxBar) * 100);
-                return (
-                  <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>{cat}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: neto >= 0 ? '#34d399' : '#f87171' }}>
-                        {neto >= 0 ? '+' : ''}{fmt(neto)}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '3px', height: '6px', borderRadius: '3px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
-                      {ing > 0 && <div style={{ flex: ing, background: 'rgba(52,211,153,0.6)', borderRadius: '3px 0 0 3px' }} />}
-                      {egr > 0 && <div style={{ flex: egr, background: 'rgba(248,113,113,0.6)', borderRadius: ing > 0 ? '0 3px 3px 0' : '3px' }} />}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '3px' }}>
-                      {ing > 0 && <span style={{ fontSize: '10px', color: '#34d399' }}>+{fmt(ing)}</span>}
-                      {egr > 0 && <span style={{ fontSize: '10px', color: '#f87171' }}>-{fmt(egr)}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      {/* ── Header: selector + semáforos de salud ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ ...G.input, width: 'auto', padding: '7px 14px', fontSize: '13px', fontWeight: 700 }}>
+            {PERIODOS.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <span style={{ fontSize: '11px', color: '#334155' }}>vs {prev}</span>
         </div>
-
-        {/* Top gastos por centro */}
-        <div style={{ ...G.card, padding: '20px' }}>
-          <p style={{ margin: '0 0 16px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Gastos por Centro de Costo</p>
-          {gastosPorCentro.length === 0 ? (
-            <p style={{ color: '#334155', fontSize: '13px' }}>Sin egresos para este período</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {gastosPorCentro.map(({ centro: c, total }) => {
-                const pct = Math.round((total / maxGasto) * 100);
-                return (
-                  <div key={c.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: c.color, boxShadow: `0 0 4px ${c.color}` }} />
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>{c.nombre}</span>
-                      </div>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#f87171' }}>{fmt(total)}</span>
-                    </div>
-                    <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, borderRadius: '3px', background: `linear-gradient(90deg,${c.color}90,${c.color})`, transition: 'width 0.5s ease' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Proyección de caja (SVG line chart) ── */}
-      <div style={{ ...G.card, padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Proyección de Caja</p>
-            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569' }}>Saldo acumulado — últimos 6 meses + próximos 3</p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '12px', height: '2px', background: '#34d399', borderRadius: '1px' }}/><span style={{ fontSize: '10px', color: '#475569' }}>Saldo acum.</span></div>
-          </div>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <svg viewBox={`0 0 ${W} ${H + 30}`} style={{ width: '100%', minWidth: '500px', display: 'block' }}>
-            {/* grid lines */}
-            {[0.25, 0.5, 0.75].map(f => (
-              <line key={f} x1={PAD} y1={PAD + f * (H - PAD * 2)} x2={W - PAD} y2={PAD + f * (H - PAD * 2)} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
-            ))}
-            {/* zero line */}
-            {minV < 0 && <line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="rgba(255,255,255,0.12)" strokeWidth={1} strokeDasharray="4,3" />}
-
-            {/* area fill */}
-            <defs>
-              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#34d399" stopOpacity="0.01" />
-              </linearGradient>
-            </defs>
-            <polygon points={areaPoints} fill="url(#areaGrad)" />
-
-            {/* line */}
-            <polyline points={points} fill="none" stroke="#34d399" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-
-            {/* dots + labels */}
-            {proyConAcum.map((d, i) => {
-              const x = PAD + i * xStep;
-              const y = yScale(d.acum);
-              const isFuture = i >= 6;
-              return (
-                <g key={i}>
-                  <circle cx={x} cy={y} r={isFuture ? 3 : 4} fill={isFuture ? '#334155' : '#34d399'} stroke={isFuture ? '#475569' : '#059669'} strokeWidth={1.5} />
-                  <text x={x} y={H + 10} textAnchor="middle" fontSize={9} fill="#475569">{d.label}</text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* resumen debajo del gráfico */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-          {proyConAcum.slice(-3).map((d, i) => (
-            <div key={i} style={{ ...G.panel, padding: '8px 14px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#475569' }}>{d.label}:</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: d.acum >= 0 ? '#34d399' : '#f87171' }}>{fmt(d.acum)}</span>
-              <span style={{ fontSize: '9px', color: '#334155', background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: '4px' }}>proyectado</span>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Margen neto', ok: margen >= 15, warn: margen >= 5, val: `${margen.toFixed(1)}%` },
+            { label: 'Burn rate',   ok: burnRate < totalIng / 3, warn: burnRate < totalIng / 2, val: `${fmt(burnRate)}/mes` },
+            { label: 'Runway',      ok: runway > 6, warn: runway > 2, val: runway === Infinity ? '∞ meses' : `${runway.toFixed(1)} m` },
+            { label: 'Mg. bruto',   ok: margenBruto >= 40, warn: margenBruto >= 20, val: `${margenBruto.toFixed(1)}%` },
+          ].map(s => (
+            <div key={s.label} style={{ ...G.panel, padding: '5px 11px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, background: s.ok ? '#34d399' : s.warn ? '#fbbf24' : '#f87171', boxShadow: `0 0 5px ${s.ok ? '#34d399' : s.warn ? '#fbbf24' : '#f87171'}60` }} />
+              <span style={{ fontSize: '10px', color: '#475569' }}>{s.label}</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8' }}>{s.val}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Presupuesto vs Real ── */}
-      {presupPeriodo.length > 0 && (
-        <div style={{ ...G.card, padding: '20px', marginTop: '14px' }}>
-          <p style={{ margin: '0 0 16px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Presupuesto vs Real · {periodo}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {[
-              { label: 'Ingresos presupuestados', presup: totPresupIng, real: totalIng, color: '#34d399' },
-              { label: 'Egresos presupuestados',  presup: totPresupEgr, real: totalEgr, color: '#f87171' },
-            ].map(r => {
-              const pct = r.presup > 0 ? Math.min(120, Math.round((r.real / r.presup) * 100)) : 0;
-              const over = pct > 100;
-              return (
-                <div key={r.label} style={{ ...G.panel, padding: '14px 16px' }}>
-                  <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{r.label}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>Presup.</p>
-                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#94a3b8' }}>{fmt(r.presup)}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>Real</p>
-                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: r.color }}>{fmt(r.real)}</p>
-                    </div>
-                  </div>
-                  <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: '3px', background: over ? 'linear-gradient(90deg,#f97316,#f87171)' : `linear-gradient(90deg,${r.color}80,${r.color})` }} />
-                  </div>
-                  <p style={{ margin: '5px 0 0', fontSize: '10px', color: over ? '#f87171' : '#475569' }}>{pct}% ejecutado{over ? ' — por encima del presupuesto' : ''}</p>
-                </div>
-              );
-            })}
+      {/* ── KPIs con delta QoQ ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '14px' }}>
+        {[
+          { label: 'Ingresos',    val: fmt(totalIng),            prev_: fmt(prevIng),            delta: deltaIng, color: '#34d399', icon: 'M7 11l5-5m0 0l5 5m-5-5v12' },
+          { label: 'Egresos',     val: fmt(totalEgr),            prev_: fmt(prevEgr),            delta: deltaEgr !== null ? -deltaEgr : null, color: '#f87171', icon: 'M17 13l-5 5m0 0l-5-5m5 5V6' },
+          { label: 'Resultado',   val: `${resultado >= 0 ? '+' : ''}${fmt(resultado)}`, prev_: `${prevRes >= 0 ? '+' : ''}${fmt(prevRes)}`, delta: deltaRes, color: resultado >= 0 ? '#34d399' : '#f87171', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01' },
+          { label: 'Margen neto', val: `${margen.toFixed(1)}%`,  prev_: `${prevMargen.toFixed(1)}%`, delta: deltaMar, color: margen >= 15 ? '#34d399' : margen >= 5 ? '#fbbf24' : '#f87171', icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+        ].map(k => (
+          <div key={k.label} style={{ ...G.card, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 100% 0%, ${k.color}10, transparent 55%)`, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={k.color} strokeWidth={2} opacity={0.5}><path strokeLinecap="round" strokeLinejoin="round" d={k.icon} /></svg>
+              </div>
+              <p style={{ margin: 0, fontSize: '23px', fontWeight: 800, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{k.val}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                <span style={{ fontSize: '10px', color: '#334155' }}>{k.prev_}</span>
+                {deltaBadge(k.delta)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Estado de Resultados (P&L statement) ── */}
+      <div style={{ ...G.card, padding: '20px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Estado de Resultados</p>
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569' }}>Formato P&L · {periodo} vs {prev}</p>
+          </div>
+          <div style={{ display: 'flex', gap: '5px' }}>
+            {(['tabla', 'waterfall'] as const).map(v => (
+              <button key={v} onClick={() => setPlView(v)} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, borderRadius: '6px', border: 'none', cursor: 'pointer', background: plView === v ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)', color: plView === v ? '#34d399' : '#475569', transition: 'all 0.15s' }}>
+                {v === 'tabla' ? 'Tabla' : 'Waterfall'}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {plView === 'tabla' ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                {['Concepto', periodo, prev, 'Δ QoQ', '% s/Ingresos'].map((h, i) => (
+                  <th key={h} style={{ padding: '6px 10px', textAlign: i === 0 ? 'left' : 'right', fontWeight: 700, fontSize: '10px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                { label: '(+) Ingresos Brutos',    curr: totalIng,   prev_: prevIng,   bold: false, color: '#34d399' },
+                { label: '(−) Costo de Ventas',    curr: costoVentas, prev_: prevCostoV, bold: false, color: '#f87171', neg: true },
+                { label: 'Utilidad Bruta',          curr: utilBruta,  prev_: prevUtilB, bold: true,  color: utilBruta >= 0 ? '#34d399' : '#f87171', divider: true },
+                { label: '(−) Gastos Operativos',  curr: gastosOp,   prev_: prevGastOp, bold: false, color: '#f87171', neg: true },
+                { label: 'EBITDA',                  curr: ebitda,     prev_: prevEbitda, bold: true,  color: ebitda >= 0 ? '#34d399' : '#f87171', divider: true },
+              ] as { label: string; curr: number; prev_: number; bold: boolean; color: string; neg?: boolean; divider?: boolean }[]).map((row) => (
+                <React.Fragment key={row.label}>
+                  {row.divider && (
+                    <tr><td colSpan={5} style={{ padding: '1px 0' }}><div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} /></td></tr>
+                  )}
+                  <tr style={{ background: row.bold ? 'rgba(255,255,255,0.025)' : 'transparent' }}>
+                    <td style={{ padding: '8px 10px', color: row.bold ? '#e2e8f0' : '#94a3b8', fontWeight: row.bold ? 700 : 400, fontSize: row.bold ? '12px' : '11px' }}>{row.label}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: row.bold ? 700 : 500, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{row.neg ? '− ' : ''}{fmt(row.curr)}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569', fontVariantNumeric: 'tabular-nums' }}>{row.neg ? '− ' : ''}{fmt(row.prev_)}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>{deltaBadge(calcDelta(row.curr, row.prev_))}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: '#334155', fontSize: '11px', fontVariantNumeric: 'tabular-nums' }}>
+                      {totalIng > 0 ? `${((row.curr / totalIng) * 100).toFixed(1)}%` : '—'}
+                    </td>
+                  </tr>
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          /* Waterfall SVG */
+          <div style={{ overflowX: 'auto' }}>
+            <svg viewBox={`0 0 ${WFW} ${WFH + 30}`} style={{ width: '100%', minWidth: '380px', display: 'block' }}>
+              <defs>
+                <linearGradient id="wfGreen" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#059669" stopOpacity="0.9" />
+                </linearGradient>
+                <linearGradient id="wfRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f87171" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#dc2626" stopOpacity="0.9" />
+                </linearGradient>
+              </defs>
+              {[0.25, 0.5, 0.75, 1].map(f => (
+                <line key={f} x1={WFPAD} y1={BOTTOM - f * wfAvH} x2={WFW - WFPAD} y2={BOTTOM - f * wfAvH} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+              ))}
+              <line x1={WFPAD} y1={BOTTOM} x2={WFW - WFPAD} y2={BOTTOM} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+              {wfBars.map((bar, i) => {
+                const isPos = bar.positive;
+                const fill = bar.isTotal ? (isPos ? 'url(#wfGreen)' : 'url(#wfRed)') : (isPos ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)');
+                return (
+                  <g key={i}>
+                    {/* connector line to next */}
+                    {!bar.isTotal && i < wfBars.length - 1 && (
+                      <line x1={bar.x + wfColW} y1={bar.positive ? bar.y : bar.y + bar.h} x2={wfBars[i + 1].x} y2={bar.positive ? bar.y : bar.y + bar.h} stroke="rgba(255,255,255,0.1)" strokeWidth={1} strokeDasharray="3,2" />
+                    )}
+                    <rect x={bar.x} y={bar.y} width={wfColW} height={bar.h} rx={3} fill={fill} />
+                    <text x={bar.x + wfColW / 2} y={bar.y - 5} textAnchor="middle" fontSize={9} fill="#94a3b8">
+                      {bar.positive ? '' : '−'}{fmt(bar.value).replace('$', '')}
+                    </text>
+                    <text x={bar.x + wfColW / 2} y={WFH + 13} textAnchor="middle" fontSize={9} fill="#475569">{bar.label}</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* ── Fila: Flujo mensual + Composición por categoría ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+
+        {/* Grouped bar chart mensual */}
+        <div style={{ ...G.card, padding: '20px' }}>
+          <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Flujo Mensual</p>
+          <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#475569' }}>Ingresos vs Egresos dentro del trimestre</p>
+          <div style={{ overflowX: 'auto' }}>
+            <svg viewBox={`0 0 ${GW} ${GH + 30}`} style={{ width: '100%', minWidth: '240px', display: 'block' }}>
+              <defs>
+                <linearGradient id="barIng" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#059669" stopOpacity="0.7" />
+                </linearGradient>
+                <linearGradient id="barEgr" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f87171" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#dc2626" stopOpacity="0.7" />
+                </linearGradient>
+              </defs>
+              {[0.25, 0.5, 0.75, 1].map(f => (
+                <line key={f} x1={GPAD} y1={GH - GPAD - f * (GH - GPAD * 2)} x2={GW - GPAD} y2={GH - GPAD - f * (GH - GPAD * 2)} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+              ))}
+              <line x1={GPAD} y1={GH - GPAD} x2={GW - GPAD} y2={GH - GPAD} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+              {monthlyData.map((d, i) => {
+                const x = gX(i);
+                const ingH = bH(d.ing), egrH = bH(d.egr);
+                return (
+                  <g key={i}>
+                    <rect x={x} y={GH - GPAD - ingH} width={barW} height={ingH} rx={3} fill="url(#barIng)" />
+                    <rect x={x + barW + barGap} y={GH - GPAD - egrH} width={barW} height={egrH} rx={3} fill="url(#barEgr)" />
+                    <text x={x + groupW / 2} y={GH + 13} textAnchor="middle" fontSize={9} fill="#475569">{MESES_LABEL[d.mes]}</text>
+                  </g>
+                );
+              })}
+              <g>
+                <rect x={GW - 85} y={8} width={7} height={7} rx={1} fill="#34d399" opacity={0.8} />
+                <text x={GW - 74} y={15} fontSize={9} fill="#475569">Ingresos</text>
+                <rect x={GW - 85} y={21} width={7} height={7} rx={1} fill="#f87171" opacity={0.8} />
+                <text x={GW - 74} y={28} fontSize={9} fill="#475569">Egresos</text>
+              </g>
+            </svg>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            {monthlyData.map(d => (
+              <div key={d.mes} style={{ flex: 1, ...G.panel, padding: '7px 8px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '9px', color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>{MESES_LABEL[d.mes]}</p>
+                <p style={{ margin: '3px 0 0', fontSize: '11px', fontWeight: 800, color: d.neto >= 0 ? '#34d399' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>{d.neto >= 0 ? '+' : ''}{fmt(d.neto)}</p>
+                <p style={{ margin: '1px 0 0', fontSize: '9px', color: '#334155' }}>{d.neto >= 0 ? 'superávit' : 'déficit'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Composición por categoría con % participación */}
+        <div style={{ ...G.card, padding: '20px' }}>
+          <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Composición por Categoría</p>
+          <p style={{ margin: '0 0 14px', fontSize: '11px', color: '#475569' }}>Participación sobre ingresos totales</p>
+          {(() => {
+            const catMap2: Record<string, { ing: number; egr: number }> = {};
+            movsP.forEach(m => {
+              if (!catMap2[m.categoria]) catMap2[m.categoria] = { ing: 0, egr: 0 };
+              catMap2[m.categoria][m.tipo === 'ingreso' ? 'ing' : 'egr'] += m.monto;
+            });
+            const items2 = Object.entries(catMap2).sort((a, b) => (b[1].ing + b[1].egr) - (a[1].ing + a[1].egr)).slice(0, 7);
+            if (items2.length === 0) return <p style={{ color: '#334155', fontSize: '12px' }}>Sin datos</p>;
+            return items2.map(([cat, v]) => {
+              const neto = v.ing - v.egr;
+              const pctIng = totalIng > 0 ? ((v.ing + v.egr) / totalIng) * 100 : 0;
+              return (
+                <div key={cat} style={{ marginBottom: '9px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>{cat}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '10px', color: '#475569', fontVariantNumeric: 'tabular-nums' }}>{pctIng.toFixed(1)}%</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: neto >= 0 ? '#34d399' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>{neto >= 0 ? '+' : ''}{fmt(neto)}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', height: '5px', borderRadius: '3px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
+                    {v.ing > 0 && <div style={{ flex: v.ing, background: 'linear-gradient(90deg,rgba(52,211,153,0.4),rgba(52,211,153,0.75))' }} />}
+                    {v.egr > 0 && <div style={{ flex: v.egr, background: 'linear-gradient(90deg,rgba(248,113,113,0.5),rgba(248,113,113,0.8))' }} />}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                    {v.ing > 0 && <span style={{ fontSize: '9px', color: '#34d399', fontVariantNumeric: 'tabular-nums' }}>+{fmt(v.ing)}</span>}
+                    {v.egr > 0 && <span style={{ fontSize: '9px', color: '#f87171', fontVariantNumeric: 'tabular-nums' }}>−{fmt(v.egr)}</span>}
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+
+      {/* ── Fila: Distribución egresos + Presupuesto vs Real ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+
+        {/* Gastos por centro con % */}
+        <div style={{ ...G.card, padding: '20px' }}>
+          <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Distribución de Egresos</p>
+          <p style={{ margin: '0 0 14px', fontSize: '11px', color: '#475569' }}>Por centro de costo — participación y monto</p>
+          {(() => {
+            const items3 = centros.map(c => ({
+              c,
+              total: movsP.filter(m => m.centroCostoId === c.id && m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0),
+            })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+            const maxT = items3[0]?.total ?? 1;
+            const totalE = items3.reduce((s, x) => s + x.total, 0);
+            if (items3.length === 0) return <p style={{ color: '#334155', fontSize: '12px' }}>Sin egresos en este período</p>;
+            return items3.map(({ c, total }) => (
+              <div key={c.id} style={{ marginBottom: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.color, boxShadow: `0 0 5px ${c.color}80`, flexShrink: 0 }} />
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>{c.nombre}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '10px', color: '#475569', fontVariantNumeric: 'tabular-nums' }}>{totalE > 0 ? ((total / totalE) * 100).toFixed(1) : 0}%</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#f87171', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</span>
+                  </div>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${(total / maxT) * 100}%`, borderRadius: '3px', background: `linear-gradient(90deg,${c.color}60,${c.color})`, transition: 'width 0.5s' }} />
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+
+        {/* Presupuesto vs Real por línea */}
+        <div style={{ ...G.card, padding: '20px' }}>
+          <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Presupuesto vs Real</p>
+          <p style={{ margin: '0 0 14px', fontSize: '11px', color: '#475569' }}>{periodo} · ejecución por línea presupuestal</p>
+          {presupPeriodo.length === 0
+            ? <p style={{ color: '#334155', fontSize: '12px' }}>Sin presupuesto definido para {periodo}</p>
+            : (
+              <>
+                {presupPeriodo.map(p => {
+                  const real = movsP.filter(m => m.tipo === p.tipo && m.categoria === p.categoria).reduce((s, m) => s + m.monto, 0);
+                  const exec = p.monto > 0 ? (real / p.monto) * 100 : 0;
+                  const over = exec > 100;
+                  const barColor = over ? '#f97316' : p.tipo === 'ingreso' ? '#34d399' : '#60a5fa';
+                  return (
+                    <div key={p.id} style={{ marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: p.tipo === 'ingreso' ? '#34d399' : '#60a5fa', flexShrink: 0 }} />
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>{p.categoria}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '10px', color: '#475569', fontVariantNumeric: 'tabular-nums' }}>{fmt(real)} / {fmt(p.monto)}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: over ? '#f97316' : '#64748b', fontVariantNumeric: 'tabular-nums' }}>{exec.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(exec, 100)}%`, borderRadius: '3px', background: `linear-gradient(90deg,${barColor}60,${barColor})`, transition: 'width 0.5s' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#475569' }}>Ejecución total</span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#34d399', fontVariantNumeric: 'tabular-nums' }}>Ing: {totPresupIng > 0 ? ((totalIng / totPresupIng) * 100).toFixed(0) : 0}%</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#60a5fa', fontVariantNumeric: 'tabular-nums' }}>Egr: {totPresupEgr > 0 ? ((totalEgr / totPresupEgr) * 100).toFixed(0) : 0}%</span>
+                  </div>
+                </div>
+              </>
+            )
+          }
+        </div>
+      </div>
     </>
   );
 }
