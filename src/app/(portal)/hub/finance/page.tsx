@@ -82,8 +82,9 @@ const TAB_ICONS: Record<number,string> = {
   2: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
   3: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
   4: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+  5: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z',
 };
-const TABS = ['Flujo de Caja','Centros de Costo','Presupuestos','Conciliación','Reportes'];
+const TABS = ['Flujo de Caja','Centros de Costo','Presupuestos','Conciliación','Reportes','Forecast'];
 
 // ── Area icons ─────────────────────────────────────────────────────────────
 const AREA_ICON: Record<Area,string> = {
@@ -191,6 +192,7 @@ export default function FinancePage() {
       {tab === 2 && <Presupuestos presups={presups} centros={centros} movs={movs} onSave={savePresups} />}
       {tab === 3 && <Conciliacion movs={movs}  centros={centros} onSave={saveMovs} />}
       {tab === 4 && <Reportes    movs={movs}   centros={centros} presups={presups} />}
+      {tab === 5 && <Forecast    movs={movs} />}
     </div>
   );
 }
@@ -1173,6 +1175,369 @@ function Reportes({ movs, centros, presups }: { movs: Movimiento[]; centros: Cen
               </>
             )
           }
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Tab 6: Forecast ───────────────────────────────────────────────────────
+const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+type FcastScenario = 'conservador' | 'base' | 'optimista';
+type FcastPoint = { key: string; label: string; year: number; mes: number; ing: number; egr: number; acum: number; isForecast: boolean };
+
+function linReg(pts: number[]): { m: number; b: number } {
+  const n = pts.length;
+  if (n < 2) return { m: 0, b: pts[0] ?? 0 };
+  let sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  pts.forEach((y, x) => { sx += x; sy += y; sxy += x * y; sx2 += x * x; });
+  const m = (n * sxy - sx * sy) / (n * sx2 - sx * sx);
+  const b = (sy - m * sx) / n;
+  return { m, b };
+}
+
+const SCENARIO_PARAMS: Record<FcastScenario, { ingMult: number; egrMult: number; label: string; color: string }> = {
+  conservador: { ingMult: 0.97, egrMult: 1.03, label: 'Conservador', color: '#f87171' },
+  base:        { ingMult: 1.00, egrMult: 1.00, label: 'Base',        color: '#fbbf24' },
+  optimista:   { ingMult: 1.04, egrMult: 0.97, label: 'Optimista',   color: '#34d399' },
+};
+
+function Forecast({ movs }: { movs: Movimiento[] }) {
+  const [horizonte, setHorizonte] = useState(6);
+  const [scenario, setScenario]   = useState<FcastScenario>('base');
+  const [editando, setEditando]   = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, { ing?: number; egr?: number }>>({});
+
+  // ── Construir serie mensual histórica (últimos 12 meses con datos) ──────────
+  const hoy = new Date();
+  const histPts: { key: string; label: string; year: number; mes: number; ing: number; egr: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    const mm = movs.filter(mv => { const dd = new Date(mv.fecha + 'T12:00:00'); return dd.getFullYear() === y && dd.getMonth() + 1 === m; });
+    const ing = mm.filter(mv => mv.tipo === 'ingreso').reduce((s, mv) => s + mv.monto, 0);
+    const egr = mm.filter(mv => mv.tipo === 'egreso').reduce((s, mv) => s + mv.monto, 0);
+    histPts.push({ key, label: `${MONTH_LABEL[m]} ${String(y).slice(2)}`, year: y, mes: m, ing, egr });
+  }
+
+  // Usar solo los meses con datos para la regresión
+  const withData = histPts.filter(p => p.ing > 0 || p.egr > 0);
+
+  // ── Regresión lineal ─────────────────────────────────────────────────────────
+  const ingArr = withData.map(p => p.ing);
+  const egrArr = withData.map(p => p.egr);
+  const regIng = linReg(ingArr);
+  const regEgr = linReg(egrArr);
+
+  const scParam = SCENARIO_PARAMS[scenario];
+
+  // ── Proyectar N meses ─────────────────────────────────────────────────────────
+  const fcastPts: { key: string; label: string; year: number; mes: number; ing: number; egr: number }[] = [];
+  for (let i = 1; i <= horizonte; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    const idx  = withData.length + i - 1;
+    const rawIng = Math.max(0, regIng.m * idx + regIng.b) * Math.pow(scParam.ingMult, i);
+    const rawEgr = Math.max(0, regEgr.m * idx + regEgr.b) * Math.pow(scParam.egrMult, i);
+    fcastPts.push({
+      key,
+      label: `${MONTH_LABEL[m]} ${String(y).slice(2)}`,
+      year: y, mes: m,
+      ing: overrides[key]?.ing ?? rawIng,
+      egr: overrides[key]?.egr ?? rawEgr,
+    });
+  }
+
+  // ── Serie completa (hist + forecast) ─────────────────────────────────────────
+  let acum = 0;
+  const allPts: FcastPoint[] = [
+    ...histPts.map(p => ({ ...p, acum: 0, isForecast: false })),
+    ...fcastPts.map(p => ({ ...p, acum: 0, isForecast: true })),
+  ].map(p => { acum += p.ing - p.egr; return { ...p, acum }; });
+
+  // ── KPIs de forecast ─────────────────────────────────────────────────────────
+  const fPts = allPts.filter(p => p.isForecast);
+  const fTotalIng = fPts.reduce((s, p) => s + p.ing, 0);
+  const fTotalEgr = fPts.reduce((s, p) => s + p.egr, 0);
+  const fResultado = fTotalIng - fTotalEgr;
+  const fMargen    = fTotalIng > 0 ? (fResultado / fTotalIng) * 100 : 0;
+  const breakEven  = fPts.findIndex(p => p.acum >= 0);
+
+  // Comparar promedio histórico vs promedio proyectado
+  const hAvgIng = withData.length > 0 ? withData.reduce((s, p) => s + p.ing, 0) / withData.length : 0;
+  const hAvgEgr = withData.length > 0 ? withData.reduce((s, p) => s + p.egr, 0) / withData.length : 0;
+  const fAvgIng = fPts.length > 0 ? fTotalIng / fPts.length : 0;
+  const fAvgEgr = fPts.length > 0 ? fTotalEgr / fPts.length : 0;
+  const growIng = hAvgIng > 0 ? ((fAvgIng - hAvgIng) / hAvgIng) * 100 : 0;
+  const growEgr = hAvgEgr > 0 ? ((fAvgEgr - hAvgEgr) / hAvgEgr) * 100 : 0;
+
+  // ── SVG dual-line chart ──────────────────────────────────────────────────────
+  const W = 640, H = 180, PAD = { t: 16, r: 20, b: 32, l: 20 };
+  const chartW = W - PAD.l - PAD.r;
+  const chartH = H - PAD.t - PAD.b;
+
+  const allIng = allPts.map(p => p.ing);
+  const allEgr = allPts.map(p => p.egr);
+  const yMax   = Math.max(1, ...allIng, ...allEgr) * 1.1;
+  const xStep  = allPts.length > 1 ? chartW / (allPts.length - 1) : chartW;
+  const xOf    = (i: number) => PAD.l + i * xStep;
+  const yOf    = (v: number) => PAD.t + chartH - (v / yMax) * chartH;
+
+  const ingLine = allPts.map((p, i) => `${xOf(i)},${yOf(p.ing)}`).join(' ');
+  const egrLine = allPts.map((p, i) => `${xOf(i)},${yOf(p.egr)}`).join(' ');
+
+  // Split into hist/forecast segments
+  const hCount  = histPts.length;
+  const ingHist = allPts.slice(0, hCount).map((p, i) => `${xOf(i)},${yOf(p.ing)}`).join(' ');
+  const egrHist = allPts.slice(0, hCount).map((p, i) => `${xOf(i)},${yOf(p.egr)}`).join(' ');
+  const ingFcast = allPts.slice(hCount - 1).map((p, i) => `${xOf(hCount - 1 + i)},${yOf(p.ing)}`).join(' ');
+  const egrFcast = allPts.slice(hCount - 1).map((p, i) => `${xOf(hCount - 1 + i)},${yOf(p.egr)}`).join(' ');
+
+  // Confidence band (±15% of projected)
+  const bandTop = fPts.map((p, i) => `${xOf(hCount + i)},${yOf(p.ing * 1.15)}`);
+  const bandBot = fPts.map((p, i) => `${xOf(hCount + i)},${yOf(p.ing * 0.85)}`).reverse();
+  const bandPath = bandTop.length > 0 ? `${xOf(hCount - 1)},${yOf(fPts[0]?.ing ?? 0)} ` + bandTop.join(' ') + ' ' + bandBot.join(' ') + ` ${xOf(hCount - 1)},${yOf(fPts[0]?.ing ?? 0)}` : '';
+
+  // Divide line x position
+  const divX = xOf(hCount - 1);
+
+  const setOverride = (key: string, field: 'ing' | 'egr', raw: string) => {
+    const v = parseFloat(raw.replace(/[^0-9.]/g, ''));
+    if (isNaN(v)) return;
+    setOverrides(prev => ({ ...prev, [key]: { ...prev[key], [field]: v } }));
+  };
+
+  return (
+    <>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Forecasting Financiero</p>
+          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569' }}>Tendencia histórica + proyección con regresión lineal</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Horizonte */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {[3, 6, 12].map(h => (
+              <button key={h} onClick={() => setHorizonte(h)} style={{ padding: '5px 11px', fontSize: '11px', fontWeight: 700, borderRadius: '7px', border: 'none', cursor: 'pointer', background: horizonte === h ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)', color: horizonte === h ? '#34d399' : '#475569', transition: 'all 0.15s' }}>
+                {h}m
+              </button>
+            ))}
+          </div>
+          {/* Scenario */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {(Object.keys(SCENARIO_PARAMS) as FcastScenario[]).map(s => (
+              <button key={s} onClick={() => setScenario(s)} style={{ padding: '5px 11px', fontSize: '11px', fontWeight: 700, borderRadius: '7px', border: 'none', cursor: 'pointer', background: scenario === s ? `${SCENARIO_PARAMS[s].color}22` : 'rgba(255,255,255,0.05)', color: scenario === s ? SCENARIO_PARAMS[s].color : '#475569', transition: 'all 0.15s' }}>
+                {SCENARIO_PARAMS[s].label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setEditando(e => !e)} style={{ padding: '5px 11px', fontSize: '11px', fontWeight: 700, borderRadius: '7px', border: `1px solid ${editando ? '#34d399' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', background: editando ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.03)', color: editando ? '#34d399' : '#475569', transition: 'all 0.15s' }}>
+            {editando ? '✓ Editando' : 'Editar supuestos'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── KPIs proyectados ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '14px' }}>
+        {[
+          { label: `Ingresos (${horizonte}m)`, val: fmt(fTotalIng), sub: `Promedio ${fmt(fAvgIng)}/mes`, delta: growIng, color: '#34d399' },
+          { label: `Egresos (${horizonte}m)`,  val: fmt(fTotalEgr), sub: `Promedio ${fmt(fAvgEgr)}/mes`, delta: -growEgr, color: '#f87171' },
+          { label: 'Resultado proyectado', val: `${fResultado >= 0 ? '+' : ''}${fmt(fResultado)}`, sub: `Margen ${fMargen.toFixed(1)}%`, delta: fMargen >= 15 ? null : null, color: fResultado >= 0 ? '#34d399' : '#f87171' },
+          { label: 'Tendencia ingresos', val: regIng.m >= 0 ? `+${fmt(regIng.m)}/mes` : `${fmt(regIng.m)}/mes`, sub: regIng.m >= 0 ? 'creciendo' : 'decreciendo', color: regIng.m >= 0 ? '#34d399' : '#f87171' },
+        ].map(k => (
+          <div key={k.label} style={{ ...G.card, padding: '15px 17px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 100% 0%, ${k.color}0e, transparent 55%)`, pointerEvents: 'none' }} />
+            <p style={{ margin: '0 0 8px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
+            <p style={{ margin: 0, fontSize: '21px', fontWeight: 800, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{k.val}</p>
+            <p style={{ margin: '5px 0 0', fontSize: '11px', color: '#334155' }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Gráfico dual: Ingresos vs Egresos (histórico + proyección) ── */}
+      <div style={{ ...G.card, padding: '20px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Ingresos vs Egresos · Histórico + Proyección</p>
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569' }}>Línea sólida = histórico · Punteada = proyectado · Banda = rango de confianza</p>
+          </div>
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+            {[{ color: '#34d399', label: 'Ingresos' }, { color: '#f87171', label: 'Egresos' }].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div style={{ width: '16px', height: '2px', background: l.color, borderRadius: '1px' }} />
+                <span style={{ fontSize: '10px', color: '#475569' }}>{l.label}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '16px', height: '7px', background: 'rgba(52,211,153,0.12)', borderRadius: '2px' }} />
+              <span style={{ fontSize: '10px', color: '#475569' }}>Confianza ±15%</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <svg viewBox={`0 0 ${W} ${H + 4}`} style={{ width: '100%', minWidth: '520px', display: 'block' }}>
+            <defs>
+              <linearGradient id="fcBand" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#34d399" stopOpacity="0.04" />
+              </linearGradient>
+            </defs>
+
+            {/* Grid */}
+            {[0.25, 0.5, 0.75, 1].map(f => (
+              <line key={f} x1={PAD.l} y1={PAD.t + chartH * (1 - f)} x2={W - PAD.r} y2={PAD.t + chartH * (1 - f)} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+            ))}
+
+            {/* Divider: histórico vs forecast */}
+            <line x1={divX} y1={PAD.t} x2={divX} y2={PAD.t + chartH} stroke="rgba(255,255,255,0.12)" strokeWidth={1} strokeDasharray="4,3" />
+            <text x={divX + 4} y={PAD.t + 10} fontSize={8} fill="#334155">hoy →</text>
+
+            {/* Confidence band */}
+            {bandPath && <polygon points={bandPath} fill="url(#fcBand)" />}
+
+            {/* Líneas históricas (sólidas) */}
+            <polyline points={ingHist} fill="none" stroke="#34d399" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            <polyline points={egrHist} fill="none" stroke="#f87171" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+
+            {/* Líneas forecast (punteadas) */}
+            <polyline points={ingFcast} fill="none" stroke="#34d399" strokeWidth={1.5} strokeDasharray="5,3" strokeLinejoin="round" strokeLinecap="round" opacity={0.85} />
+            <polyline points={egrFcast} fill="none" stroke="#f87171" strokeWidth={1.5} strokeDasharray="5,3" strokeLinejoin="round" strokeLinecap="round" opacity={0.85} />
+
+            {/* Dots + labels eje X */}
+            {allPts.map((p, i) => {
+              const x = xOf(i), showLabel = i % 2 === 0 || allPts.length <= 10;
+              return (
+                <g key={p.key}>
+                  <circle cx={x} cy={yOf(p.ing)} r={p.isForecast ? 2.5 : 3.5} fill={p.isForecast ? '#1e3a2e' : '#34d399'} stroke="#34d399" strokeWidth={1.2} />
+                  <circle cx={x} cy={yOf(p.egr)} r={p.isForecast ? 2.5 : 3.5} fill={p.isForecast ? '#3a1e1e' : '#f87171'} stroke="#f87171" strokeWidth={1.2} />
+                  {showLabel && <text x={x} y={H - 4} textAnchor="middle" fontSize={8} fill={p.isForecast ? '#475569' : '#334155'}>{p.label}</text>}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+
+      {/* ── Tabla de proyección mensual ── */}
+      <div style={{ ...G.card, padding: '20px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Proyección Mensual · Escenario {SCENARIO_PARAMS[scenario].label}</p>
+            <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569' }}>
+              {editando ? 'Hacé clic en un valor para editarlo — los cambios sobreescriben el modelo' : 'Los valores se calculan por regresión lineal + multiplicador de escenario'}
+            </p>
+          </div>
+          {Object.keys(overrides).length > 0 && (
+            <button onClick={() => setOverrides({})} style={{ padding: '5px 11px', fontSize: '11px', fontWeight: 600, borderRadius: '7px', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', background: 'rgba(248,113,113,0.08)', color: '#f87171' }}>
+              Resetear overrides ({Object.keys(overrides).length})
+            </button>
+          )}
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                {['Mes', 'Ingresos proy.', 'Egresos proy.', 'Neto', 'Saldo acum.', 'Estado'].map((h, i) => (
+                  <th key={h} style={{ padding: '7px 10px', textAlign: i === 0 ? 'left' : 'right', fontWeight: 700, fontSize: '10px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fPts.map((p, i) => {
+                const neto = p.ing - p.egr;
+                const isOverridden = overrides[p.key];
+                return (
+                  <tr key={p.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                    <td style={{ padding: '8px 10px', color: '#e2e8f0', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {p.label}
+                      {isOverridden && <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>editado</span>}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                      {editando ? (
+                        <input type="number" defaultValue={Math.round(p.ing)} onBlur={e => setOverride(p.key, 'ing', e.target.value)} style={{ ...G.input, width: '100px', textAlign: 'right', fontSize: '12px', padding: '3px 8px', color: '#34d399' }} />
+                      ) : (
+                        <span style={{ color: '#34d399', fontWeight: 600 }}>{fmt(p.ing)}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                      {editando ? (
+                        <input type="number" defaultValue={Math.round(p.egr)} onBlur={e => setOverride(p.key, 'egr', e.target.value)} style={{ ...G.input, width: '100px', textAlign: 'right', fontSize: '12px', padding: '3px 8px', color: '#f87171' }} />
+                      ) : (
+                        <span style={{ color: '#f87171', fontWeight: 600 }}>{fmt(p.egr)}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: neto >= 0 ? '#34d399' : '#f87171' }}>
+                      {neto >= 0 ? '+' : ''}{fmt(neto)}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: p.acum >= 0 ? '#94a3b8' : '#f87171', fontWeight: p.acum < 0 ? 700 : 400 }}>
+                      {p.acum >= 0 ? '' : '−'}{fmt(Math.abs(p.acum))}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '5px', fontWeight: 700, background: neto >= 0 ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: neto >= 0 ? '#34d399' : '#f87171' }}>
+                        {neto >= 0 ? 'superávit' : 'déficit'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+                <td style={{ padding: '8px 10px', fontWeight: 700, fontSize: '12px', color: '#e2e8f0' }}>TOTAL {horizonte}m</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#34d399' }}>{fmt(fTotalIng)}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#f87171' }}>{fmt(fTotalEgr)}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: fResultado >= 0 ? '#34d399' : '#f87171' }}>{fResultado >= 0 ? '+' : ''}{fmt(fResultado)}</td>
+                <td colSpan={2} style={{ padding: '8px 10px', textAlign: 'right', fontSize: '11px', color: '#475569' }}>
+                  Margen proyectado: <strong style={{ color: scParam.color }}>{fMargen.toFixed(1)}%</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Comparativo escenarios ── */}
+      <div style={{ ...G.card, padding: '20px' }}>
+        <p style={{ margin: '0 0 14px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Comparativo de Escenarios · {horizonte} meses</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+          {(Object.entries(SCENARIO_PARAMS) as [FcastScenario, typeof SCENARIO_PARAMS.base][]).map(([key, sc]) => {
+            // Recalcular para cada escenario
+            let sTotalIng = 0, sTotalEgr = 0;
+            for (let i = 1; i <= horizonte; i++) {
+              const idx = withData.length + i - 1;
+              sTotalIng += Math.max(0, regIng.m * idx + regIng.b) * Math.pow(sc.ingMult, i);
+              sTotalEgr += Math.max(0, regEgr.m * idx + regEgr.b) * Math.pow(sc.egrMult, i);
+            }
+            const sRes = sTotalIng - sTotalEgr;
+            const sMar = sTotalIng > 0 ? (sRes / sTotalIng) * 100 : 0;
+            const isActive = key === scenario;
+            return (
+              <div key={key} onClick={() => setScenario(key)} style={{ ...G.panel, padding: '16px 18px', cursor: 'pointer', border: `1px solid ${isActive ? sc.color + '40' : 'rgba(255,255,255,0.07)'}`, background: isActive ? `${sc.color}08` : 'rgba(255,255,255,0.02)', transition: 'all 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: sc.color }}>{sc.label}</p>
+                  {isActive && <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', background: `${sc.color}20`, color: sc.color, fontWeight: 700 }}>ACTIVO</span>}
+                </div>
+                <p style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 800, color: sRes >= 0 ? sc.color : '#f87171', letterSpacing: '-0.02em' }}>{sRes >= 0 ? '+' : ''}{fmt(sRes)}</p>
+                <p style={{ margin: '0 0 10px', fontSize: '10px', color: '#475569' }}>resultado proyectado</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: '#34d399' }}>Ing: {fmt(sTotalIng)}</span>
+                  <span style={{ color: '#f87171' }}>Egr: {fmt(sTotalEgr)}</span>
+                </div>
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '10px', color: '#475569' }}>Margen</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: sMar >= 15 ? '#34d399' : sMar >= 5 ? '#fbbf24' : '#f87171' }}>{sMar.toFixed(1)}%</span>
+                </div>
+                <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '10px', color: '#475569' }}>Crecimiento ing.</span>
+                  <span style={{ fontSize: '10px', color: sc.ingMult >= 1 ? '#34d399' : '#f87171' }}>{sc.ingMult >= 1 ? '+' : ''}{((sc.ingMult - 1) * 100).toFixed(0)}%/mes</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
