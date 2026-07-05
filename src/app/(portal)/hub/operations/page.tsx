@@ -1032,23 +1032,22 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
         ))}
       </div>
 
-      {/* Gauges + Sparklines */}
+      {/* Gauges + Historial */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
         <div style={{ ...G.card }}>
           <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Uso actual · <span style={{ color: '#334155', fontWeight: 400, textTransform: 'none' }}>click para detalle</span></p>
           <GaugeSection data={data} cpuColor={cpuColor} ramColor={ramColor} diskColor={diskColor} />
         </div>
-
         <div style={{ ...G.card }}>
           <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial (últimas {MAX_HISTORY} lecturas · cada 30s)</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
             {[
-              { label: 'CPU %',    history: cpuHist,      color: cpuColor,   val: `${data.cpu.percent}%`,             net: false },
-              { label: 'RAM %',    history: ramHist,      color: ramColor,   val: `${data.ram.percent}%`,             net: false },
-              { label: 'Swap %',   history: swapHist,     color: '#22d3ee',  val: `${data.swap?.percent ?? 0}%`,      net: false },
-              { label: 'Red ↓',    history: rxHist,       color: '#60a5fa',  val: `${data.net.rx_mbps} MB/s`,         net: true  },
-              { label: 'Red ↑',    history: txHist,       color: '#a78bfa',  val: `${data.net.tx_mbps} MB/s`,         net: true  },
-              { label: 'Disco R',  history: diskReadHist,  color: '#fb923c', val: `${data.disk_io?.read_mbps ?? 0} MB/s`, net: false },
+              { label: 'CPU %',   history: cpuHist,      color: cpuColor,  val: `${data.cpu.percent}%`,                  net: false },
+              { label: 'RAM %',   history: ramHist,      color: ramColor,  val: `${data.ram.percent}%`,                  net: false },
+              { label: 'Swap %',  history: swapHist,     color: '#22d3ee', val: `${data.swap?.percent ?? 0}%`,           net: false },
+              { label: 'Red ↓',   history: rxHist,       color: '#60a5fa', val: `${data.net.rx_mbps} MB/s`,              net: true  },
+              { label: 'Red ↑',   history: txHist,       color: '#a78bfa', val: `${data.net.tx_mbps} MB/s`,              net: true  },
+              { label: 'Disco R', history: diskReadHist, color: '#fb923c', val: `${data.disk_io?.read_mbps ?? 0} MB/s`,  net: false },
             ].map(s => (
               <div key={s.label} onClick={s.net ? () => setNetModal(true) : undefined}
                 style={{ cursor: s.net ? 'pointer' : 'default', borderRadius: '7px', padding: '4px', background: s.net ? 'rgba(96,165,250,0.03)' : 'transparent', transition: 'background 0.15s' }}>
@@ -1065,12 +1064,12 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
         </div>
       </div>
 
-      {/* Row 1: Sistema · Servicios · Top procesos (toggle CPU/RAM) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-        {/* Sistema */}
-        <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sistema</p>
+      {/* Row A: CPU · Memoria · Red (agrupado por recurso) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
 
+        {/* CPU & Sistema */}
+        <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CPU & Sistema</p>
           <div>
             <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Load average</p>
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -1082,41 +1081,54 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
               ))}
             </div>
           </div>
-
-          <div>
-            <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Red</p>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#60a5fa' }}>↓ {data.net.rx_mbps}</p>
-                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s RX</p>
-              </div>
-              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#a78bfa' }}>↑ {data.net.tx_mbps}</p>
-                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s TX</p>
-              </div>
-            </div>
-          </div>
-
-          {data.connections && (
+          {data.procs && (
             <div>
-              <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Conexiones TCP</p>
+              <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Procesos</p>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#34d399' }}>{data.connections.established}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Activas</p>
-                </div>
-                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#60a5fa' }}>{data.connections.listening}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Listen</p>
-                </div>
-                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#94a3b8' }}>{data.connections.total}</p>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#94a3b8' }}>{data.procs.total}</p>
                   <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Total</p>
+                </div>
+                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: data.procs.zombies > 0 ? '#f87171' : '#34d399' }}>{data.procs.zombies}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Zombies</p>
                 </div>
               </div>
             </div>
           )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div style={{ ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#34d399' }}>{fmtUptime(data.uptime_s)}</p>
+              <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Uptime</p>
+            </div>
+            <div style={{ ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: allOk ? '#34d399' : '#f87171' }}>{activeServices}/{totalServices}</p>
+              <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Servicios</p>
+            </div>
+          </div>
+        </div>
 
+        {/* Memoria & Swap */}
+        <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Memoria</p>
+          <div>
+            <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>RAM</p>
+            {[
+              { label: 'Usado',      val: `${(data.ram.used_mb / 1024).toFixed(2)} GB`, pct: (data.ram.used_mb / data.ram.total_mb) * 100,  clr: ramColor },
+              { label: 'Disponible', val: `${(data.ram.avail_mb / 1024).toFixed(2)} GB`, pct: (data.ram.avail_mb / data.ram.total_mb) * 100, clr: '#34d399' },
+            ].map(r => (
+              <div key={r.label} style={{ marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span style={{ fontSize: '11px', color: '#475569' }}>{r.label}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: r.clr }}>{r.val}</span>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
+                  <div style={{ height: '100%', width: `${r.pct}%`, borderRadius: '3px', background: r.clr }} />
+                </div>
+              </div>
+            ))}
+            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#334155' }}>Total: {(data.ram.total_mb / 1024).toFixed(2)} GB</p>
+          </div>
           {data.swap && data.swap.total_mb > 0 && (
             <div>
               <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Swap</p>
@@ -1136,7 +1148,43 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
               </div>
             </div>
           )}
+        </div>
 
+        {/* Red & I/O */}
+        <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Red & I/O</p>
+          <div>
+            <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Tráfico de red</p>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#60a5fa' }}>↓ {data.net.rx_mbps}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s RX</p>
+              </div>
+              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#a78bfa' }}>↑ {data.net.tx_mbps}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s TX</p>
+              </div>
+            </div>
+          </div>
+          {data.connections && (
+            <div>
+              <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Conexiones TCP</p>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#34d399' }}>{data.connections.established}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Activas</p>
+                </div>
+                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#60a5fa' }}>{data.connections.listening}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Listen</p>
+                </div>
+                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#94a3b8' }}>{data.connections.total}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Total</p>
+                </div>
+              </div>
+            </div>
+          )}
           {data.disk_io && (
             <div>
               <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Disco I/O</p>
@@ -1152,35 +1200,18 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
               </div>
             </div>
           )}
-
-          {data.procs && (
-            <div>
-              <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Procesos</p>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#94a3b8' }}>{data.procs.total}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Total</p>
-                </div>
-                <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: data.procs.zombies > 0 ? '#f87171' : '#34d399' }}>{data.procs.zombies}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Zombies</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-            <div style={{ ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-              <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#34d399' }}>{fmtUptime(data.uptime_s)}</p>
-              <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Uptime</p>
-            </div>
-            <div style={{ ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
-              <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: allOk ? '#34d399' : '#f87171' }}>{activeServices}/{totalServices}</p>
-              <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>Servicios</p>
-            </div>
-          </div>
         </div>
+      </div>
 
+      {/* Row B: Top consumidores (disco · RAM · procesos CPU/RAM) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+        <TopDiskConsumers disk={data.disk} />
+        <TopRamProcesses procs={data.top_procs} />
+        <TopProcsToggle procs={data.top_procs} />
+      </div>
+
+      {/* Row C: Servicios · Analytics */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
         {/* Servicios */}
         <div style={{ ...G.card }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -1207,19 +1238,8 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
             ))}
           </div>
         </div>
-
-        {/* Top procesos CPU/RAM toggle */}
-        <TopProcsToggle procs={data.top_procs} />
-      </div>
-
-      {/* Row 2: Top disco · Top RAM · Analytics (10min + predicción) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px' }}>
-        <TopDiskConsumers disk={data.disk} />
-        <TopRamProcesses procs={data.top_procs} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <TenMinSummary cpuHist={cpuHist} ramHist={ramHist} rxHist={rxHist} txHist={txHist} data={data} />
-          <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
-        </div>
+        <TenMinSummary cpuHist={cpuHist} ramHist={ramHist} rxHist={rxHist} txHist={txHist} data={data} />
+        <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
       </div>
 
       <DockerPanel containers={data.docker} />
