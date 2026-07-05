@@ -416,20 +416,6 @@ function DiskPanel({ disk }: { disk: VpsMetrics['disk'] }) {
 
                   {/* Leyenda + filas expandibles */}
                   <CatRows cats={allCats} diskUsed={disk.used_gb} colors={SEGMENT_COLORS} />
-                    {/* Libre */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '12px', color: '#334155' }}>Disponible</span>
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#34d399' }}>{disk.free_gb} GB</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '10px', color: '#334155', flexShrink: 0, width: '36px', textAlign: 'right' }}>
-                        {disk.total_gb > 0 ? ((disk.free_gb / disk.total_gb) * 100).toFixed(1) : 0}%
-                      </span>
-                    </div>
-                  </div>
                 </>
               )}
 
