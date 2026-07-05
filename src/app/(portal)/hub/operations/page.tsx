@@ -831,7 +831,7 @@ function TopDiskConsumers({ disk }: { disk: VpsMetrics['disk'] }) {
       category: cat.label,
       catColor: CAT_COLORS[i % CAT_COLORS.length],
     }))
-  ).sort((a, b) => b.used_gb - a.used_gb).slice(0, 5);
+  ).sort((a, b) => b.used_gb - a.used_gb).slice(0, 10);
 
   return (
     <div style={{ ...G.card, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
