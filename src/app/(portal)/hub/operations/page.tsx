@@ -997,7 +997,8 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
   cpuHist: number[]; ramHist: number[]; rxHist: number[]; txHist: number[]; diskHist: number[];
   swapHist: number[]; diskReadHist: number[]; diskWriteHist: number[];
 }) {
-  const [netModal, setNetModal] = useState(false);
+  const [netModal,      setNetModal]      = useState(false);
+  const [ramProcsModal, setRamProcsModal] = useState(false);
   const cpuColor  = statusColor(data.cpu.percent);
   const ramColor  = statusColor(data.ram.percent);
   const diskColor = statusColor(data.disk.percent);
@@ -1149,9 +1150,16 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
             </div>
           )}
           <div>
-            <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Top procesos por RAM</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Top procesos por RAM</p>
+              <button onClick={() => setRamProcsModal(true)}
+                title="Ver top 10"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#475569', display: 'flex', alignItems: 'center', borderRadius: '4px' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg>
+              </button>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {[...data.top_procs].sort((a, b) => b.mem - a.mem).slice(0, 5).map((proc, i) => (
+              {[...data.top_procs].sort((a, b) => b.mem - a.mem).slice(0, 3).map((proc, i) => (
                 <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '8px', background: i === 0 ? 'rgba(168,85,247,0.05)' : 'rgba(255,255,255,0.02)' }}>
                   <span style={{ fontSize: '10px', fontWeight: 800, color: '#334155', width: '14px', textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
                   <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -1267,6 +1275,35 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
       </p>
 
       {netModal && <NetModal rxHist={rxHist} txHist={txHist} data={data} onClose={() => setNetModal(false)} />}
+      {ramProcsModal && (
+        <ModalShell onClose={() => setRamProcsModal(false)} title="Top procesos por RAM" sub={`${data.ram.used_mb} MB usados · ${data.ram.total_mb} MB total`} icon="M4 6h16M4 10h16M4 14h16M4 18h16" color={ramColor}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {[...data.top_procs].sort((a, b) => b.mem - a.mem).slice(0, 10).map((proc, i) => {
+              const memMb = Math.round((proc.mem / 100) * data.ram.total_mb);
+              const clr   = statusColor(proc.mem);
+              return (
+                <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '9px', background: i === 0 ? 'rgba(168,85,247,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${i === 0 ? 'rgba(168,85,247,0.12)' : 'rgba(255,255,255,0.04)'}` }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: i < 3 ? clr : '#334155', width: '18px', textAlign: 'right', flexShrink: 0 }}>#{i + 1}</span>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</p>
+                    <p style={{ margin: 0, fontSize: '10px', color: '#334155' }}>PID {proc.pid}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', flexShrink: 0 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: clr }}>{proc.mem.toFixed(1)}%</p>
+                      <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{memMb} MB</p>
+                    </div>
+                    <div style={{ textAlign: 'right', minWidth: '52px' }}>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: statusColor(proc.cpu) }}>{proc.cpu.toFixed(1)}%</p>
+                      <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>CPU</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ModalShell>
+      )}
     </>
   );
 }

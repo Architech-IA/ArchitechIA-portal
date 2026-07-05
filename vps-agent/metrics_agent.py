@@ -242,7 +242,7 @@ def collect() -> dict:
 
     top_procs = []
     for p in sorted(psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]),
-                    key=lambda p: p.info.get("cpu_percent") or 0, reverse=True)[:5]:
+                    key=lambda p: p.info.get("cpu_percent") or 0, reverse=True)[:10]:
         top_procs.append({
             "pid":  p.info["pid"],
             "name": p.info["name"],
