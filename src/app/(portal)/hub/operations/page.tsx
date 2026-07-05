@@ -11,10 +11,17 @@ interface DiskPartition {
   percent: number;
 }
 
+interface DiskChild {
+  name: string;
+  path: string;
+  used_gb: number;
+}
+
 interface DiskCategory {
   path: string;
   label: string;
   used_gb: number;
+  children?: DiskChild[];
 }
 
 interface VpsMetrics {
@@ -198,6 +205,75 @@ function DiskDonut({ used, total, color, size = 110 }: { used: number; total: nu
   );
 }
 
+// ── Category rows (expandibles) ───────────────────────────────────────────────
+function CatRows({ cats, diskUsed, colors }: { cats: DiskCategory[]; diskUsed: number; colors: string[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {cats.map((cat, i) => {
+        const c = colors[i % colors.length];
+        const pct = diskUsed > 0 ? (cat.used_gb / diskUsed) * 100 : 0;
+        const hasChildren = (cat.children?.length ?? 0) > 0;
+        const isOpen = expanded === cat.path;
+        return (
+          <div key={cat.path}>
+            {/* Fila principal */}
+            <div
+              onClick={() => hasChildren && setExpanded(isOpen ? null : cat.path)}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: hasChildren ? 'pointer' : 'default', borderRadius: '8px', padding: '4px 2px', transition: 'background 0.15s' }}
+              onMouseEnter={e => { if (hasChildren) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>{cat.label}</span>
+                    <span style={{ fontSize: '10px', color: '#334155', fontFamily: 'monospace' }}>{cat.path}</span>
+                    {hasChildren && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2.5} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: c, flexShrink: 0, marginLeft: '8px' }}>{cat.used_gb} GB</span>
+                </div>
+                <div style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, borderRadius: '2px', background: c, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+              <span style={{ fontSize: '10px', color: '#475569', flexShrink: 0, width: '36px', textAlign: 'right' }}>{pct.toFixed(1)}%</span>
+            </div>
+
+            {/* Subdirectorios expandidos */}
+            {isOpen && cat.children && cat.children.length > 0 && (
+              <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '12px', borderLeft: `2px solid ${c}30` }}>
+                {cat.children.map(child => {
+                  const childPct = cat.used_gb > 0 ? (child.used_gb / cat.used_gb) * 100 : 0;
+                  return (
+                    <div key={child.path} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{child.name}</span>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', flexShrink: 0, marginLeft: '8px' }}>{child.used_gb} GB</span>
+                        </div>
+                        <div style={{ height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.05)' }}>
+                          <div style={{ height: '100%', width: `${Math.min(100, childPct)}%`, borderRadius: '2px', background: `${c}80` }} />
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '10px', color: '#334155', flexShrink: 0, width: '36px', textAlign: 'right' }}>{childPct.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Disk Panel + Modal ────────────────────────────────────────────────────────
 const CAT_COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#22d3ee', '#fb923c', '#f472b6'];
 
@@ -338,30 +414,8 @@ function DiskPanel({ disk }: { disk: VpsMetrics['disk'] }) {
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)' }} />
                   </div>
 
-                  {/* Leyenda + filas */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {allCats.map((cat, i) => {
-                      const c = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-                      const pct = disk.used_gb > 0 ? (cat.used_gb / disk.used_gb) * 100 : 0;
-                      return (
-                        <div key={cat.path} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c, flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                              <div>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>{cat.label}</span>
-                                <span style={{ fontSize: '10px', color: '#334155', marginLeft: '6px', fontFamily: 'monospace' }}>{cat.path}</span>
-                              </div>
-                              <span style={{ fontSize: '12px', fontWeight: 800, color: c, flexShrink: 0 }}>{cat.used_gb} GB</span>
-                            </div>
-                            <div style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)' }}>
-                              <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, borderRadius: '2px', background: c, transition: 'width 0.5s ease' }} />
-                            </div>
-                          </div>
-                          <span style={{ fontSize: '10px', color: '#475569', flexShrink: 0, width: '36px', textAlign: 'right' }}>{pct.toFixed(1)}%</span>
-                        </div>
-                      );
-                    })}
+                  {/* Leyenda + filas expandibles */}
+                  <CatRows cats={allCats} diskUsed={disk.used_gb} colors={SEGMENT_COLORS} />
                     {/* Libre */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                       <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />

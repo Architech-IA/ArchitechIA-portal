@@ -84,6 +84,34 @@ def disk_breakdown() -> list:
     return result
 
 
+def disk_children(path: str, limit: int = 10) -> list:
+    """Subdirectorios de un path ordenados por tamaño (du -sb --max-depth=1)."""
+    try:
+        out = subprocess.run(
+            ["du", "-sb", "--max-depth=1", path],
+            capture_output=True, text=True, timeout=20
+        )
+        if out.returncode != 0:
+            return []
+        items = []
+        for line in out.stdout.strip().split("\n"):
+            parts = line.split("\t", 1)
+            if len(parts) != 2:
+                continue
+            size_bytes, dir_path = int(parts[0]), parts[1].strip()
+            if dir_path == path:
+                continue
+            items.append({
+                "name":    dir_path.split("/")[-1] or dir_path,
+                "path":    dir_path,
+                "used_gb": round(size_bytes / 1_073_741_824, 2),
+            })
+        items.sort(key=lambda x: x["used_gb"], reverse=True)
+        return items[:limit]
+    except Exception:
+        return []
+
+
 def disk_categories() -> list:
     """Tamaño real de directorios clave usando `du -sb`. Muestra qué ocupa espacio."""
     DIRS = [
@@ -105,11 +133,16 @@ def disk_categories() -> list:
             if out.returncode == 0 and out.stdout.strip():
                 bytes_used = int(out.stdout.split()[0])
                 if bytes_used > 0:
-                    result.append({
-                        "path":    path,
-                        "label":   label,
-                        "used_gb": round(bytes_used / 1_073_741_824, 2),
-                    })
+                    entry = {
+                        "path":     path,
+                        "label":    label,
+                        "used_gb":  round(bytes_used / 1_073_741_824, 2),
+                        "children": [],
+                    }
+                    # Drill-down para directorios con más de 0.5 GB
+                    if bytes_used > 536_870_912:
+                        entry["children"] = disk_children(path)
+                    result.append(entry)
         except Exception:
             pass
     result.sort(key=lambda x: x["used_gb"], reverse=True)
