@@ -96,8 +96,25 @@ function predictDiskFull(history: number[]): { hours: number | null; growthPctPe
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Sparkline({ history, color, height = 36 }: { history: number[]; color: string; height?: number }) {
-  if (history.length < 2) return <div style={{ height }} />;
   const W = 120;
+  if (history.length === 0) return <div style={{ height }} />;
+  if (history.length === 1) {
+    const y = height / 2;
+    const gradId = `sg1${color.replace('#', '')}`;
+    return (
+      <svg viewBox={`0 0 ${W} ${height}`} style={{ width: '100%', height, display: 'block' }} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.12" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+        <path d={`M0,${y} L${W},${y} L${W},${height} L0,${height} Z`} fill={`url(#${gradId})`} />
+        <line x1="0" y1={y} x2={W} y2={y} stroke={color} strokeWidth="1.5" strokeDasharray="5 3" strokeOpacity="0.6" />
+        <circle cx={W} cy={y} r="2.5" fill={color} />
+      </svg>
+    );
+  }
   const max = Math.max(...history, 1);
   const coords = history.map((v, i) => {
     const x = (i / (history.length - 1)) * W;
@@ -160,7 +177,9 @@ function DualSparkline({ h1, h2, c1, c2, height = 80 }: {
           <stop offset="100%" stopColor={c2} stopOpacity="0.01" />
         </linearGradient>
       </defs>
+      {h1.length === 1 && (() => { const y = height - (h1[0] / maxV) * (height - 8) - 4; return <><path d={`M0,${y} L${W},${y} L${W},${height} L0,${height} Z`} fill="url(#drx)" /><line x1="0" y1={y} x2={W} y2={y} stroke={c1} strokeWidth="1.5" strokeDasharray="5 3" strokeOpacity="0.7" /><circle cx={W} cy={y} r="2.5" fill={c1} /></>; })()}
       {h1.length >= 2 && <><path d={area(h1)} fill="url(#drx)" /><polyline points={pts(h1)} fill="none" stroke={c1} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" /></>}
+      {h2.length === 1 && (() => { const y = height - (h2[0] / maxV) * (height - 8) - 4; return <><path d={`M0,${y} L${W},${y} L${W},${height} L0,${height} Z`} fill="url(#dtx)" /><line x1="0" y1={y} x2={W} y2={y} stroke={c2} strokeWidth="1.5" strokeDasharray="5 3" strokeOpacity="0.6" /><circle cx={W} cy={y} r="2.5" fill={c2} /></>; })()}
       {h2.length >= 2 && <><path d={area(h2)} fill="url(#dtx)" /><polyline points={pts(h2)} fill="none" stroke={c2} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" /></>}
     </svg>
   );
@@ -377,16 +396,12 @@ function TcpConnChart({ history, current, listening }: { history: number[]; curr
           </div>
         </div>
       </div>
-      {history.length > 1 ? (
-        <>
-          <Sparkline history={history} color={color} height={48} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span style={{ fontSize: '10px', color: '#334155' }}>pico <strong style={{ color: '#e2e8f0' }}>{maxVal(history)}</strong></span>
-            <span style={{ fontSize: '10px', color: '#334155' }}>avg <strong style={{ color: '#e2e8f0' }}>{avg(history).toFixed(0)}</strong></span>
-          </div>
-        </>
-      ) : (
-        <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#334155', textAlign: 'center' }}>Recolectando datos...</p>
+      <Sparkline history={history} color={color} height={48} />
+      {history.length > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+          <span style={{ fontSize: '10px', color: '#334155' }}>pico <strong style={{ color: '#e2e8f0' }}>{maxVal(history)}</strong></span>
+          <span style={{ fontSize: '10px', color: '#334155' }}>avg <strong style={{ color: '#e2e8f0' }}>{avg(history).toFixed(0)}</strong></span>
+        </div>
       )}
     </div>
   );
