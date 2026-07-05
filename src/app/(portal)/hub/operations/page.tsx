@@ -735,47 +735,29 @@ function TopRamProcesses({ procs }: { procs: VpsMetrics['top_procs'] }) {
   );
 }
 
-// ── Top procs toggle (CPU / RAM) ──────────────────────────────────────────────
+// ── Top procs CPU (top 5) ─────────────────────────────────────────────────────
 function TopProcsToggle({ procs }: { procs: VpsMetrics['top_procs'] }) {
-  const [tab, setTab] = useState<'cpu' | 'ram'>('cpu');
-  const sorted = tab === 'cpu'
-    ? [...procs].sort((a, b) => b.cpu - a.cpu)
-    : [...procs].sort((a, b) => b.mem - a.mem);
-  const accent = tab === 'cpu' ? ORANGE : '#a78bfa';
+  const sorted = [...procs].sort((a, b) => b.cpu - a.cpu).slice(0, 5);
   return (
     <div style={{ ...G.card }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top procesos</p>
-        <div style={{ display: 'flex', gap: '3px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '3px' }}>
-          {(['cpu', 'ram'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '3px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, transition: 'all 0.15s', background: tab === t ? (t === 'cpu' ? `${ORANGE}25` : 'rgba(167,139,250,0.18)') : 'transparent', color: tab === t ? (t === 'cpu' ? ORANGE : '#a78bfa') : '#475569' }}>
-              {t.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top procesos (CPU)</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {sorted.length === 0 && (
           <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin datos de procesos</p>
         )}
-        {sorted.map((proc, i) => {
-          const val = tab === 'cpu' ? proc.cpu : proc.mem;
-          const sec = tab === 'cpu' ? proc.mem : proc.cpu;
-          const secLabel = tab === 'cpu' ? 'RAM' : 'CPU';
-          return (
-            <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: i === 0 ? `${accent}08` : 'rgba(255,255,255,0.02)' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, color: '#334155', width: '14px', textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</p>
-                <p style={{ margin: 0, fontSize: '10px', color: '#334155' }}>PID {proc.pid}</p>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: statusColor(val) }}>{val}% {tab.toUpperCase()}</p>
-                <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{sec}% {secLabel}</p>
-              </div>
+        {sorted.map((proc, i) => (
+          <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: i === 0 ? `${ORANGE}08` : 'rgba(255,255,255,0.02)' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#334155', width: '14px', textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</p>
+              <p style={{ margin: 0, fontSize: '10px', color: '#334155' }}>PID {proc.pid}</p>
             </div>
-          );
-        })}
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: statusColor(proc.cpu) }}>{proc.cpu}% CPU</p>
+              <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{proc.mem}% RAM</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1229,9 +1211,39 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
         </div>
       </div>
 
-      {/* Row B: Top consumidores (disco · procesos CPU/RAM) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+      {/* Row B: Top disco · Docker contenedores · Top procesos CPU */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
         <TopDiskConsumers disk={data.disk} />
+        {/* Docker inline */}
+        <div style={{ ...G.card }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Docker</p>
+            {data.docker && (
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '5px', background: (data.docker.filter(c => c.status.toLowerCase().startsWith('up')).length > 0) ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', color: (data.docker.filter(c => c.status.toLowerCase().startsWith('up')).length > 0) ? '#34d399' : '#475569' }}>
+                {data.docker.filter(c => c.status.toLowerCase().startsWith('up')).length}/{data.docker.length} activos
+              </span>
+            )}
+          </div>
+          {(!data.docker || data.docker.length === 0) ? (
+            <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin contenedores detectados</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {data.docker.map(c => {
+                const isUp = c.status.toLowerCase().startsWith('up');
+                return (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: isUp ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)', border: `1px solid ${isUp ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.15)'}` }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: isUp ? '#34d399' : '#f87171', flexShrink: 0, boxShadow: `0 0 5px ${isUp ? '#34d399' : '#f87171'}` }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: isUp ? '#e2e8f0' : '#f87171', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
+                      <p style={{ margin: 0, fontSize: '10px', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.image}</p>
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: isUp ? '#34d399' : '#f87171', flexShrink: 0 }}>{isUp ? 'up' : 'down'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <TopProcsToggle procs={data.top_procs} />
       </div>
 
@@ -1384,14 +1396,14 @@ export default function OperationsPage() {
   const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats };
 
   if (notConf) return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: '10px 32px' }}>
       <PageHeader {...headerProps} />
       <NotConfigured />
     </div>
   );
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: '10px 32px' }}>
       <PageHeader {...headerProps} />
 
       {error && (
