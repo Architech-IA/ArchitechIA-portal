@@ -658,12 +658,12 @@ function TopDiskConsumers({ disk }: { disk: VpsMetrics['disk'] }) {
       category: cat.label,
       catColor: CAT_COLORS[i % CAT_COLORS.length],
     }))
-  ).sort((a, b) => b.used_gb - a.used_gb).slice(0, 10);
+  ).sort((a, b) => b.used_gb - a.used_gb).slice(0, 5);
 
   return (
-    <div style={{ ...G.card }}>
-      <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top apps/componentes (disco)</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ ...G.card, alignSelf: 'start' }}>
+      <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top apps/componentes (disco)</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {items.length === 0 && (
           <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin datos de desglose de disco</p>
         )}
