@@ -870,53 +870,7 @@ function DiskPrediction({ diskHist, totalGb, currentPct }: { diskHist: number[];
   );
 }
 
-// ── Docker panel ──────────────────────────────────────────────────────────────
-function DockerPanel({ containers }: { containers: VpsMetrics['docker'] }) {
-  const [open, setOpen] = useState(false);
-  if (!containers) return null;
-  const running = containers.filter(c => c.status.toLowerCase().startsWith('up')).length;
-  return (
-    <div style={{ ...G.card, marginTop: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" /></svg>
-          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Docker</p>
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '5px', background: running > 0 ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', color: running > 0 ? '#34d399' : '#475569' }}>
-            {containers.length === 0 ? 'sin contenedores' : `${running}/${containers.length} activos`}
-          </span>
-        </div>
-        <button onClick={() => setOpen(o => !o)}
-          style={{ padding: '4px 12px', borderRadius: '7px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-          {open ? 'Ocultar' : 'Ver contenedores'}
-        </button>
-      </div>
 
-      {open && (
-        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {containers.length === 0 && (
-            <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Docker no disponible o sin contenedores</p>
-          )}
-          {containers.map(c => {
-            const isUp = c.status.toLowerCase().startsWith('up');
-            return (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '9px', background: isUp ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)', border: `1px solid ${isUp ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.15)'}` }}>
-                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: isUp ? '#34d399' : '#f87171', flexShrink: 0, boxShadow: `0 0 5px ${isUp ? '#34d399' : '#f87171'}` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: isUp ? '#e2e8f0' : '#f87171', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
-                  <p style={{ margin: 0, fontSize: '10px', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.image}</p>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{c.status}</p>
-                  {c.ports && <p style={{ margin: 0, fontSize: '10px', color: '#334155', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.ports}</p>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Logs panel ────────────────────────────────────────────────────────────────
 function LogsPanel() {
@@ -1279,7 +1233,6 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
         <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
       </div>
 
-      <DockerPanel containers={data.docker} />
       <LogsPanel />
 
       <p style={{ margin: '10px 0 0', fontSize: '10px', color: '#1e293b', textAlign: 'right' }}>
