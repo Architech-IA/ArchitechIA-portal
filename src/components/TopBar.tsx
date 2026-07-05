@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 interface Notif {
@@ -73,7 +73,13 @@ export default function TopBar({
   title?: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
+
+  // Si estamos en una subruta de /hub (ej: /hub/operations, /hub/finance),
+  // el título lleva de vuelta al home del Hub.
+  const HUB_SUBPAGE_RE = /^\/hub\/.+/;
+  const titleHref = title && HUB_SUBPAGE_RE.test(pathname) ? '/hub' : null;
   const userName = (session?.user as { name?: string })?.name ?? '';
   const initials = userName
     .split(' ')
@@ -143,9 +149,25 @@ export default function TopBar({
     >
       <div className="flex-1 min-w-0">
         {title && (
-          <span className="text-xs font-medium truncate block" style={{ color: '#cbd5e1' }}>
-            {title}
-          </span>
+          titleHref ? (
+            <button
+              onClick={() => router.push(titleHref)}
+              className="text-xs font-medium truncate flex items-center gap-1.5 group"
+              style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#cbd5e1'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#64748b'}
+              title="Volver al Hub"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ flexShrink: 0, opacity: 0.6 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+              {title}
+            </button>
+          ) : (
+            <span className="text-xs font-medium truncate block" style={{ color: '#cbd5e1' }}>
+              {title}
+            </span>
+          )
         )}
       </div>
 
