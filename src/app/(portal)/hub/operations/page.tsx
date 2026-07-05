@@ -888,9 +888,10 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist }: {
         <TopProcsToggle procs={data.top_procs} />
       </div>
 
-      {/* Row 2: Top disco · Analytics (10min + predicción) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+      {/* Row 2: Top disco · Top RAM · Analytics (10min + predicción) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px' }}>
         <TopDiskConsumers disk={data.disk} />
+        <TopRamProcesses procs={data.top_procs} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <TenMinSummary cpuHist={cpuHist} ramHist={ramHist} rxHist={rxHist} txHist={txHist} data={data} />
           <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
