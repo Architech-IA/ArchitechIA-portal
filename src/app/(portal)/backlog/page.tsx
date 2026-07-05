@@ -234,18 +234,33 @@ export default function BacklogPage() {
 
   const userName = (session?.user as any)?.name ?? ''
 
+  const safeFetch = async (url: string) => {
+    try {
+      const r = await fetch(url)
+      if (!r.ok) return []
+      return await r.json()
+    } catch {
+      return []
+    }
+  }
+
   const load = async () => {
-    const [i, p, s, u] = await Promise.all([
-      fetch('/api/backlog').then(r => r.json()),
-      fetch('/api/projects').then(r => r.json()),
-      fetch('/api/soluciones').then(r => r.json()),
-      fetch('/api/users').then(r => r.json()),
-    ])
-    setItems(Array.isArray(i) ? i : [])
-    setProjects(Array.isArray(p) ? p.map((x: any) => ({ id: x.id, name: x.name })) : [])
-    setSoluciones(Array.isArray(s) ? s.map((x: any) => ({ id: x.id, nombre: x.nombre, tipo: x.tipo })) : [])
-    setUsers(Array.isArray(u) ? u.filter((x: any) => x.role !== 'SUPERADMIN') : [])
-    setLoading(false)
+    try {
+      const [i, p, s, u] = await Promise.all([
+        safeFetch('/api/backlog'),
+        safeFetch('/api/projects'),
+        safeFetch('/api/soluciones'),
+        safeFetch('/api/users'),
+      ])
+      setItems(Array.isArray(i) ? i : [])
+      setProjects(Array.isArray(p) ? p.map((x: any) => ({ id: x.id, name: x.name })) : [])
+      setSoluciones(Array.isArray(s) ? s.map((x: any) => ({ id: x.id, nombre: x.nombre, tipo: x.tipo })) : [])
+      setUsers(Array.isArray(u) ? u.filter((x: any) => x.role !== 'SUPERADMIN') : [])
+    } catch {
+      // silencia cualquier error residual; la página igual muestra el kanban vacío
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
