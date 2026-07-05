@@ -205,6 +205,217 @@ function DiskDonut({ used, total, color, size = 110 }: { used: number; total: nu
   );
 }
 
+// ── Modal base (overlay + container) ─────────────────────────────────────────
+function ModalShell({ onClose, title, sub, icon, color, children }: {
+  onClose: () => void; title: string; sub: string; icon: string; color: string; children: React.ReactNode;
+}) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: '520px', maxHeight: 'calc(100vh - 40px)', background: 'rgba(9,9,24,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', boxShadow: '0 32px 80px rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '16px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${color}15`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d={icon}/></svg>
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>{title}</p>
+              <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>{sub}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: '18px 22px', overflowY: 'auto', flex: 1 }}>{children}</div>
+        <div style={{ padding: '12px 22px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: '7px 20px', borderRadius: '9px', border: 'none', background: `linear-gradient(135deg, ${color}cc, ${color}88)`, color: '#0f172a', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CPU Modal ─────────────────────────────────────────────────────────────────
+function CpuModal({ data, color, onClose }: { data: VpsMetrics; color: string; onClose: () => void }) {
+  const loads = data.cpu.load_avg.map(l => ({ val: l, pct: Math.min(100, (l / data.cpu.count) * 100) }));
+  return (
+    <ModalShell onClose={onClose} title="CPU" sub={`${data.cpu.count} núcleos lógicos`} icon="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" color={color}>
+      {/* Uso actual */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
+        <CircleGauge pct={data.cpu.percent} color={color} label="CPU" sub={`${data.cpu.count}c`} />
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Load average</p>
+          {['1 min', '5 min', '15 min'].map((t, i) => {
+            const sc = statusColor(loads[i].pct);
+            return (
+              <div key={t} style={{ marginBottom: i < 2 ? '8px' : 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span style={{ fontSize: '11px', color: '#475569' }}>{t}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: sc }}>{loads[i].val.toFixed(2)}</span>
+                </div>
+                <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
+                  <div style={{ height: '100%', width: `${loads[i].pct}%`, borderRadius: '3px', background: sc, transition: 'width 0.5s' }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Top procesos */}
+      {data.top_procs.length > 0 && (
+        <>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top procesos por CPU</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {data.top_procs.map(p => (
+              <div key={p.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ fontSize: '10px', color: '#334155', width: '36px', flexShrink: 0 }}>#{p.pid}</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: statusColor(p.cpu), flexShrink: 0 }}>{p.cpu}% CPU</span>
+                <span style={{ fontSize: '10px', color: '#475569', flexShrink: 0 }}>{p.mem.toFixed(1)}% MEM</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </ModalShell>
+  );
+}
+
+// ── RAM Modal ─────────────────────────────────────────────────────────────────
+function RamModal({ data, color, onClose }: { data: VpsMetrics; color: string; onClose: () => void }) {
+  const ram = data.ram;
+  const usedPct  = ram.total_mb > 0 ? (ram.used_mb  / ram.total_mb) * 100 : 0;
+  const availPct = ram.total_mb > 0 ? (ram.avail_mb / ram.total_mb) * 100 : 0;
+  const toGB = (mb: number) => (mb / 1024).toFixed(2);
+  return (
+    <ModalShell onClose={onClose} title="RAM" sub={`${toGB(ram.total_mb)} GB total`} icon="M4 6h16M4 10h16M4 14h16M4 18h16" color={color}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
+        <CircleGauge pct={ram.percent} color={color} label="RAM" sub={`${toGB(ram.avail_mb)}GB libre`} />
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desglose</p>
+          {[
+            { label: 'Total',      val: `${toGB(ram.total_mb)} GB`, pct: 100,     clr: '#94a3b8' },
+            { label: 'Usado',      val: `${toGB(ram.used_mb)} GB`,  pct: usedPct,  clr: color },
+            { label: 'Disponible', val: `${toGB(ram.avail_mb)} GB`, pct: availPct, clr: '#34d399' },
+          ].map((r, i) => (
+            <div key={r.label} style={{ marginBottom: i < 2 ? '8px' : 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                <span style={{ fontSize: '11px', color: '#475569' }}>{r.label}</span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: r.clr }}>{r.val}</span>
+              </div>
+              <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
+                <div style={{ height: '100%', width: `${r.pct}%`, borderRadius: '3px', background: r.clr, transition: 'width 0.5s' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* En MB */}
+      <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>En detalle</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        {[
+          { label: 'Total',      val: `${ram.total_mb} MB`, clr: '#94a3b8' },
+          { label: 'Usado',      val: `${ram.used_mb} MB`,  clr: color },
+          { label: 'Disponible', val: `${ram.avail_mb} MB`, clr: '#34d399' },
+        ].map(r => (
+          <div key={r.label} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: r.clr }}>{r.val}</p>
+            <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#334155' }}>{r.label}</p>
+          </div>
+        ))}
+      </div>
+    </ModalShell>
+  );
+}
+
+// ── Disk Modal (standalone) ───────────────────────────────────────────────────
+function DiskModal({ disk, color, onClose }: { disk: VpsMetrics['disk']; color: string; onClose: () => void }) {
+  const visibleCats = (disk.categories ?? []).filter(c => c.used_gb > 0.01);
+  const catTotal = visibleCats.reduce((s, c) => s + c.used_gb, 0);
+  const otherGb = Math.max(0, disk.used_gb - catTotal);
+  const allCats: DiskCategory[] = otherGb > 0.05
+    ? [...visibleCats, { path: 'other', label: 'Otro', used_gb: parseFloat(otherGb.toFixed(2)) }]
+    : visibleCats;
+  return (
+    <ModalShell onClose={onClose} title="Espacio en Disco" sub="Desglose por categoría" icon="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" color={color}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px' }}>
+        <DiskDonut used={disk.used_gb} total={disk.total_gb} color={color} size={110} />
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Resumen global</p>
+          {[
+            { label: 'Total',      val: `${disk.total_gb} GB`, clr: '#94a3b8' },
+            { label: 'Usado',      val: `${disk.used_gb} GB`,  clr: color },
+            { label: 'Disponible', val: `${disk.free_gb} GB`,  clr: '#34d399' },
+          ].map((r, i) => (
+            <div key={r.label}>
+              {i > 0 && <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '5px 0' }} />}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#475569' }}>{r.label}</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: r.clr }}>{r.val}</span>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop: '10px', padding: '7px 12px', borderRadius: '8px', background: `${color}12`, border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
+            <span style={{ fontSize: '11px', fontWeight: 700, color }}>
+              {disk.percent < 60 ? 'Espacio saludable' : disk.percent < 85 ? 'Espacio moderado' : '¡Espacio crítico!'}
+            </span>
+            <span style={{ fontSize: '11px', color: '#475569', marginLeft: 'auto' }}>{disk.percent.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+      {allCats.length > 0 && (
+        <>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Qué ocupa el espacio</p>
+          <div style={{ display: 'flex', height: '12px', borderRadius: '6px', overflow: 'hidden', background: 'rgba(255,255,255,0.06)', marginBottom: '12px', gap: '1px' }}>
+            {allCats.map((cat, i) => {
+              const pct = disk.used_gb > 0 ? (cat.used_gb / disk.used_gb) * 100 : 0;
+              return <div key={cat.path} title={`${cat.label}: ${cat.used_gb} GB`} style={{ width: `${pct}%`, background: CAT_COLORS[i % CAT_COLORS.length], minWidth: pct > 1 ? '3px' : 0, transition: 'width 0.6s ease' }} />;
+            })}
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)' }} />
+          </div>
+          <CatRows cats={allCats} diskUsed={disk.used_gb} colors={CAT_COLORS} />
+        </>
+      )}
+      {allCats.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#334155', fontSize: '12px' }}>
+          Reiniciá el agente en la VPS para ver el desglose por categoría.
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
+// ── Gauge section clickeable ──────────────────────────────────────────────────
+function GaugeSection({ data, cpuColor, ramColor, diskColor }: {
+  data: VpsMetrics; cpuColor: string; ramColor: string; diskColor: string;
+}) {
+  const [modal, setModal] = useState<'cpu' | 'ram' | 'disk' | null>(null);
+  const gauges = [
+    { key: 'cpu'  as const, pct: data.cpu.percent,  color: cpuColor,  label: 'CPU',   sub: `${data.cpu.count}c` },
+    { key: 'ram'  as const, pct: data.ram.percent,  color: ramColor,  label: 'RAM',   sub: `${(data.ram.avail_mb/1024).toFixed(1)}GB libre` },
+    { key: 'disk' as const, pct: data.disk.percent, color: diskColor, label: 'Disco', sub: `${data.disk.free_gb}GB libre` },
+  ];
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        {gauges.map(g => (
+          <button key={g.key} onClick={() => setModal(g.key)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '10px', transition: 'background 0.15s' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+            title={`Ver detalle de ${g.label}`}>
+            <CircleGauge pct={g.pct} color={g.color} label={g.label} sub={g.sub} />
+          </button>
+        ))}
+      </div>
+      {modal === 'cpu'  && <CpuModal  data={data} color={cpuColor}  onClose={() => setModal(null)} />}
+      {modal === 'ram'  && <RamModal  data={data} color={ramColor}  onClose={() => setModal(null)} />}
+      {modal === 'disk' && <DiskModal disk={data.disk} color={diskColor} onClose={() => setModal(null)} />}
+    </>
+  );
+}
+
 // ── Category rows (expandibles) ───────────────────────────────────────────────
 function CatRows({ cats, diskUsed, colors }: { cats: DiskCategory[]; diskUsed: number; colors: string[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -475,12 +686,8 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
       {/* Gauges + Sparklines */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
         <div style={{ ...G.card }}>
-          <p style={{ margin: '0 0 16px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Uso actual</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-            <CircleGauge pct={data.cpu.percent}  color={cpuColor}  label="CPU"   sub={`${data.cpu.count}c`} />
-            <CircleGauge pct={data.ram.percent}  color={ramColor}  label="RAM"   sub={`${data.ram.avail_mb}MB libre`} />
-            <CircleGauge pct={data.disk.percent} color={diskColor} label="Disco" sub={`${data.disk.free_gb}GB libre`} />
-          </div>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Uso actual · <span style={{ color: '#334155', fontWeight: 400, textTransform: 'none' }}>click para detalle</span></p>
+          <GaugeSection data={data} cpuColor={cpuColor} ramColor={ramColor} diskColor={diskColor} />
         </div>
 
         <div style={{ ...G.card }}>
@@ -509,10 +716,9 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
         {/* Resources detail */}
         <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recursos</p>
-          <UsageBar pct={data.cpu.percent} color={cpuColor} label="CPU" val={`${data.cpu.percent}%`} />
-          <UsageBar pct={data.ram.percent} color={ramColor} label="RAM" val={`${data.ram.used_mb} / ${data.ram.total_mb} MB`} />
-          {/* Disco interactivo */}
-          <DiskPanel disk={data.disk} />
+          <UsageBar pct={data.cpu.percent}  color={cpuColor}  label="CPU"   val={`${data.cpu.percent}%`} />
+          <UsageBar pct={data.ram.percent}  color={ramColor}  label="RAM"   val={`${data.ram.used_mb} / ${data.ram.total_mb} MB`} />
+          <UsageBar pct={data.disk.percent} color={diskColor} label="Disco" val={`${data.disk.used_gb} / ${data.disk.total_gb} GB`} />
           <div style={{ paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Load average</p>
             <div style={{ display: 'flex', gap: '8px' }}>
