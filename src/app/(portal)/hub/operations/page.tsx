@@ -1,22 +1,440 @@
 'use client';
 
-export default function OperationsPage() {
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface VpsMetrics {
+  ts: string;
+  uptime_s: number;
+  cpu: { percent: number; load_avg: number[]; count: number };
+  ram: { total_mb: number; used_mb: number; avail_mb: number; percent: number };
+  disk: { total_gb: number; used_gb: number; free_gb: number; percent: number };
+  net: { rx_mbps: number; tx_mbps: number };
+  services: { name: string; active: boolean; status: string }[];
+  top_procs: { pid: number; name: string; cpu: number; mem: number }[];
+}
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const G = {
+  card:  { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '20px' } as React.CSSProperties,
+  panel: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px 16px' } as React.CSSProperties,
+};
+const ORANGE = '#f97316';
+const MAX_HISTORY = 20;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtUptime(s: number): string {
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${s % 60}s`;
+}
+
+function statusColor(pct: number): string {
+  if (pct < 60) return '#34d399';
+  if (pct < 85) return '#fbbf24';
+  return '#f87171';
+}
+
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+function Sparkline({ history, color, height = 36 }: { history: number[]; color: string; height?: number }) {
+  if (history.length < 2) return <div style={{ height }} />;
+  const W = 120;
+  const max = Math.max(...history, 1);
+  const coords = history.map((v, i) => {
+    const x = (i / (history.length - 1)) * W;
+    const y = height - (v / max) * (height - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const pts = coords.join(' ');
+  const lastCoord = coords[coords.length - 1].split(',');
+  const lastX = parseFloat(lastCoord[0]);
+  const lastY = parseFloat(lastCoord[1]);
+  const firstCoord = coords[0].split(',');
+  const areaPath = `M${firstCoord[0]},${firstCoord[1]} ` + coords.slice(1).map(p => `L${p}`).join(' ') + ` L${W},${height} L0,${height} Z`;
+  const gradId = `sg${color.replace('#', '')}`;
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <p className="text-gray-400 mt-1">Proyectos, backlog y operaciones del equipo técnico</p>
+    <svg viewBox={`0 0 ${W} ${height}`} style={{ width: '100%', height, display: 'block' }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx={lastX} cy={lastY} r="2.5" fill={color} />
+    </svg>
+  );
+}
+
+// ── Circular gauge ────────────────────────────────────────────────────────────
+function CircleGauge({ pct, color, label, sub }: { pct: number; color: string; label: string; sub: string }) {
+  const r = 30, cx = 40, cy = 40, stroke = 7;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <svg viewBox="0 0 80 80" style={{ width: '80px', height: '80px', display: 'block', margin: '0 auto' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={`${dash.toFixed(2)} ${circ.toFixed(2)}`}
+          strokeLinecap="round" transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
+        <text x={cx} y={cy + 5} textAnchor="middle" fontSize="13" fontWeight="800" fill={color}>{pct.toFixed(0)}%</text>
+      </svg>
+      <p style={{ margin: '4px 0 1px', fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>{label}</p>
+      <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{sub}</p>
+    </div>
+  );
+}
+
+// ── Usage bar ─────────────────────────────────────────────────────────────────
+function UsageBar({ pct, color, label, val }: { pct: number; color: string; label: string; val: string }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>{label}</span>
+        <span style={{ fontSize: '12px', fontWeight: 700, color }}>{val}</span>
+      </div>
+      <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
+        <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, borderRadius: '3px', background: color, transition: 'width 0.6s ease' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3px' }}>
+        <span style={{ fontSize: '10px', color: '#334155' }}>{pct.toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Not configured placeholder ────────────────────────────────────────────────
+function NotConfigured() {
+  return (
+    <div style={{ ...G.card, padding: '40px', textAlign: 'center', maxWidth: '560px', margin: '40px auto' }}>
+      <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: `${ORANGE}15`, border: `1px solid ${ORANGE}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={ORANGE} strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </div>
+      <h3 style={{ margin: '0 0 10px', fontSize: '17px', fontWeight: 700, color: '#e2e8f0' }}>Monitor no configurado</h3>
+      <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
+        Para activar el monitor de la VPS configurá las variables de entorno en Vercel y desplegá el agente en tu servidor Hostinger.
+      </p>
+      <div style={{ ...G.panel, textAlign: 'left', marginBottom: '12px' }}>
+        <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>1 — Variables en Vercel</p>
+        <pre style={{ margin: 0, fontSize: '11px', color: '#34d399', background: 'rgba(52,211,153,0.05)', padding: '8px 10px', borderRadius: '6px', overflowX: 'auto' }}>
+{`VPS_METRICS_URL=http://<IP_VPS>:9100
+VPS_METRICS_TOKEN=<token_secreto>`}</pre>
+      </div>
+      <div style={{ ...G.panel, textAlign: 'left' }}>
+        <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>2 — Agente en la VPS</p>
+        <pre style={{ margin: 0, fontSize: '11px', color: '#60a5fa', background: 'rgba(96,165,250,0.05)', padding: '8px 10px', borderRadius: '6px', overflowX: 'auto' }}>
+{`pip install psutil
+METRICS_TOKEN=<token> python3 metrics_agent.py`}</pre>
+        <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#334155' }}>
+          El archivo <code style={{ color: '#a78bfa' }}>vps-agent/metrics_agent.py</code> está en el repo.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+function Skeleton() {
+  const box = (h = 120) => (
+    <div style={{ height: h, borderRadius: '14px', background: 'rgba(255,255,255,0.03)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+  );
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '10px', marginBottom: '12px' }}>
+        {[0, 1, 2, 3, 4].map(i => <div key={i}>{box(80)}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
+        {box(180)}{box(180)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+        {[0, 1, 2].map(i => <div key={i}>{box(260)}</div>)}
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
+  data: VpsMetrics; cpuHist: number[]; ramHist: number[]; rxHist: number[]; txHist: number[];
+}) {
+  const cpuColor  = statusColor(data.cpu.percent);
+  const ramColor  = statusColor(data.ram.percent);
+  const diskColor = statusColor(data.disk.percent);
+  const activeServices = data.services.filter(s => s.active).length;
+  const totalServices  = data.services.length;
+  const allOk          = totalServices > 0 && activeServices === totalServices;
+
+  return (
+    <>
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
+        {[
+          { label: 'Uptime',    val: fmtUptime(data.uptime_s),    color: '#34d399', sub: 'sin reinicios',                             icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'CPU',       val: `${data.cpu.percent}%`,       color: cpuColor,  sub: `${data.cpu.count}c · load ${data.cpu.load_avg[0]}`, icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
+          { label: 'RAM',       val: `${data.ram.percent}%`,       color: ramColor,  sub: `${data.ram.used_mb} / ${data.ram.total_mb} MB`,    icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+          { label: 'Disco',     val: `${data.disk.percent}%`,      color: diskColor, sub: `${data.disk.used_gb} / ${data.disk.total_gb} GB`,  icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8' },
+          { label: 'Servicios', val: `${activeServices}/${totalServices}`, color: allOk ? '#34d399' : '#f87171', sub: allOk ? 'Todos operativos' : `${totalServices - activeServices} caído(s)`, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+        ].map(k => (
+          <div key={k.label} style={{ ...G.card, padding: '14px 16px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 90% 10%, ${k.color}10, transparent 60%)`, pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+              <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={k.color} strokeWidth={1.8} opacity={0.7}><path strokeLinecap="round" strokeLinejoin="round" d={k.icon} /></svg>
+            </div>
+            <p style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{k.val}</p>
+            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#334155' }}>{k.sub}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-          <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          </svg>
+      {/* Gauges + Sparklines */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ ...G.card }}>
+          <p style={{ margin: '0 0 16px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Uso actual</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <CircleGauge pct={data.cpu.percent}  color={cpuColor}  label="CPU"   sub={`${data.cpu.count}c`} />
+            <CircleGauge pct={data.ram.percent}  color={ramColor}  label="RAM"   sub={`${data.ram.avail_mb}MB libre`} />
+            <CircleGauge pct={data.disk.percent} color={diskColor} label="Disco" sub={`${data.disk.free_gb}GB libre`} />
+          </div>
         </div>
-        <h3 className="text-xl font-semibold text-white mb-2">En construcción</h3>
-        <p className="text-gray-400 max-w-lg mx-auto">
-          Esta sección estará disponible próximamente. Aquí encontrarás gestión de proyectos, backlog y sprints activos.
-        </p>
+
+        <div style={{ ...G.card }}>
+          <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial (últimas {MAX_HISTORY} lecturas · cada 30s)</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            {[
+              { label: 'CPU %',      history: cpuHist, color: cpuColor,   val: `${data.cpu.percent}%` },
+              { label: 'RAM %',      history: ramHist, color: ramColor,   val: `${data.ram.percent}%` },
+              { label: 'Red ↓ MB/s', history: rxHist,  color: '#60a5fa', val: `${data.net.rx_mbps} MB/s` },
+              { label: 'Red ↑ MB/s', history: txHist,  color: '#a78bfa', val: `${data.net.tx_mbps} MB/s` },
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>{s.label}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: s.color }}>{s.val}</span>
+                </div>
+                <Sparkline history={s.history} color={s.color} height={38} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Resources · Services · Top procs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+        {/* Resources detail */}
+        <div style={{ ...G.card, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recursos</p>
+          <UsageBar pct={data.cpu.percent}  color={cpuColor}  label="CPU"   val={`${data.cpu.percent}%`} />
+          <UsageBar pct={data.ram.percent}  color={ramColor}  label="RAM"   val={`${data.ram.used_mb} / ${data.ram.total_mb} MB`} />
+          <UsageBar pct={data.disk.percent} color={diskColor} label="Disco" val={`${data.disk.used_gb} / ${data.disk.total_gb} GB`} />
+          <div style={{ paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Load average</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['1m', '5m', '15m'].map((t, i) => (
+                <div key={t} style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: statusColor((data.cpu.load_avg[i] / data.cpu.count) * 100) }}>{data.cpu.load_avg[i]}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>{t}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Red</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#60a5fa' }}>↓ {data.net.rx_mbps}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s RX</p>
+              </div>
+              <div style={{ flex: 1, ...G.panel, textAlign: 'center', padding: '8px 4px' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#a78bfa' }}>↑ {data.net.tx_mbps}</p>
+                <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#334155' }}>MB/s TX</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Services */}
+        <div style={{ ...G.card }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Servicios</p>
+            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: allOk ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: allOk ? '#34d399' : '#f87171' }}>
+              {totalServices === 0 ? '—' : allOk ? 'Todos OK' : `${totalServices - activeServices} caído(s)`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {data.services.length === 0 && (
+              <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin servicios configurados en el agente</p>
+            )}
+            {data.services.map(svc => (
+              <div key={svc.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '9px', background: svc.active ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.06)', border: `1px solid ${svc.active ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.2)'}` }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: svc.active ? '#34d399' : '#f87171', boxShadow: `0 0 6px ${svc.active ? '#34d399' : '#f87171'}`, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: svc.active ? '#e2e8f0' : '#f87171' }}>{svc.name}</p>
+                  <p style={{ margin: 0, fontSize: '10px', color: '#334155' }}>{svc.status}</p>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: svc.active ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)', color: svc.active ? '#34d399' : '#f87171' }}>
+                  {svc.active ? 'active' : 'down'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top processes */}
+        <div style={{ ...G.card }}>
+          <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top procesos (CPU)</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {data.top_procs.length === 0 && (
+              <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin datos de procesos</p>
+            )}
+            {data.top_procs.map((proc, i) => (
+              <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: i === 0 ? 'rgba(249,115,22,0.05)' : 'rgba(255,255,255,0.02)' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#334155', width: '14px', textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</p>
+                  <p style={{ margin: 0, fontSize: '10px', color: '#334155' }}>PID {proc.pid}</p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: statusColor(proc.cpu) }}>{proc.cpu}% CPU</p>
+                  <p style={{ margin: 0, fontSize: '10px', color: '#475569' }}>{proc.mem}% RAM</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p style={{ margin: '10px 0 0', fontSize: '10px', color: '#1e293b', textAlign: 'right' }}>
+        Datos de la VPS al {new Date(data.ts).toLocaleString('es-ES')}
+      </p>
+    </>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function OperationsPage() {
+  const [data,      setData]     = useState<VpsMetrics | null>(null);
+  const [error,     setError]    = useState<string | null>(null);
+  const [loading,   setLoading]  = useState(true);
+  const [notConf,   setNotConf]  = useState(false);
+  const [lastFetch, setLastFetch] = useState<Date | null>(null);
+  const [nextIn,    setNextIn]   = useState(30);
+
+  const cpuHist = useRef<number[]>([]);
+  const ramHist = useRef<number[]>([]);
+  const rxHist  = useRef<number[]>([]);
+  const txHist  = useRef<number[]>([]);
+
+  const push = (ref: React.MutableRefObject<number[]>, val: number) => {
+    ref.current = [...ref.current, val].slice(-MAX_HISTORY);
+  };
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res  = await fetch('/api/vps/stats', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.error?.includes('VPS_METRICS_URL')) { setNotConf(true); setLoading(false); return; }
+      if (json.error) { setError(json.error); setLoading(false); return; }
+      const m = json as VpsMetrics;
+      setData(m);
+      push(cpuHist, m.cpu.percent);
+      push(ramHist, m.ram.percent);
+      push(rxHist,  m.net.rx_mbps);
+      push(txHist,  m.net.tx_mbps);
+      setError(null);
+      setNotConf(false);
+      setLastFetch(new Date());
+      setNextIn(30);
+    } catch {
+      setError('No se pudo conectar con el servidor');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    const id = setInterval(fetchStats, 30_000);
+    return () => clearInterval(id);
+  }, [fetchStats]);
+  useEffect(() => {
+    const id = setInterval(() => setNextIn(n => n <= 1 ? 30 : n - 1), 1000);
+    return () => clearInterval(id);
+  }, [lastFetch]);
+
+  const headerProps = { loading, lastFetch, nextIn, onRefresh: fetchStats };
+
+  if (notConf) return (
+    <div style={{ padding: '24px 32px' }}>
+      <PageHeader {...headerProps} />
+      <NotConfigured />
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '24px 32px' }}>
+      <PageHeader {...headerProps} />
+
+      {error && (
+        <div style={{ ...G.panel, marginBottom: '16px', borderLeft: '3px solid #f87171', background: 'rgba(248,113,113,0.05)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+          <p style={{ margin: 0, fontSize: '13px', color: '#f87171', fontWeight: 600 }}>VPS inaccesible — {error}</p>
+          <span style={{ fontSize: '11px', color: '#475569', marginLeft: 'auto' }}>Reintentando en {nextIn}s</span>
+        </div>
+      )}
+
+      {!data && !error && loading && <Skeleton />}
+      {data && (
+        <Dashboard
+          data={data}
+          cpuHist={cpuHist.current}
+          ramHist={ramHist.current}
+          rxHist={rxHist.current}
+          txHist={txHist.current}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Page header ───────────────────────────────────────────────────────────────
+function PageHeader({ loading, lastFetch, nextIn, onRefresh }: {
+  loading: boolean; lastFetch: Date | null; nextIn: number; onRefresh: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
+          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>VPS Monitor</h1>
+          <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: 'rgba(249,115,22,0.12)', color: ORANGE, border: '1px solid rgba(249,115,22,0.2)' }}>Hostinger KVM 2</span>
+        </div>
+        <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Observabilidad en tiempo real · actualización cada 30s</p>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {lastFetch && (
+          <span style={{ fontSize: '11px', color: '#334155' }}>
+            {lastFetch.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · prox. en {nextIn}s
+          </span>
+        )}
+        <button onClick={onRefresh} disabled={loading}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8', cursor: 'pointer', fontSize: '12px', opacity: loading ? 0.5 : 1 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+            style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Actualizar
+        </button>
       </div>
     </div>
   );

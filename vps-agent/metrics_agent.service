@@ -1,0 +1,16 @@
+[Unit]
+Description=ArchiTechIA VPS Metrics Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/architechIA
+ExecStart=/usr/bin/python3 /opt/architechIA/metrics_agent.py
+Restart=always
+RestartSec=5
+Environment="METRICS_PORT=9100"
+Environment="METRICS_TOKEN=REEMPLAZAR_CON_TOKEN_SECRETO"
+
+[Install]
+WantedBy=multi-user.target
