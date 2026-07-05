@@ -30,6 +30,14 @@ interface FacturaProv {
   estado: 'pendiente' | 'pagada' | 'vencida';
   pagado: number; prioridad: 'alta' | 'media' | 'baja';
 }
+interface Impuesto {
+  id: string; nombre: string;
+  tipo: 'iva' | 'retencion' | 'renta' | 'otro';
+  periodo: string; fechaLimite: string;
+  monto: number; pagado: number;
+  estado: 'pagado' | 'pendiente' | 'vencido';
+  notas?: string;
+}
 
 // ── Seed data ──────────────────────────────────────────────────────────────
 const SEED_CENTROS: CentroCosto[] = [
@@ -69,6 +77,17 @@ const SEED_PROV: FacturaProv[] = [
   { id: 'p5', numero:'PROV-005', proveedor:'Estudio Jurídico Mora', concepto:'Asesoría contratos Q1',        monto:1600000, recibida:'2026-01-15', vencimiento:'2026-03-30', estado:'vencida',   pagado:0,       prioridad:'media' },
   { id: 'p6', numero:'PROV-006', proveedor:'Office Supplies Co.',   concepto:'Material oficina julio',       monto:380000,  recibida:'2026-06-28', vencimiento:'2026-08-05', estado:'pendiente', pagado:0,       prioridad:'baja'  },
   { id: 'p7', numero:'PROV-007', proveedor:'Hostinger VPS',         concepto:'Servidores VPS sem. anual',    monto:960000,  recibida:'2026-01-01', vencimiento:'2026-01-31', estado:'pagada',    pagado:960000,  prioridad:'alta'  },
+];
+
+const SEED_IMPUESTOS: Impuesto[] = [
+  { id:'i1', nombre:'IVA Bimestre 1 (Ene–Feb)',        tipo:'iva',       periodo:'2026-01', fechaLimite:'2026-03-15', monto:1240000, pagado:1240000, estado:'pagado'   },
+  { id:'i2', nombre:'IVA Bimestre 2 (Mar–Abr)',        tipo:'iva',       periodo:'2026-03', fechaLimite:'2026-05-15', monto:980000,  pagado:980000,  estado:'pagado'   },
+  { id:'i3', nombre:'IVA Bimestre 3 (May–Jun)',        tipo:'iva',       periodo:'2026-05', fechaLimite:'2026-07-15', monto:1450000, pagado:0,       estado:'pendiente'},
+  { id:'i4', nombre:'Retención en la Fuente Junio',    tipo:'retencion', periodo:'2026-06', fechaLimite:'2026-07-10', monto:320000,  pagado:0,       estado:'vencido'  },
+  { id:'i5', nombre:'Retención en la Fuente Julio',    tipo:'retencion', periodo:'2026-07', fechaLimite:'2026-08-10', monto:285000,  pagado:0,       estado:'pendiente'},
+  { id:'i6', nombre:'Renta Persona Jurídica 2025',     tipo:'renta',     periodo:'2025',    fechaLimite:'2026-04-30', monto:8500000, pagado:8500000, estado:'pagado'   },
+  { id:'i7', nombre:'ICA Primer Semestre 2026',        tipo:'otro',      periodo:'2026-H1', fechaLimite:'2026-09-30', monto:620000,  pagado:0,       estado:'pendiente'},
+  { id:'i8', nombre:'Retención en la Fuente Agosto',  tipo:'retencion', periodo:'2026-08', fechaLimite:'2026-09-10', monto:310000,  pagado:0,       estado:'pendiente'},
 ];
 
 const SEED_PRES: Presupuesto[] = [
@@ -116,8 +135,12 @@ const TAB_ICONS: Record<number,string> = {
   5: 'M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z',
   6: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
   7: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
+  8: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z',
+  9: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  10:'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z',
+  11:'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
 };
-const TABS = ['Flujo de Caja','Centros de Costo','Presupuestos','Conciliación','Reportes','Forecast','CxC','CxP'];
+const TABS = ['Flujo de Caja','Centros de Costo','Presupuestos','Conciliación','Reportes','Forecast','CxC','CxP','Dashboard','Tesorería','Impuestos','Cap. de Trabajo'];
 
 // ── Area icons ─────────────────────────────────────────────────────────────
 const AREA_ICON: Record<Area,string> = {
@@ -171,13 +194,14 @@ function Modal({ title, onClose, children, width = 560 }: { title: string; onClo
 
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function FinancePage() {
-  const [tab, setTab]       = useState(0);
+  const [tab, setTab]           = useState(0);
   const [centros, setCentros]   = useState<CentroCosto[]>([]);
   const [movs, setMovs]         = useState<Movimiento[]>([]);
   const [presups, setPresups]   = useState<Presupuesto[]>([]);
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [provs, setProvs]       = useState<FacturaProv[]>([]);
-  const [ready, setReady]     = useState(false);
+  const [impuestos, setImpuestos] = useState<Impuesto[]>([]);
+  const [ready, setReady]       = useState(false);
 
   useEffect(() => {
     setCentros(loadLS('fin-centros-v1', SEED_CENTROS));
@@ -185,14 +209,16 @@ export default function FinancePage() {
     setPresups(loadLS('fin-pres-v1', SEED_PRES));
     setFacturas(loadLS('fin-facturas-v1', SEED_FACTURAS));
     setProvs(loadLS('fin-provs-v1', SEED_PROV));
+    setImpuestos(loadLS('fin-imp-v1', SEED_IMPUESTOS));
     setReady(true);
   }, []);
 
-  const saveCentros  = (v: CentroCosto[])  => { setCentros(v);  saveLS('fin-centros-v1', v); };
-  const saveMovs     = (v: Movimiento[])   => { setMovs(v);     saveLS('fin-movs-v1', v); };
-  const savePresups  = (v: Presupuesto[])  => { setPresups(v);  saveLS('fin-pres-v1', v); };
-  const saveFacturas = (v: Factura[])      => { setFacturas(v); saveLS('fin-facturas-v1', v); };
-  const saveProvs    = (v: FacturaProv[])  => { setProvs(v);    saveLS('fin-provs-v1', v); };
+  const saveCentros   = (v: CentroCosto[])  => { setCentros(v);   saveLS('fin-centros-v1', v); };
+  const saveMovs      = (v: Movimiento[])   => { setMovs(v);      saveLS('fin-movs-v1', v); };
+  const savePresups   = (v: Presupuesto[])  => { setPresups(v);   saveLS('fin-pres-v1', v); };
+  const saveFacturas  = (v: Factura[])      => { setFacturas(v);  saveLS('fin-facturas-v1', v); };
+  const saveProvs     = (v: FacturaProv[])  => { setProvs(v);     saveLS('fin-provs-v1', v); };
+  const saveImpuestos = (v: Impuesto[])     => { setImpuestos(v); saveLS('fin-imp-v1', v); };
 
   if (!ready) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh' }}>
@@ -217,7 +243,8 @@ export default function FinancePage() {
       </div>
 
       {/* ── Tab nav ── */}
-      <div style={{ display:'flex', gap:'4px', marginBottom:'24px', background:'rgba(255,255,255,0.04)', borderRadius:'12px', padding:'4px', width:'fit-content', border:'1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ overflowX:'auto', marginBottom:'24px', paddingBottom:'2px' }}>
+      <div style={{ display:'flex', gap:'4px', background:'rgba(255,255,255,0.04)', borderRadius:'12px', padding:'4px', width:'fit-content', border:'1px solid rgba(255,255,255,0.07)' }}>
         {TABS.map((t, i) => (
           <button key={t} onClick={() => setTab(i)} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 16px', borderRadius:'8px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', transition:'all 0.15s', background: tab===i ? 'linear-gradient(135deg,#34d399,#059669)' : 'transparent', color: tab===i ? '#fff' : '#64748b', boxShadow: tab===i ? '0 2px 8px rgba(52,211,153,0.25)' : 'none', whiteSpace:'nowrap' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d={TAB_ICONS[i]}/></svg>
@@ -225,15 +252,20 @@ export default function FinancePage() {
           </button>
         ))}
       </div>
+      </div>
 
-      {tab === 0 && <FlujoCaja  movs={movs}   centros={centros} onSave={saveMovs} />}
-      {tab === 1 && <CentrosCosto centros={centros} movs={movs} presups={presups} onSave={saveCentros} />}
-      {tab === 2 && <Presupuestos presups={presups} centros={centros} movs={movs} onSave={savePresups} />}
-      {tab === 3 && <Conciliacion movs={movs}  centros={centros} onSave={saveMovs} />}
-      {tab === 4 && <Reportes    movs={movs}   centros={centros} presups={presups} />}
-      {tab === 5 && <Forecast    movs={movs} />}
-      {tab === 6 && <CxC facturas={facturas} onSave={saveFacturas} />}
-      {tab === 7 && <CxP provs={provs} onSave={saveProvs} />}
+      {tab === 0  && <FlujoCaja    movs={movs}   centros={centros} onSave={saveMovs} />}
+      {tab === 1  && <CentrosCosto centros={centros} movs={movs} presups={presups} onSave={saveCentros} />}
+      {tab === 2  && <Presupuestos presups={presups} centros={centros} movs={movs} onSave={savePresups} />}
+      {tab === 3  && <Conciliacion movs={movs}  centros={centros} onSave={saveMovs} />}
+      {tab === 4  && <Reportes     movs={movs}   centros={centros} presups={presups} />}
+      {tab === 5  && <Forecast     movs={movs} />}
+      {tab === 6  && <CxC facturas={facturas} onSave={saveFacturas} />}
+      {tab === 7  && <CxP provs={provs} onSave={saveProvs} />}
+      {tab === 8  && <DashboardEjecutivo movs={movs} centros={centros} presups={presups} facturas={facturas} provs={provs} impuestos={impuestos} onNav={setTab} />}
+      {tab === 9  && <Tesoreria movs={movs} facturas={facturas} provs={provs} />}
+      {tab === 10 && <Impuestos impuestos={impuestos} onSave={saveImpuestos} />}
+      {tab === 11 && <CapitalDeTrabajo movs={movs} facturas={facturas} provs={provs} />}
     </div>
   );
 }
@@ -2552,6 +2584,692 @@ function CxP({ provs, onSave }: { provs: FacturaProv[]; onSave: (v: FacturaProv[
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// ── Tab 8: Dashboard Ejecutivo ────────────────────────────────────────────
+function DashboardEjecutivo({
+  movs, centros, presups, facturas, provs, impuestos, onNav
+}: {
+  movs: Movimiento[]; centros: CentroCosto[]; presups: Presupuesto[];
+  facturas: Factura[]; provs: FacturaProv[]; impuestos: Impuesto[];
+  onNav: (t: number) => void;
+}) {
+  const saldoFac  = (f: Factura)     => f.monto - f.pagado;
+  const saldoProv = (p: FacturaProv) => p.monto - p.pagado;
+
+  const cxcTotal = facturas.filter(f => f.estado !== 'pagada' && f.estado !== 'anulada').reduce((s, f) => s + saldoFac(f), 0);
+  const cxpTotal = provs.filter(p => p.estado !== 'pagada').reduce((s, p) => s + saldoProv(p), 0);
+  const wc       = cxcTotal - cxpTotal;
+
+  const burnRate = movs.filter(m => m.tipo === 'egreso' && m.estado === 'confirmado').reduce((s, m) => s + m.monto, 0) / 3;
+  const netCash  = movs.filter(m => m.estado === 'confirmado').reduce((s, m) => m.tipo === 'ingreso' ? s + m.monto : s - m.monto, 0);
+  const runway   = burnRate > 0 ? netCash / burnRate : Infinity;
+
+  const totalIng = movs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+  const totalEgr = movs.filter(m => m.tipo === 'egreso').reduce((s, m)  => s + m.monto, 0);
+  const margen   = totalIng > 0 ? ((totalIng - totalEgr) / totalIng) * 100 : 0;
+
+  const hoy90       = new Date(TODAY.getTime() - 90 * 86400000).toISOString().slice(0, 10);
+  const facturado90 = facturas.filter(f => f.emitida >= hoy90).reduce((s, f) => s + f.monto, 0);
+  const compras90   = provs.filter(p => p.recibida >= hoy90).reduce((s, p) => s + p.monto, 0);
+  const dso = facturado90 > 0 ? Math.round(cxcTotal / (facturado90 / 90)) : null;
+  const dpo = compras90   > 0 ? Math.round(cxpTotal / (compras90  / 90)) : null;
+
+  const facVencidas  = facturas.filter(f => f.estado === 'vencida');
+  const provVencidos = provs.filter(p => p.estado === 'vencida');
+  const provProximos = provs.filter(p => { const d = diasDesde(p.vencimiento); return d >= -7 && d <= 0 && p.estado !== 'pagada'; });
+  const impVencidos  = impuestos.filter(i => i.estado === 'vencido');
+  const presAlerta   = presups.filter(p => {
+    const real = movs.filter(m => m.centroCostoId === p.centroCostoId && m.tipo === p.tipo && m.categoria === p.categoria).reduce((s, m) => s + m.monto, 0);
+    return p.monto > 0 && (real / p.monto) >= 0.9;
+  });
+
+  const SHORTCUTS = [
+    { label:'Flujo de Caja',   desc:'Movimientos y transacciones', tab:0,  color:'#34d399', icon:'M3 3h2l.4 2M7 13h10l4-8H5.4' },
+    { label:'CxC',             desc:`${facVencidas.length} facturas vencidas`, tab:6, color:facVencidas.length>0?'#f87171':'#34d399', icon:'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2' },
+    { label:'CxP',             desc:`${provVencidos.length} pagos vencidos`,   tab:7, color:provVencidos.length>0?'#f87171':'#34d399', icon:'M3 10h18M7 15h1m4 0h1' },
+    { label:'Impuestos',       desc:`${impVencidos.length} vencidos`,           tab:10, color:impVencidos.length>0?'#f87171':'#fbbf24', icon:'M9 14l6-6m-5.5.5h.01m4.99 5h.01' },
+    { label:'Tesorería',       desc:'Proyección 90 días', tab:9,  color:'#60a5fa', icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { label:'Presupuestos',    desc:`${presAlerta.length} en alerta`, tab:2, color:presAlerta.length>0?'#fbbf24':'#a78bfa', icon:'M9 19v-6a2 2 0 00-2-2H5' },
+    { label:'Cap. de Trabajo', desc:'Ratios financieros', tab:11, color:'#22d3ee', icon:'M3 6l3 1m0 0l-3 9' },
+    { label:'Reportes',        desc:'P&L, waterfall, burn',tab:4, color:'#a78bfa', icon:'M16 8v8m-4-5v5m-4-2v2' },
+  ];
+
+  return (
+    <>
+      {/* Working Capital hero */}
+      <div style={{ ...G.card, padding:'28px 32px', marginBottom:'16px', position:'relative', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 70% 50%, rgba(52,211,153,0.07), transparent 55%)', pointerEvents:'none' }} />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'24px', alignItems:'center' }}>
+          <div>
+            <p style={{ margin:'0 0 6px', fontSize:'11px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>Capital de Trabajo (Working Capital)</p>
+            <p style={{ margin:'0 0 4px', fontSize:'44px', fontWeight:900, letterSpacing:'-0.04em', lineHeight:1, color:wc>=0?'#34d399':'#f87171' }}>{fmt(Math.abs(wc))}</p>
+            <p style={{ margin:0, fontSize:'13px', color:'#475569' }}>{wc>=0?'▲ Posición positiva — CxC supera CxP':'▼ Posición negativa — CxP supera CxC'}</p>
+          </div>
+          <div style={{ display:'flex', gap:'16px' }}>
+            <div style={{ textAlign:'center' }}>
+              <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase' }}>CxC</p>
+              <p style={{ margin:0, fontSize:'20px', fontWeight:800, color:'#34d399' }}>{fmt(cxcTotal)}</p>
+            </div>
+            <div style={{ width:'1px', background:'rgba(255,255,255,0.07)', alignSelf:'stretch' }} />
+            <div style={{ textAlign:'center' }}>
+              <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase' }}>CxP</p>
+              <p style={{ margin:0, fontSize:'20px', fontWeight:800, color:'#f87171' }}>{fmt(cxpTotal)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'12px', marginBottom:'16px' }}>
+        {[
+          { label:'Saldo Neto',    val:fmt(netCash),      sub:'cash confirmado',        color:netCash>=0?'#34d399':'#f87171' },
+          { label:'Burn Rate',     val:fmt(burnRate)+'/m',sub:'gasto mensual prom.',     color:'#f87171' },
+          { label:'Runway',        val:isFinite(runway)?`${runway.toFixed(1)} meses`:'∞', sub:'meses de operación', color:runway<3?'#f87171':runway<6?'#fbbf24':'#34d399' },
+          { label:'Margen Neto',   val:`${margen.toFixed(1)}%`, sub:'ingresos vs egresos',    color:margen>=30?'#34d399':margen>=10?'#fbbf24':'#f87171' },
+          { label:'DSO / DPO',     val:`${dso??'—'}d / ${dpo??'—'}d`, sub:'días cobro / días pago', color:'#60a5fa' },
+        ].map(k => (
+          <div key={k.label} style={{ ...G.card, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse at 100% 0%, ${k.color}0c, transparent 60%)`, pointerEvents:'none' }} />
+            <p style={{ margin:'0 0 6px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.06em' }}>{k.label}</p>
+            <p style={{ margin:0, fontSize:'18px', fontWeight:800, color:k.color, letterSpacing:'-0.02em', lineHeight:1 }}>{k.val}</p>
+            <p style={{ margin:'4px 0 0', fontSize:'10px', color:'#334155' }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Alertas */}
+      {(facVencidas.length > 0 || provVencidos.length > 0 || impVencidos.length > 0 || provProximos.length > 0 || presAlerta.length > 0) && (
+        <div style={{ ...G.card, padding:'16px 20px', marginBottom:'16px', borderColor:'rgba(248,113,113,0.25)', background:'rgba(248,113,113,0.04)' }}>
+          <p style={{ margin:'0 0 12px', fontSize:'11px', fontWeight:700, color:'#f87171', textTransform:'uppercase', letterSpacing:'0.07em' }}>⚠ Alertas activas</p>
+          <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
+            {facVencidas.length > 0 && (
+              <button onClick={()=>onNav(6)} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', borderRadius:'9px', border:'1px solid rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.08)', cursor:'pointer' }}>
+                <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#f87171', boxShadow:'0 0 6px #f87171' }} />
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ margin:0, fontSize:'11px', fontWeight:700, color:'#f87171' }}>{facVencidas.length} facturas CxC vencidas</p>
+                  <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>{fmt(facVencidas.reduce((s,f)=>s+saldoFac(f),0))} por cobrar</p>
+                </div>
+              </button>
+            )}
+            {(provVencidos.length > 0 || provProximos.length > 0) && (
+              <button onClick={()=>onNav(7)} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', borderRadius:'9px', border:'1px solid rgba(251,191,36,0.3)', background:'rgba(251,191,36,0.06)', cursor:'pointer' }}>
+                <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#fbbf24' }} />
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ margin:0, fontSize:'11px', fontWeight:700, color:'#fbbf24' }}>{provVencidos.length} vencidos · {provProximos.length} próximos (7d)</p>
+                  <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>CxP — {fmt([...provVencidos,...provProximos].reduce((s,p)=>s+saldoProv(p),0))}</p>
+                </div>
+              </button>
+            )}
+            {impVencidos.length > 0 && (
+              <button onClick={()=>onNav(10)} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', borderRadius:'9px', border:'1px solid rgba(248,113,113,0.25)', background:'rgba(248,113,113,0.06)', cursor:'pointer' }}>
+                <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#f87171', boxShadow:'0 0 6px #f87171' }} />
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ margin:0, fontSize:'11px', fontWeight:700, color:'#f87171' }}>{impVencidos.length} impuesto{impVencidos.length!==1?'s':''} vencido{impVencidos.length!==1?'s':''}</p>
+                  <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>{fmt(impVencidos.reduce((s,i)=>s+i.monto-i.pagado,0))} pendiente</p>
+                </div>
+              </button>
+            )}
+            {presAlerta.length > 0 && (
+              <button onClick={()=>onNav(2)} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', borderRadius:'9px', border:'1px solid rgba(251,191,36,0.25)', background:'rgba(251,191,36,0.05)', cursor:'pointer' }}>
+                <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#fbbf24' }} />
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ margin:0, fontSize:'11px', fontWeight:700, color:'#fbbf24' }}>{presAlerta.length} presupuesto{presAlerta.length!==1?'s':''} al límite (≥90%)</p>
+                  <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>Revisar ejecución presupuestal</p>
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Module shortcuts */}
+      <p style={{ margin:'0 0 12px', fontSize:'11px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.07em' }}>Acceso rápido a módulos</p>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px' }}>
+        {SHORTCUTS.map(m => (
+          <button key={m.label} onClick={()=>onNav(m.tab)}
+            style={{ ...G.panel, padding:'14px 16px', textAlign:'left', cursor:'pointer', border:'1px solid rgba(255,255,255,0.07)', transition:'border-color 0.15s, transform 0.15s' }}
+            onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.borderColor=`${m.color}40`; (e.currentTarget as HTMLElement).style.transform='translateY(-1px)'; }}
+            onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.transform='translateY(0)'; }}
+          >
+            <div style={{ width:'32px', height:'32px', borderRadius:'8px', background:`${m.color}15`, border:`1px solid ${m.color}30`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'8px' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={m.color} strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d={m.icon}/></svg>
+            </div>
+            <p style={{ margin:'0 0 2px', fontSize:'12px', fontWeight:700, color:'#e2e8f0' }}>{m.label}</p>
+            <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>{m.desc}</p>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Tab 9: Tesorería a 90 días ────────────────────────────────────────────
+function Tesoreria({ movs, facturas, provs }: { movs: Movimiento[]; facturas: Factura[]; provs: FacturaProv[] }) {
+  const saldoFac  = (f: Factura)     => f.monto - f.pagado;
+  const saldoProv = (p: FacturaProv) => p.monto - p.pagado;
+  const todayStr  = TODAY.toISOString().slice(0, 10);
+  const d90str    = new Date(TODAY.getTime() + 90 * 86400000).toISOString().slice(0, 10);
+
+  const saldoInicial = movs
+    .filter(m => m.estado === 'confirmado' && m.fecha <= todayStr)
+    .reduce((s, m) => m.tipo === 'ingreso' ? s + m.monto : s - m.monto, 0);
+
+  type CEvent = { fecha: string; monto: number; tipo: 'entrada' | 'salida'; desc: string; origen: string };
+  const events: CEvent[] = [
+    ...facturas.filter(f => f.estado !== 'pagada' && f.estado !== 'anulada' && f.vencimiento >= todayStr && f.vencimiento <= d90str)
+      .map(f => ({ fecha:f.vencimiento, monto:saldoFac(f), tipo:'entrada' as const, desc:`${f.cliente} — ${f.numero}`, origen:'CxC' })),
+    ...provs.filter(p => p.estado !== 'pagada' && p.vencimiento >= todayStr && p.vencimiento <= d90str)
+      .map(p => ({ fecha:p.vencimiento, monto:saldoProv(p), tipo:'salida' as const, desc:`${p.proveedor} — ${p.numero}`, origen:'CxP' })),
+    ...movs.filter(m => m.estado === 'pendiente' && m.fecha >= todayStr && m.fecha <= d90str)
+      .map(m => ({ fecha:m.fecha, monto:m.monto, tipo:m.tipo==='ingreso'?'entrada' as const:'salida' as const, desc:m.concepto, origen:'Flujo' })),
+  ].sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  const weeks = Array.from({ length: 13 }, (_, w) => {
+    const from = new Date(TODAY.getTime() + w * 7 * 86400000).toISOString().slice(0, 10);
+    const to   = new Date(TODAY.getTime() + (w + 1) * 7 * 86400000).toISOString().slice(0, 10);
+    const ents = events.filter(e => e.tipo === 'entrada' && e.fecha >= from && e.fecha < to);
+    const sals = events.filter(e => e.tipo === 'salida'  && e.fecha >= from && e.fecha < to);
+    return { label:`Sem ${w+1}`, from, to, entradas:ents.reduce((s,e)=>s+e.monto,0), salidas:sals.reduce((s,e)=>s+e.monto,0), items:[...ents,...sals] };
+  });
+
+  let bal = saldoInicial;
+  const balances  = weeks.map(w => { bal += w.entradas - w.salidas; return bal; });
+  const firstNeg  = balances.findIndex(b => b < 0);
+  const totalEnt  = weeks.reduce((s, w) => s + w.entradas, 0);
+  const totalSal  = weeks.reduce((s, w) => s + w.salidas,  0);
+  const saldoFinal = balances[balances.length - 1];
+
+  // SVG chart
+  const W = 640, H = 140, PAD = { t:16, b:28, l:56, r:16 };
+  const cW = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
+  const allVals  = [saldoInicial, ...balances];
+  const minV     = Math.min(...allVals), maxV = Math.max(...allVals);
+  const range    = maxV - minV || 1;
+  const xStep    = cW / (allVals.length - 1);
+  const yOf      = (v: number) => PAD.t + cH - ((v - minV) / range) * cH;
+  const xOf      = (i: number) => PAD.l + i * xStep;
+  const pts      = allVals.map((v, i) => `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
+  const zeroY    = yOf(0);
+  const lineColor = saldoFinal >= 0 ? '#34d399' : '#f87171';
+  const areaPath  = `M${xOf(0)},${yOf(allVals[0])} ` + allVals.slice(1).map((v,i)=>`L${xOf(i+1)},${yOf(v)}`).join(' ') + ` L${xOf(allVals.length-1)},${zeroY} L${xOf(0)},${zeroY} Z`;
+
+  const [selWeek, setSelWeek] = useState<number | null>(null);
+
+  return (
+    <>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'12px', marginBottom:'16px' }}>
+        {[
+          { label:'Saldo hoy',          val:fmt(saldoInicial), color:saldoInicial>=0?'#34d399':'#f87171', sub:'base confirmada' },
+          { label:'Entradas esperadas', val:fmt(totalEnt),     color:'#34d399', sub:'próximos 90 días' },
+          { label:'Salidas esperadas',  val:fmt(totalSal),     color:'#f87171', sub:'próximos 90 días' },
+          { label:'Saldo proyectado',   val:fmt(saldoFinal),   color:saldoFinal>=0?'#34d399':'#f87171', sub:firstNeg>=0?`Sem ${firstNeg+1} entra en negativo`:'Sin semanas negativas' },
+        ].map(k => (
+          <div key={k.label} style={{ ...G.card, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse at 100% 0%, ${k.color}0c, transparent 60%)`, pointerEvents:'none' }} />
+            <p style={{ margin:'0 0 6px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.06em' }}>{k.label}</p>
+            <p style={{ margin:0, fontSize:'20px', fontWeight:800, color:k.color, letterSpacing:'-0.02em', lineHeight:1 }}>{k.val}</p>
+            <p style={{ margin:'4px 0 0', fontSize:'10px', color:'#334155' }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {firstNeg >= 0 && (
+        <div style={{ ...G.panel, padding:'10px 16px', marginBottom:'14px', borderLeft:'3px solid #f87171', background:'rgba(248,113,113,0.05)', display:'flex', alignItems:'center', gap:'10px' }}>
+          <span style={{ fontSize:'16px' }}>⚠</span>
+          <p style={{ margin:0, fontSize:'12px', fontWeight:600, color:'#f87171' }}>
+            El saldo entra en negativo en la <strong>Semana {firstNeg + 1}</strong>. Revisá las entradas o postergá pagos.
+          </p>
+        </div>
+      )}
+
+      <div style={{ ...G.card, padding:'20px', marginBottom:'16px' }}>
+        <p style={{ margin:'0 0 14px', fontSize:'12px', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Saldo proyectado semana a semana</p>
+        <div style={{ overflowX:'auto' }}>
+          <svg viewBox={`0 0 ${W} ${H}`} style={{ width:'100%', minWidth:'400px', height:'auto', display:'block' }}>
+            <defs>
+              <linearGradient id="tresGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={lineColor} stopOpacity="0.25"/>
+                <stop offset="100%" stopColor={lineColor} stopOpacity="0.02"/>
+              </linearGradient>
+            </defs>
+            {zeroY >= PAD.t && zeroY <= H - PAD.b && <line x1={PAD.l} y1={zeroY} x2={W-PAD.r} y2={zeroY} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="4,4"/>}
+            {[0,0.25,0.5,0.75,1].map(p => <line key={p} x1={PAD.l} y1={PAD.t+cH*p} x2={W-PAD.r} y2={PAD.t+cH*p} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
+            <path d={areaPath} fill="url(#tresGrad)"/>
+            <polyline points={pts} fill="none" stroke={lineColor} strokeWidth="2" strokeLinejoin="round"/>
+            {firstNeg >= 0 && <circle cx={xOf(firstNeg+1)} cy={yOf(balances[firstNeg])} r="5" fill="#f87171" stroke="#070716" strokeWidth="2"/>}
+            {allVals.map((v,i) => <circle key={i} cx={xOf(i)} cy={yOf(v)} r="3" fill={v>=0?'#34d399':'#f87171'} opacity="0.8"/>)}
+            {['Hoy',...weeks.map((_,i)=>`S${i+1}`)].filter((_,i)=>i%2===0).map((l,i)=>(
+              <text key={l} x={xOf(i*2)} y={H-6} textAnchor="middle" fontSize="9" fill="#475569">{l}</text>
+            ))}
+            {[minV,(minV+maxV)/2,maxV].map((v,i)=>(
+              <text key={i} x={PAD.l-4} y={yOf(v)+4} textAnchor="end" fontSize="9" fill="#334155">{(v/1000000).toFixed(1)}M</text>
+            ))}
+          </svg>
+        </div>
+      </div>
+
+      <div style={{ ...G.card, overflowX:'auto', marginBottom:'16px' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+          <thead>
+            <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.02)' }}>
+              {['Semana','Período','Entradas','Salidas','Neto','Saldo acum.'].map((h,i)=>(
+                <th key={h} style={{ padding:'9px 12px', textAlign:i>=2?'right':'left', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {weeks.map((w, i) => {
+              const neto = w.entradas - w.salidas;
+              const b    = balances[i];
+              return (
+                <tr key={w.label} onClick={()=>setSelWeek(selWeek===i?null:i)}
+                  style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer', background:b<0?'rgba(248,113,113,0.04)':selWeek===i?'rgba(52,211,153,0.04)':'transparent' }}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=b<0?'rgba(248,113,113,0.07)':'rgba(52,211,153,0.05)'}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=b<0?'rgba(248,113,113,0.04)':selWeek===i?'rgba(52,211,153,0.04)':'transparent'}
+                >
+                  <td style={{ padding:'8px 12px', fontWeight:700, color:b<0?'#f87171':'#e2e8f0' }}>{w.label}</td>
+                  <td style={{ padding:'8px 12px', fontSize:'11px', color:'#475569' }}>{w.from} → {w.to}</td>
+                  <td style={{ padding:'8px 12px', textAlign:'right', color:'#34d399', fontWeight:600 }}>{w.entradas>0?fmt(w.entradas):'—'}</td>
+                  <td style={{ padding:'8px 12px', textAlign:'right', color:'#f87171', fontWeight:600 }}>{w.salidas>0?fmt(w.salidas):'—'}</td>
+                  <td style={{ padding:'8px 12px', textAlign:'right', fontWeight:700, color:neto>=0?'#34d399':'#f87171' }}>{neto!==0?(neto>0?'+':'')+fmt(neto):'—'}</td>
+                  <td style={{ padding:'8px 12px', textAlign:'right', fontWeight:800, fontSize:'13px', color:b<0?'#f87171':'#e2e8f0' }}>{fmt(b)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {selWeek !== null && weeks[selWeek].items.length > 0 && (
+        <div style={{ ...G.panel, padding:'16px 20px' }}>
+          <p style={{ margin:'0 0 12px', fontSize:'12px', fontWeight:700, color:'#e2e8f0' }}>{weeks[selWeek].label}: {weeks[selWeek].from} → {weeks[selWeek].to} — {weeks[selWeek].items.length} eventos</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+            {weeks[selWeek].items.map((ev, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'7px 10px', borderRadius:'8px', background:ev.tipo==='entrada'?'rgba(52,211,153,0.06)':'rgba(248,113,113,0.06)' }}>
+                <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:ev.tipo==='entrada'?'#34d399':'#f87171', flexShrink:0 }} />
+                <span style={{ fontSize:'11px', fontWeight:700, color:ev.tipo==='entrada'?'#34d399':'#f87171', width:'40px', flexShrink:0 }}>{ev.origen}</span>
+                <span style={{ flex:1, fontSize:'12px', color:'#e2e8f0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.desc}</span>
+                <span style={{ fontSize:'12px', fontWeight:700, color:ev.tipo==='entrada'?'#34d399':'#f87171', whiteSpace:'nowrap' }}>{ev.tipo==='entrada'?'+':'-'}{fmt(ev.monto)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Tab 10: Impuestos ─────────────────────────────────────────────────────
+const IMP_TIPO_LABELS: Record<Impuesto['tipo'], string> = { iva:'IVA', retencion:'Retención', renta:'Renta', otro:'Otro' };
+const IMP_TIPO_COLORS: Record<Impuesto['tipo'], string> = { iva:'#60a5fa', retencion:'#a78bfa', renta:'#fbbf24', otro:'#94a3b8' };
+const IMP_ESTADO_COLORS: Record<Impuesto['estado'], { color:string; bg:string }> = {
+  pagado:   { color:'#34d399', bg:'rgba(52,211,153,0.1)'  },
+  pendiente:{ color:'#fbbf24', bg:'rgba(251,191,36,0.1)'  },
+  vencido:  { color:'#f87171', bg:'rgba(248,113,113,0.1)' },
+};
+const EMPTY_IMP: Omit<Impuesto,'id'> = { nombre:'', tipo:'iva', periodo:'', fechaLimite:new Date().toISOString().slice(0,10), monto:0, pagado:0, estado:'pendiente', notas:'' };
+
+function Impuestos({ impuestos, onSave }: { impuestos: Impuesto[]; onSave: (v: Impuesto[]) => void }) {
+  const [showModal, setShow]  = useState(false);
+  const [editing, setEditing] = useState<Impuesto | null>(null);
+  const [selImp,  setSelImp]  = useState<Impuesto | null>(null);
+  const [form, setForm]       = useState<Omit<Impuesto,'id'>>(EMPTY_IMP);
+  const [filtroTipo,   setFiltroTipo]   = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('');
+
+  const saldo    = (i: Impuesto) => i.monto - i.pagado;
+  const pendientes = impuestos.filter(i => i.estado !== 'pagado');
+  const vencidos   = impuestos.filter(i => i.estado === 'vencido');
+  const totalPend  = pendientes.reduce((s, i) => s + saldo(i), 0);
+  const totalVenc  = vencidos.reduce((s, i) => s + saldo(i), 0);
+
+  const proxima = [...impuestos].filter(i => i.estado !== 'pagado').sort((a,b)=>a.fechaLimite.localeCompare(b.fechaLimite))[0];
+
+  const tipoTotals = (['iva','retencion','renta','otro'] as Impuesto['tipo'][]).map(t => ({
+    tipo:t, total:impuestos.filter(i=>i.tipo===t&&i.estado!=='pagado').reduce((s,i)=>s+saldo(i),0),
+    count:impuestos.filter(i=>i.tipo===t&&i.estado!=='pagado').length,
+  }));
+
+  const visible = impuestos.filter(i => {
+    if (filtroTipo   && i.tipo   !== filtroTipo)   return false;
+    if (filtroEstado && i.estado !== filtroEstado) return false;
+    return true;
+  }).sort((a,b)=>a.fechaLimite.localeCompare(b.fechaLimite));
+
+  const openNew  = () => { setEditing(null); setForm(EMPTY_IMP); setShow(true); };
+  const openEdit = (i: Impuesto) => { setEditing(i); setForm({ nombre:i.nombre, tipo:i.tipo, periodo:i.periodo, fechaLimite:i.fechaLimite, monto:i.monto, pagado:i.pagado, estado:i.estado, notas:i.notas }); setShow(true); };
+  const save = () => {
+    if (!form.nombre || !form.monto) return;
+    if (editing) onSave(impuestos.map(x => x.id===editing.id ? {...form, id:editing.id} : x));
+    else         onSave([...impuestos, {...form, id:uid()}]);
+    setShow(false);
+  };
+  const eliminar = (i: Impuesto) => onSave(impuestos.filter(x => x.id !== i.id));
+
+  return (
+    <>
+      {/* KPIs */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'12px', marginBottom:'14px' }}>
+        {[
+          { label:'Total Pendiente',    val:fmt(totalPend), sub:`${pendientes.length} obligaciones`, color:'#fbbf24' },
+          { label:'Vencido',            val:fmt(totalVenc), sub:`${vencidos.length} sin pagar`,       color:totalVenc>0?'#f87171':'#34d399' },
+          { label:'Próxima Obligación', val:proxima?proxima.nombre:'—', sub:proxima?`${proxima.fechaLimite} · ${fmt(saldo(proxima))}`:'sin pendientes', color:'#60a5fa' },
+          { label:'Total pagado',       val:fmt(impuestos.filter(i=>i.estado==='pagado').reduce((s,i)=>s+i.monto,0)), sub:`${impuestos.filter(i=>i.estado==='pagado').length} obligaciones`, color:'#34d399' },
+        ].map(k=>(
+          <div key={k.label} style={{ ...G.card, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse at 100% 0%, ${k.color}0c, transparent 60%)`, pointerEvents:'none' }} />
+            <p style={{ margin:'0 0 6px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.06em' }}>{k.label}</p>
+            <p style={{ margin:0, fontSize:k.label==='Próxima Obligación'?'13px':'20px', fontWeight:800, color:k.color, lineHeight:1.2 }}>{k.val}</p>
+            <p style={{ margin:'4px 0 0', fontSize:'10px', color:'#334155' }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Por tipo */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'14px' }}>
+        {tipoTotals.map(t=>(
+          <div key={t.tipo} style={{ ...G.panel, padding:'12px 14px', borderLeft:`3px solid ${IMP_TIPO_COLORS[t.tipo]}` }}>
+            <p style={{ margin:'0 0 4px', fontSize:'10px', fontWeight:700, color:IMP_TIPO_COLORS[t.tipo], textTransform:'uppercase', letterSpacing:'0.05em' }}>{IMP_TIPO_LABELS[t.tipo]}</p>
+            <p style={{ margin:0, fontSize:'16px', fontWeight:800, color:t.count>0?IMP_TIPO_COLORS[t.tipo]:'#334155' }}>{fmt(t.total)}</p>
+            <p style={{ margin:'2px 0 0', fontSize:'10px', color:'#475569' }}>{t.count} obligación{t.count!==1?'es':''} pendiente{t.count!==1?'s':''}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{ display:'flex', gap:'8px', marginBottom:'12px', alignItems:'center', flexWrap:'wrap' }}>
+        <select value={filtroTipo} onChange={e=>setFiltroTipo(e.target.value)} style={{ ...G.input, width:'auto', padding:'6px 10px', fontSize:'12px' }}>
+          <option value="">Todos los tipos</option>
+          {(['iva','retencion','renta','otro'] as const).map(t=><option key={t} value={t}>{IMP_TIPO_LABELS[t]}</option>)}
+        </select>
+        <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)} style={{ ...G.input, width:'auto', padding:'6px 10px', fontSize:'12px' }}>
+          <option value="">Todos los estados</option>
+          {(['pagado','pendiente','vencido'] as const).map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+        <div style={{ marginLeft:'auto' }}>
+          <button onClick={openNew} style={{ padding:'7px 16px', fontSize:'12px', fontWeight:700, borderRadius:'8px', border:'none', cursor:'pointer', background:'linear-gradient(135deg,#fbbf24,#d97706)', color:'#0f172a' }}>+ Obligación tributaria</button>
+        </div>
+      </div>
+
+      {/* Tabla */}
+      <div style={{ ...G.card, overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+          <thead>
+            <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.02)' }}>
+              {['','Nombre','Tipo','Período','Fecha Límite','Monto','Pagado','Saldo','Estado',''].map((h,i)=>(
+                <th key={h+i} style={{ padding:'9px 12px', textAlign:i>=5?'right':'left', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.length===0&&<tr><td colSpan={10} style={{ padding:'32px', textAlign:'center', color:'#334155', fontSize:'13px' }}>Sin obligaciones para este filtro</td></tr>}
+            {visible.map((imp, i) => {
+              const sal  = saldo(imp);
+              const ec   = IMP_ESTADO_COLORS[imp.estado];
+              const tc   = IMP_TIPO_COLORS[imp.tipo];
+              const dV   = diasDesde(imp.fechaLimite);
+              return (
+                <tr key={imp.id} onClick={()=>setSelImp(imp)}
+                  style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', background:i%2===0?'rgba(255,255,255,0.01)':'transparent', cursor:'pointer' }}
+                  onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background='rgba(251,191,36,0.05)'}
+                  onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background=i%2===0?'rgba(255,255,255,0.01)':'transparent'}
+                >
+                  <td style={{ padding:'9px 12px' }}><div style={{ width:'8px', height:'8px', borderRadius:'50%', background:ec.color, boxShadow:`0 0 5px ${ec.color}` }} /></td>
+                  <td style={{ padding:'9px 12px', fontWeight:600, color:'#e2e8f0' }}>{imp.nombre}</td>
+                  <td style={{ padding:'9px 12px' }}><span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:`${tc}18`, color:tc }}>{IMP_TIPO_LABELS[imp.tipo]}</span></td>
+                  <td style={{ padding:'9px 12px', color:'#475569', fontFamily:'monospace', fontSize:'11px' }}>{imp.periodo}</td>
+                  <td style={{ padding:'9px 12px', whiteSpace:'nowrap' }}>
+                    <span style={{ fontWeight:dV>0&&imp.estado!=='pagado'?700:400, color:dV>0&&imp.estado!=='pagado'?'#f87171':'#94a3b8' }}>{imp.fechaLimite}</span>
+                    {dV>0&&imp.estado!=='pagado'&&<span style={{ fontSize:'10px', color:'#f87171', marginLeft:'4px' }}>+{dV}d</span>}
+                  </td>
+                  <td style={{ padding:'9px 12px', textAlign:'right', fontWeight:600, color:'#e2e8f0' }}>{fmt(imp.monto)}</td>
+                  <td style={{ padding:'9px 12px', textAlign:'right', color:'#34d399' }}>{imp.pagado>0?fmt(imp.pagado):'—'}</td>
+                  <td style={{ padding:'9px 12px', textAlign:'right', fontWeight:700, color:sal>0?(imp.estado==='vencido'?'#f87171':'#fbbf24'):'#334155' }}>{sal>0?fmt(sal):'—'}</td>
+                  <td style={{ padding:'9px 12px', textAlign:'right' }}><span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:ec.bg, color:ec.color }}>{imp.estado}</span></td>
+                  <td style={{ padding:'9px 12px', textAlign:'right', whiteSpace:'nowrap' }}>
+                    <div style={{ display:'flex', gap:'5px', justifyContent:'flex-end' }}>
+                      {imp.estado!=='pagado'&&<button onClick={e=>{e.stopPropagation();onSave(impuestos.map(x=>x.id===imp.id?{...x,estado:'pagado',pagado:x.monto}:x));}} style={{ padding:'3px 8px', fontSize:'10px', fontWeight:700, borderRadius:'5px', border:'1px solid rgba(52,211,153,0.3)', background:'rgba(52,211,153,0.1)', color:'#34d399', cursor:'pointer' }}>✓ Pagar</button>}
+                      <button onClick={e=>{e.stopPropagation();openEdit(imp);}} style={{ padding:'3px 7px', fontSize:'10px', borderRadius:'5px', border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', color:'#94a3b8', cursor:'pointer' }}>Editar</button>
+                      <button onClick={e=>{e.stopPropagation();eliminar(imp);}} style={{ padding:'3px 7px', fontSize:'10px', borderRadius:'5px', border:'1px solid rgba(248,113,113,0.2)', background:'rgba(248,113,113,0.06)', color:'#f87171', cursor:'pointer' }}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Detail popup */}
+      {selImp && (() => {
+        const imp = selImp;
+        const sal = saldo(imp);
+        const ec  = IMP_ESTADO_COLORS[imp.estado];
+        const tc  = IMP_TIPO_COLORS[imp.tipo];
+        const dV  = diasDesde(imp.fechaLimite);
+        const pct = imp.monto>0?Math.round((imp.pagado/imp.monto)*100):0;
+        return (
+          <Modal title="Detalle de Obligación Tributaria" onClose={()=>setSelImp(null)} width={500}>
+            <div style={{ padding:'16px 20px', background:`${tc}0d`, borderRadius:'12px', border:`1px solid ${tc}25`, marginBottom:'20px' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+                <div>
+                  <div style={{ display:'flex', gap:'7px', marginBottom:'6px' }}>
+                    <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:`${tc}18`, color:tc }}>{IMP_TIPO_LABELS[imp.tipo]}</span>
+                    <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 7px', borderRadius:'5px', background:ec.bg, color:ec.color }}>{imp.estado}</span>
+                  </div>
+                  <p style={{ margin:0, fontSize:'18px', fontWeight:800, color:'#f1f5f9' }}>{imp.nombre}</p>
+                  <p style={{ margin:'4px 0 0', fontSize:'12px', color:'#475569' }}>Período: {imp.periodo}</p>
+                </div>
+                <div style={{ textAlign:'right' }}>
+                  <p style={{ margin:0, fontSize:'11px', color:'#475569' }}>MONTO</p>
+                  <p style={{ margin:0, fontSize:'26px', fontWeight:900, color:'#e2e8f0' }}>{fmt(imp.monto)}</p>
+                </div>
+              </div>
+              <div style={{ marginTop:'14px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'5px' }}>
+                  <span style={{ fontSize:'11px', color:'#475569' }}>Progreso de pago</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color:pct===100?'#34d399':'#94a3b8' }}>{pct}%</span>
+                </div>
+                <div style={{ height:'7px', borderRadius:'4px', background:'rgba(255,255,255,0.06)' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, borderRadius:'4px', background:'linear-gradient(90deg,#34d399,#059669)' }} />
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:'5px' }}>
+                  <span style={{ fontSize:'11px', color:'#34d399' }}>Pagado: {fmt(imp.pagado)}</span>
+                  <span style={{ fontSize:'11px', fontWeight:700, color:sal>0?ec.color:'#334155' }}>Saldo: {fmt(sal)}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'18px' }}>
+              <div style={{ ...G.panel, padding:'12px 14px' }}>
+                <p style={{ margin:'0 0 3px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Fecha límite</p>
+                <p style={{ margin:0, fontSize:'13px', fontWeight:700, color:dV>0&&imp.estado!=='pagado'?'#f87171':'#e2e8f0' }}>{imp.fechaLimite}</p>
+              </div>
+              <div style={{ ...G.panel, padding:'12px 14px', background:dV>0&&imp.estado!=='pagado'?'rgba(248,113,113,0.05)':undefined }}>
+                <p style={{ margin:'0 0 3px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Antigüedad</p>
+                <p style={{ margin:0, fontSize:'13px', fontWeight:700, color:dV>0?'#f87171':dV>-15?'#fbbf24':'#34d399' }}>
+                  {dV<0?`Vence en ${Math.abs(dV)} días`:dV===0?'Vence hoy':`Vencida hace ${dV} días`}
+                </p>
+              </div>
+            </div>
+            {imp.notas&&<div style={{ ...G.panel, padding:'12px 14px', marginBottom:'18px' }}><p style={{ margin:'0 0 3px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Notas</p><p style={{ margin:0, fontSize:'13px', color:'#94a3b8' }}>{imp.notas}</p></div>}
+            <div style={{ display:'flex', gap:'8px', justifyContent:'flex-end' }}>
+              {imp.estado!=='pagado'&&<button onClick={()=>{ onSave(impuestos.map(x=>x.id===imp.id?{...x,estado:'pagado',pagado:x.monto}:x)); setSelImp(null); }} style={{ padding:'8px 14px', fontSize:'12px', fontWeight:700, borderRadius:'8px', border:'1px solid rgba(52,211,153,0.3)', background:'rgba(52,211,153,0.1)', color:'#34d399', cursor:'pointer' }}>✓ Marcar pagado</button>}
+              <button onClick={()=>{ setSelImp(null); openEdit(imp); }} style={{ padding:'8px 14px', fontSize:'12px', fontWeight:700, borderRadius:'8px', border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.04)', color:'#94a3b8', cursor:'pointer' }}>Editar</button>
+              <button onClick={()=>setSelImp(null)} style={{ padding:'8px 18px', fontSize:'12px', fontWeight:700, borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#fbbf24,#d97706)', color:'#0f172a', cursor:'pointer' }}>Cerrar</button>
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* CRUD modal */}
+      {showModal && (
+        <Modal title={editing?'Editar Obligación':'Nueva Obligación Tributaria'} onClose={()=>setShow(false)} width={480}>
+          <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+            <div><label style={lbl}>Nombre</label><input value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})} placeholder="Ej: IVA Bimestre 3" style={G.input}/></div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              <div><label style={lbl}>Tipo</label>
+                <select value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value as Impuesto['tipo']})} style={G.input}>
+                  {(['iva','retencion','renta','otro'] as const).map(t=><option key={t} value={t}>{IMP_TIPO_LABELS[t]}</option>)}
+                </select>
+              </div>
+              <div><label style={lbl}>Período</label><input value={form.periodo} onChange={e=>setForm({...form,periodo:e.target.value})} placeholder="2026-05" style={G.input}/></div>
+            </div>
+            <div><label style={lbl}>Fecha límite</label><input type="date" value={form.fechaLimite} onChange={e=>setForm({...form,fechaLimite:e.target.value})} style={{...G.input,colorScheme:'dark'} as React.CSSProperties}/></div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px' }}>
+              <div><label style={lbl}>Monto</label><input type="number" value={form.monto} onChange={e=>setForm({...form,monto:Number(e.target.value)})} style={G.input}/></div>
+              <div><label style={lbl}>Pagado</label><input type="number" value={form.pagado} onChange={e=>setForm({...form,pagado:Number(e.target.value)})} style={G.input}/></div>
+              <div><label style={lbl}>Estado</label>
+                <select value={form.estado} onChange={e=>setForm({...form,estado:e.target.value as Impuesto['estado']})} style={G.input}>
+                  {(['pendiente','pagado','vencido'] as const).map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div><label style={lbl}>Notas (opcional)</label><input value={form.notas??''} onChange={e=>setForm({...form,notas:e.target.value})} style={G.input}/></div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:'8px', paddingTop:'4px' }}>
+              <button onClick={()=>setShow(false)} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'9px', color:'#94a3b8', cursor:'pointer', fontSize:'13px' }}>Cancelar</button>
+              <button onClick={save} style={{ padding:'8px 20px', background:'linear-gradient(135deg,#fbbf24,#d97706)', border:'none', borderRadius:'9px', color:'#0f172a', fontWeight:700, cursor:'pointer', fontSize:'13px' }}>{editing?'Guardar':'Crear'}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// ── Tab 11: Capital de Trabajo ────────────────────────────────────────────
+function CapitalDeTrabajo({ movs, facturas, provs }: { movs: Movimiento[]; facturas: Factura[]; provs: FacturaProv[] }) {
+  const saldoFac  = (f: Factura)     => f.monto - f.pagado;
+  const saldoProv = (p: FacturaProv) => p.monto - p.pagado;
+
+  const cxcActivas = facturas.filter(f => f.estado !== 'pagada' && f.estado !== 'anulada');
+  const cxpActivas = provs.filter(p => p.estado !== 'pagada');
+  const cxcTotal   = cxcActivas.reduce((s, f) => s + saldoFac(f), 0);
+  const cxpTotal   = cxpActivas.reduce((s, p) => s + saldoProv(p), 0);
+  const wc         = cxcTotal - cxpTotal;
+
+  const totalIng = movs.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const totalEgr = movs.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+m.monto,0);
+  const currentRatio = cxpTotal > 0 ? cxcTotal / cxpTotal : Infinity;
+
+  const hoy90       = new Date(TODAY.getTime() - 90*86400000).toISOString().slice(0,10);
+  const facturado90 = facturas.filter(f=>f.emitida>=hoy90).reduce((s,f)=>s+f.monto,0);
+  const compras90   = provs.filter(p=>p.recibida>=hoy90).reduce((s,p)=>s+p.monto,0);
+  const dso = facturado90 > 0 ? Math.round(cxcTotal / (facturado90/90)) : 0;
+  const dpo = compras90   > 0 ? Math.round(cxpTotal / (compras90/90))  : 0;
+  const ccc = dso - dpo;
+
+  const recTurnover = cxcTotal > 0 ? totalIng / cxcTotal : 0;
+  const payTurnover = cxpTotal > 0 ? totalEgr / cxpTotal : 0;
+
+  const cxcByBucket = AGING_BUCKETS.map(b => ({ ...b, val:cxcActivas.filter(f=>agingOf(f.vencimiento)===b.key).reduce((s,f)=>s+saldoFac(f),0) }));
+  const cxpByBucket = AGING_BUCKETS.map(b => ({ ...b, val:cxpActivas.filter(p=>agingOf(p.vencimiento)===b.key).reduce((s,p)=>s+saldoProv(p),0) }));
+
+  const Gauge = ({ value, max, color, label, sub }: { value:number; max:number; color:string; label:string; sub:string }) => {
+    const pct = Math.min(1, Math.max(0, isFinite(value)?value/max:1));
+    const r=40, cx=60, cy=60;
+    const sA = -Math.PI*0.75, eA = Math.PI*0.75;
+    const angle = sA + pct*(eA-sA);
+    const pathD = (sa:number, ea:number) => {
+      const x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa);
+      const x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
+      return `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r},0,${ea-sa>Math.PI?1:0},1,${x2.toFixed(1)},${y2.toFixed(1)}`;
+    };
+    return (
+      <div style={{ ...G.card, padding:'16px', textAlign:'center' }}>
+        <svg viewBox="0 0 120 80" style={{ width:'100%', maxWidth:'120px', height:'auto', display:'block', margin:'0 auto' }}>
+          <path d={pathD(sA,eA)} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" strokeLinecap="round"/>
+          <path d={pathD(sA,angle)} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"/>
+          <text x={cx} y={cy+6} textAnchor="middle" fontSize="14" fontWeight="800" fill={color}>{isFinite(value)?value.toFixed(1):'∞'}</text>
+        </svg>
+        <p style={{ margin:'4px 0 2px', fontSize:'12px', fontWeight:700, color:'#e2e8f0' }}>{label}</p>
+        <p style={{ margin:0, fontSize:'10px', color:'#475569' }}>{sub}</p>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px', marginBottom:'16px' }}>
+        <div style={{ ...G.card, padding:'20px 24px', background:wc>=0?'rgba(52,211,153,0.05)':'rgba(248,113,113,0.05)', borderColor:wc>=0?'rgba(52,211,153,0.2)':'rgba(248,113,113,0.2)', position:'relative', overflow:'hidden' }}>
+          <p style={{ margin:'0 0 6px', fontSize:'11px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.07em' }}>Capital de Trabajo (WC)</p>
+          <p style={{ margin:0, fontSize:'36px', fontWeight:900, color:wc>=0?'#34d399':'#f87171', letterSpacing:'-0.03em', lineHeight:1 }}>{fmt(Math.abs(wc))}</p>
+          <p style={{ margin:'6px 0 0', fontSize:'12px', color:'#475569' }}>{wc>=0?'Posición neta positiva':'Posición neta negativa'}</p>
+        </div>
+        <div style={{ ...G.card, padding:'20px 24px' }}>
+          <p style={{ margin:'0 0 12px', fontSize:'11px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.07em' }}>Desglose</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            {[
+              { label:'CxC (activo circulante)',    val:fmt(cxcTotal), color:'#34d399' },
+              { label:'CxP (pasivo circulante)',    val:fmt(cxpTotal), color:'#f87171' },
+              { label:'Ciclo de Conversión (CCC)', val:`${ccc}d`,      color:ccc>0?'#fbbf24':'#34d399' },
+            ].map((r,i)=>(
+              <React.Fragment key={r.label}>
+                {i>0&&<div style={{ height:'1px', background:'rgba(255,255,255,0.06)' }}/>}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>{r.label}</span>
+                  <span style={{ fontSize:'14px', fontWeight:800, color:r.color }}>{r.val}</span>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+        <div style={{ ...G.card, padding:'20px 24px' }}>
+          <p style={{ margin:'0 0 12px', fontSize:'11px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.07em' }}>Rotaciones</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            {[
+              { label:'Rotación CxC',    val:`${recTurnover.toFixed(2)}x`, color:'#60a5fa' },
+              { label:'Rotación CxP',    val:`${payTurnover.toFixed(2)}x`, color:'#a78bfa' },
+              { label:'Margen operativo',val:`${totalIng>0?((totalIng-totalEgr)/totalIng*100).toFixed(1):'0'}%`, color:totalIng>totalEgr?'#34d399':'#f87171' },
+            ].map((r,i)=>(
+              <React.Fragment key={r.label}>
+                {i>0&&<div style={{ height:'1px', background:'rgba(255,255,255,0.06)' }}/>}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>{r.label}</span>
+                  <span style={{ fontSize:'14px', fontWeight:800, color:r.color }}>{r.val}</span>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'12px', marginBottom:'16px' }}>
+        <Gauge value={currentRatio} max={3} color={currentRatio>=2?'#34d399':currentRatio>=1?'#fbbf24':'#f87171'} label="Current Ratio" sub={currentRatio>=2?'Saludable':currentRatio>=1?'Aceptable':'Riesgo'} />
+        <Gauge value={dso} max={90} color={dso<=30?'#34d399':dso<=60?'#fbbf24':'#f87171'} label={`DSO: ${dso}d`} sub="días promedio cobro" />
+        <Gauge value={dpo} max={90} color={dpo>=30?'#34d399':dpo>=15?'#fbbf24':'#60a5fa'} label={`DPO: ${dpo}d`} sub="días promedio pago" />
+        <Gauge value={Math.abs(ccc)} max={90} color={ccc<=30?'#34d399':ccc<=60?'#fbbf24':'#f87171'} label={`CCC: ${ccc}d`} sub={ccc>=0?'DSO > DPO':'DPO > DSO (favorable)'} />
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' }}>
+        {[
+          { title:'Aging CxC — Cuentas por Cobrar', buckets:cxcByBucket, total:cxcTotal, color:'#34d399' },
+          { title:'Aging CxP — Cuentas por Pagar',  buckets:cxpByBucket, total:cxpTotal, color:'#f87171' },
+        ].map(col => (
+          <div key={col.title} style={{ ...G.card, padding:'18px 20px' }}>
+            <p style={{ margin:'0 0 14px', fontSize:'12px', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em' }}>{col.title}</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+              {col.buckets.map(b=>(
+                <div key={b.key}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'3px' }}>
+                    <span style={{ fontSize:'11px', color:b.color, fontWeight:600 }}>{b.label}</span>
+                    <span style={{ fontSize:'11px', fontWeight:700, color:'#e2e8f0' }}>{fmt(b.val)}</span>
+                  </div>
+                  <div style={{ height:'5px', borderRadius:'3px', background:'rgba(255,255,255,0.06)' }}>
+                    <div style={{ height:'100%', width:`${col.total>0?Math.round((b.val/col.total)*100):0}%`, borderRadius:'3px', background:b.color, transition:'width 0.5s' }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:'12px', paddingTop:'10px', borderTop:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'11px', color:'#475569', fontWeight:700 }}>TOTAL</span>
+              <span style={{ fontSize:'14px', fontWeight:900, color:col.color }}>{fmt(col.total)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </>
   );
 }
