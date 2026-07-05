@@ -834,7 +834,7 @@ function TopDiskConsumers({ disk }: { disk: VpsMetrics['disk'] }) {
   ).sort((a, b) => b.used_gb - a.used_gb).slice(0, 5);
 
   return (
-    <div style={{ ...G.card, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ ...G.card, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
       <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top apps/componentes (disco)</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
         {items.length === 0 && (
@@ -1406,10 +1406,14 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
         <TcpConnChart history={connHist} current={data.connections?.established ?? 0} listening={data.connections?.listening ?? 0} />
       </div>
 
-      {/* Row B: Top disco · Docker contenedores · Top procesos CPU */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-        <TopDiskConsumers disk={data.disk} />
-        {/* Docker inline */}
+      {/* Rows B+C: Top disco (span 2 filas) · Docker · Top procesos · Servicios · Resumen */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: 'auto auto', gap: '12px', marginBottom: '12px' }}>
+        {/* TopDiskConsumers: ocupa fila 1 y 2 */}
+        <div style={{ gridRow: '1 / 3', display: 'flex', flexDirection: 'column' }}>
+          <TopDiskConsumers disk={data.disk} />
+        </div>
+
+        {/* Fila 1 col 2: Docker */}
         <div style={{ ...G.card, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Docker</p>
@@ -1422,7 +1426,7 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
           {(!data.docker || data.docker.length === 0) ? (
             <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin contenedores detectados</p>
           ) : (
-            <div className="vps-docker-scroll" style={{ overflowY: 'auto', maxHeight: '284px', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+            <div className="vps-docker-scroll" style={{ overflowY: 'auto', maxHeight: '220px', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
               {data.docker.map(c => {
                 const isUp = c.status.toLowerCase().startsWith('up');
                 return (
@@ -1439,12 +1443,11 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
             </div>
           )}
         </div>
-        <TopProcsToggle procs={data.top_procs} />
-      </div>
 
-      {/* Row C: Servicios · Analytics */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-        {/* Servicios */}
+        {/* Fila 1 col 3: Top procesos CPU */}
+        <TopProcsToggle procs={data.top_procs} />
+
+        {/* Fila 2 col 2: Servicios */}
         <div style={{ ...G.card }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Servicios</p>
@@ -1470,8 +1473,9 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
             ))}
           </div>
         </div>
+
+        {/* Fila 2 col 3: Resumen últimos 10 min */}
         <TenMinSummary cpuHist={cpuHist} ramHist={ramHist} rxHist={rxHist} txHist={txHist} data={data} />
-        <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
       </div>
 
       <LogsPanel />
