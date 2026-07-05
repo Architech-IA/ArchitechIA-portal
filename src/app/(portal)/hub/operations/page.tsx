@@ -59,6 +59,36 @@ function statusColor(pct: number): string {
   return '#f87171';
 }
 
+function avg(arr: number[]): number {
+  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+}
+
+function maxVal(arr: number[]): number {
+  return arr.length ? Math.max(...arr) : 0;
+}
+
+function trend(current: number, previous: number): { icon: string; color: string; delta: number } {
+  const delta = current - previous;
+  if (Math.abs(delta) < 0.3) return { icon: '→', color: '#94a3b8', delta };
+  return delta > 0 ? { icon: '↑', color: '#f87171', delta } : { icon: '↓', color: '#34d399', delta };
+}
+
+function predictDiskFull(history: number[]): { hours: number | null; growthPctPerHour: number } {
+  const n = history.length;
+  if (n < 5) return { hours: null, growthPctPerHour: 0 };
+  const xs = history.map((_, i) => i * 0.5);
+  const ys = history;
+  const xMean = avg(xs);
+  const yMean = avg(ys);
+  const denom = avg(xs.map(x => (x - xMean) ** 2));
+  if (denom === 0) return { hours: null, growthPctPerHour: 0 };
+  const slope = avg(xs.map((x, i) => (x - xMean) * (ys[i] - yMean))) / denom;
+  if (slope <= 0.005) return { hours: null, growthPctPerHour: slope * 2 };
+  const currentPct = ys[n - 1];
+  const hoursToFull = (100 - currentPct) / slope;
+  return { hours: hoursToFull > 0 ? hoursToFull : null, growthPctPerHour: slope * 2 };
+}
+
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 function Sparkline({ history, color, height = 36 }: { history: number[]; color: string; height?: number }) {
   if (history.length < 2) return <div style={{ height }} />;
@@ -176,8 +206,11 @@ function Skeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
         {box(180)}{box(180)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
         {[0, 1, 2, 3, 4].map(i => <div key={i}>{box(260)}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {box(180)}{box(180)}
       </div>
     </div>
   );
@@ -721,9 +754,97 @@ function TopRamProcesses({ procs }: { procs: VpsMetrics['top_procs'] }) {
   );
 }
 
+// ── Trend badge ───────────────────────────────────────────────────────────────
+function TrendBadge({ current, previous }: { current: number; previous: number }) {
+  const { icon, color, delta } = trend(current, previous);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 800, color, marginLeft: '5px' }}>
+      {icon}
+      <span style={{ fontSize: '10px', color: '#475569' }}>{Math.abs(delta).toFixed(1)}</span>
+    </span>
+  );
+}
+
+// ── 10 min summary ────────────────────────────────────────────────────────────
+function TenMinSummary({ cpuHist, ramHist, rxHist, txHist, data }: {
+  cpuHist: number[]; ramHist: number[]; rxHist: number[]; txHist: number[]; data: VpsMetrics;
+}) {
+  const sections = [
+    { label: 'CPU %', hist: cpuHist, current: data.cpu.percent, color: statusColor(data.cpu.percent) },
+    { label: 'RAM %', hist: ramHist, current: data.ram.percent, color: statusColor(data.ram.percent) },
+    { label: 'RX MB/s', hist: rxHist, current: data.net.rx_mbps, color: '#60a5fa' },
+    { label: 'TX MB/s', hist: txHist, current: data.net.tx_mbps, color: '#a78bfa' },
+  ];
+  return (
+    <div style={{ ...G.card }}>
+      <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Resumen últimos 10 min</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {sections.map(s => (
+          <div key={s.label} style={{ ...G.panel, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>{s.label}</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: s.color }}>{s.current.toFixed(1)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>avg</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>{avg(s.hist).toFixed(1)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>max</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>{maxVal(s.hist).toFixed(1)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Disk prediction ───────────────────────────────────────────────────────────
+function DiskPrediction({ diskHist, totalGb, currentPct }: { diskHist: number[]; totalGb: number; currentPct: number }) {
+  const { hours, growthPctPerHour } = predictDiskFull(diskHist);
+  const growthGbPerHour = (growthPctPerHour / 100) * totalGb;
+  const isStable = hours === null;
+  return (
+    <div style={{ ...G.card }}>
+      <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Predicción de disco</p>
+      {diskHist.length < 5 ? (
+        <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '20px' }}>Recolectando datos...</p>
+      ) : isStable ? (
+        <div style={{ textAlign: 'center', padding: '14px', borderRadius: '10px', background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.12)' }}>
+          <p style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#34d399' }}>Estable</p>
+          <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#475569' }}>Sin crecimiento significativo</p>
+          <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#334155' }}>{currentPct.toFixed(1)}% usado · {growthGbPerHour.toFixed(3)} GB/h</p>
+        </div>
+      ) : (
+        <>
+          <div style={{ textAlign: 'center', padding: '14px', borderRadius: '10px', background: `${statusColor(currentPct)}10`, border: `1px solid ${statusColor(currentPct)}25`, marginBottom: '12px' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Tiempo estimado hasta llenarse</p>
+            <p style={{ margin: '6px 0 0', fontSize: '26px', fontWeight: 900, color: statusColor(currentPct) }}>{hours!.toFixed(1)}h</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', color: '#475569' }}>Crecimiento</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>{growthPctPerHour.toFixed(2)}% / h</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', color: '#475569' }}>Equivalente</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>{growthGbPerHour.toFixed(2)} GB / h</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', color: '#475569' }}>Usado ahora</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(currentPct) }}>{currentPct.toFixed(1)}%</span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
-  data: VpsMetrics; cpuHist: number[]; ramHist: number[]; rxHist: number[]; txHist: number[];
+function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist }: {
+  data: VpsMetrics; cpuHist: number[]; ramHist: number[]; rxHist: number[]; txHist: number[]; diskHist: number[];
 }) {
   const cpuColor  = statusColor(data.cpu.percent);
   const ramColor  = statusColor(data.ram.percent);
@@ -737,19 +858,21 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
         {[
-          { label: 'Uptime',    val: fmtUptime(data.uptime_s),    color: '#34d399', sub: 'sin reinicios',                             icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'CPU',       val: `${data.cpu.percent}%`,       color: cpuColor,  sub: `${data.cpu.count}c · load ${data.cpu.load_avg[0]}`, icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
-          { label: 'RAM',       val: `${data.ram.percent}%`,       color: ramColor,  sub: `${data.ram.used_mb} / ${data.ram.total_mb} MB`,    icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-          { label: 'Disco',     val: `${data.disk.percent}%`,      color: diskColor, sub: `${data.disk.used_gb} / ${data.disk.total_gb} GB`,  icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8' },
-          { label: 'Servicios', val: `${activeServices}/${totalServices}`, color: allOk ? '#34d399' : '#f87171', sub: allOk ? 'Todos operativos' : `${totalServices - activeServices} caído(s)`, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+          { label: 'Uptime',    val: fmtUptime(data.uptime_s),    color: '#34d399', sub: 'sin reinicios' },
+          { label: 'CPU',       val: `${data.cpu.percent}%`,       color: cpuColor,  sub: `${data.cpu.count}c · load ${data.cpu.load_avg[0]}`,  prev: cpuHist[cpuHist.length - 2] ?? data.cpu.percent },
+          { label: 'RAM',       val: `${data.ram.percent}%`,       color: ramColor,  sub: `${data.ram.used_mb} / ${data.ram.total_mb} MB`,      prev: ramHist[ramHist.length - 2] ?? data.ram.percent },
+          { label: 'Disco',     val: `${data.disk.percent}%`,      color: diskColor, sub: `${data.disk.used_gb} / ${data.disk.total_gb} GB`,    prev: diskHist[diskHist.length - 2] ?? data.disk.percent },
+          { label: 'Servicios', val: `${activeServices}/${totalServices}`, color: allOk ? '#34d399' : '#f87171', sub: allOk ? 'Todos operativos' : `${totalServices - activeServices} caído(s)` },
         ].map(k => (
           <div key={k.label} style={{ ...G.card, padding: '14px 16px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 90% 10%, ${k.color}10, transparent 60%)`, pointerEvents: 'none' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
               <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={k.color} strokeWidth={1.8} opacity={0.7}><path strokeLinecap="round" strokeLinejoin="round" d={k.icon} /></svg>
             </div>
-            <p style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{k.val}</p>
+            <p style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>
+              {k.val}
+              {'prev' in k && <TrendBadge current={parseFloat(k.val)} previous={k.prev as number} />}
+            </p>
             <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#334155' }}>{k.sub}</p>
           </div>
         ))}
@@ -887,6 +1010,12 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist }: {
         <TopDiskConsumers disk={data.disk} />
       </div>
 
+      {/* Analytics */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+        <TenMinSummary cpuHist={cpuHist} ramHist={ramHist} rxHist={rxHist} txHist={txHist} data={data} />
+        <DiskPrediction diskHist={diskHist} totalGb={data.disk.total_gb} currentPct={data.disk.percent} />
+      </div>
+
       <p style={{ margin: '10px 0 0', fontSize: '10px', color: '#1e293b', textAlign: 'right' }}>
         Datos de la VPS al {new Date(data.ts).toLocaleString('es-ES')}
       </p>
@@ -902,11 +1031,13 @@ export default function OperationsPage() {
   const [notConf,   setNotConf]  = useState(false);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   const [nextIn,    setNextIn]   = useState(30);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
 
-  const cpuHist = useRef<number[]>([]);
-  const ramHist = useRef<number[]>([]);
-  const rxHist  = useRef<number[]>([]);
-  const txHist  = useRef<number[]>([]);
+  const cpuHist  = useRef<number[]>([]);
+  const ramHist  = useRef<number[]>([]);
+  const rxHist   = useRef<number[]>([]);
+  const txHist   = useRef<number[]>([]);
+  const diskHist = useRef<number[]>([]);
 
   const push = (ref: React.MutableRefObject<number[]>, val: number) => {
     ref.current = [...ref.current, val].slice(-MAX_HISTORY);
@@ -914,23 +1045,27 @@ export default function OperationsPage() {
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
+    const start = performance.now();
     try {
       const res  = await fetch('/api/vps/stats', { cache: 'no-store' });
+      setLatencyMs(Math.round(performance.now() - start));
       const json = await res.json();
       if (json.error?.includes('VPS_METRICS_URL')) { setNotConf(true); setLoading(false); return; }
       if (json.error) { setError(json.error); setLoading(false); return; }
       const m = json as VpsMetrics;
       setData(m);
-      push(cpuHist, m.cpu.percent);
-      push(ramHist, m.ram.percent);
-      push(rxHist,  m.net.rx_mbps);
-      push(txHist,  m.net.tx_mbps);
+      push(cpuHist,  m.cpu.percent);
+      push(ramHist,  m.ram.percent);
+      push(rxHist,   m.net.rx_mbps);
+      push(txHist,   m.net.tx_mbps);
+      push(diskHist, m.disk.percent);
       setError(null);
       setNotConf(false);
       setLastFetch(new Date());
       setNextIn(30);
     } catch {
       setError('No se pudo conectar con el servidor');
+      setLatencyMs(null);
     } finally {
       setLoading(false);
     }
@@ -946,7 +1081,7 @@ export default function OperationsPage() {
     return () => clearInterval(id);
   }, [lastFetch]);
 
-  const headerProps = { loading, lastFetch, nextIn, onRefresh: fetchStats };
+  const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats };
 
   if (notConf) return (
     <div style={{ padding: '24px 32px' }}>
@@ -975,6 +1110,7 @@ export default function OperationsPage() {
           ramHist={ramHist.current}
           rxHist={rxHist.current}
           txHist={txHist.current}
+          diskHist={diskHist.current}
         />
       )}
     </div>
@@ -982,9 +1118,10 @@ export default function OperationsPage() {
 }
 
 // ── Page header ───────────────────────────────────────────────────────────────
-function PageHeader({ loading, lastFetch, nextIn, onRefresh }: {
-  loading: boolean; lastFetch: Date | null; nextIn: number; onRefresh: () => void;
+function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh }: {
+  loading: boolean; lastFetch: Date | null; nextIn: number; latencyMs: number | null; onRefresh: () => void;
 }) {
+  const freshness = lastFetch ? Math.max(0, 30 - nextIn) : null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
       <div>
@@ -998,7 +1135,7 @@ function PageHeader({ loading, lastFetch, nextIn, onRefresh }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {lastFetch && (
           <span style={{ fontSize: '11px', color: '#334155' }}>
-            {lastFetch.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · prox. en {nextIn}s
+            {lastFetch.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · hace {freshness}s · {latencyMs !== null ? `${latencyMs}ms` : '—'}
           </span>
         )}
         <button onClick={onRefresh} disabled={loading}
