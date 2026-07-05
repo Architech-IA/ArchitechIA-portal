@@ -333,42 +333,49 @@ function DiskIOChart({ readHist, writeHist, currentRead, currentWrite }: {
 }
 
 // ── Disk Category Donut ───────────────────────────────────────────────────────
-function DiskCategoryDonut({ categories, usedGb }: { categories: DiskCategory[]; usedGb: number }) {
+function DiskCategoryDonut({ categories, usedGb, totalGb }: { categories: DiskCategory[]; usedGb: number; totalGb: number }) {
   const items = (categories ?? []).filter(c => c.used_gb > 0.01).slice(0, 7);
   const total = items.reduce((s, c) => s + c.used_gb, 0);
-  const SIZE = 108, cx = 54, cy = 54, R = 38, SW = 14;
+  const SIZE = 118, cx = 59, cy = 59, R = 42, SW = 13;
   const circ = 2 * Math.PI * R;
+  const GAP = 2.5;
   let cum = 0;
   const slices = items.map((cat, i) => {
     const pct = total > 0 ? cat.used_gb / total : 0;
     const start = cum; cum += pct;
-    return { ...cat, pct, start, color: CAT_COLORS[i % CAT_COLORS.length] };
+    const segLen = Math.max(0, pct * circ - GAP);
+    return { ...cat, pct, start, segLen, color: CAT_COLORS[i % CAT_COLORS.length] };
   });
+  const diskPct = totalGb > 0 ? (usedGb / totalGb) * 100 : 0;
+  const diskColor = statusColor(diskPct);
   return (
     <div style={{ ...G.card }}>
-      <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disco · Categorías</p>
+      <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disco · Categorías</p>
       {items.length === 0 ? (
         <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin datos de categorías</p>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <svg viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ width: SIZE, height: SIZE, flexShrink: 0 }}>
-            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={SW} />
+            <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={SW} />
             {slices.map((s, i) => (
               <circle key={i} cx={cx} cy={cy} r={R} fill="none" stroke={s.color} strokeWidth={SW}
-                strokeDasharray={`${(s.pct * circ).toFixed(2)} ${circ.toFixed(2)}`}
+                strokeDasharray={`${s.segLen.toFixed(2)} ${circ.toFixed(2)}`}
                 transform={`rotate(${-90 + s.start * 360} ${cx} ${cy})`}
-                style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dasharray 0.6s ease', filter: `drop-shadow(0 0 3px ${s.color}90)` }}
               />
             ))}
-            <text x={cx} y={cy - 4} textAnchor="middle" fontSize="13" fontWeight="800" fill="#e2e8f0">{usedGb.toFixed(1)}</text>
-            <text x={cx} y={cy + 10} textAnchor="middle" fontSize="9" fill="#475569">GB usados</text>
+            <text x={cx} y={cy - 8} textAnchor="middle" fontSize="15" fontWeight="900" fill="#f1f5f9">{usedGb.toFixed(1)}</text>
+            <text x={cx} y={cy + 5} textAnchor="middle" fontSize="8.5" fill="#475569">GB usados</text>
+            <text x={cx} y={cy + 18} textAnchor="middle" fontSize="11" fontWeight="800" fill={diskColor}>{diskPct.toFixed(1)}%</text>
           </svg>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px', minWidth: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', minWidth: 0 }}>
             {slices.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: s.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '10px', color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
-                <span style={{ fontSize: '10px', fontWeight: 800, color: s.color, flexShrink: 0 }}>{s.used_gb}G</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <div style={{ width: '9px', height: '9px', borderRadius: '3px', background: s.color, flexShrink: 0, boxShadow: `0 0 6px ${s.color}90` }} />
+                <span style={{ fontSize: '11px', color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: s.color, flexShrink: 0 }}>{s.used_gb.toFixed(1)} GB</span>
+                <span style={{ fontSize: '9px', color: '#334155', width: '28px', textAlign: 'right', flexShrink: 0 }}>{(s.pct * 100).toFixed(0)}%</span>
               </div>
             ))}
           </div>
@@ -1338,7 +1345,7 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
           currentRead={data.disk_io?.read_mbps ?? 0}
           currentWrite={data.disk_io?.write_mbps ?? 0}
         />
-        <DiskCategoryDonut categories={data.disk.categories ?? []} usedGb={data.disk.used_gb} />
+        <DiskCategoryDonut categories={data.disk.categories ?? []} usedGb={data.disk.used_gb} totalGb={data.disk.total_gb} />
         <TcpConnChart history={connHist} current={data.connections?.established ?? 0} listening={data.connections?.listening ?? 0} />
       </div>
 
