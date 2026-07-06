@@ -92,31 +92,14 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
   const hourGrid = useMemo(() => {
     if (!hasHourData) return null
 
-    const withHours = completas.filter(f => f.horaEjecucion)
-    const hours = withHours.map(f => parseHour(f.horaEjecucion!))
-    const minH = Math.max(0, Math.min(...hours))
-    const maxH = Math.min(23, Math.max(...hours) + 1)
+    type HourSlot = { type: 'hour'; dayStr: string; hour: number }
+    type GapSlot  = { type: 'gap';  dayStr: string; fromH: number; toH: number }
+    type Slot = HourSlot | GapSlot
 
+    const withHours = completas.filter(f => f.horaEjecucion)
     const uniqueDays = [...new Set(completas.map(f => f.fechaInicio))].sort()
 
-    const slots: { dayStr: string; hour: number }[] = []
-    for (const dayStr of uniqueDays) {
-      for (let h = minH; h <= maxH; h++) {
-        slots.push({ dayStr, hour: h })
-      }
-    }
-
-    // Day groups for the 2-row header
-    const hoursPerDay = maxH - minH + 1
-    const dayGroups = uniqueDays.map((dayStr, di) => ({
-      dayStr,
-      label: fmt(dayStr),
-      startSlot: di * hoursPerDay,
-      count: hoursPerDay,
-    }))
-
-    // For each phase with horaEjecucion, compute end time:
-    // end = next phase's horaEjecucion on same day, or +1h if last
+    // Compute end times first so we know which hours are active
     const phasesByDay = new Map<string, FaseCronograma[]>()
     withHours.forEach(f => {
       const arr = phasesByDay.get(f.fechaInicio) ?? []
@@ -129,19 +112,63 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     phasesByDay.forEach(arr => {
       arr.forEach((f, j) => {
         if (f.horaFin) {
-          // horaFin explícita tiene prioridad
           endTimeMap.set(f.id, f.horaFin)
         } else if (j + 1 < arr.length) {
           endTimeMap.set(f.id, arr[j + 1].horaEjecucion!)
         } else {
           const [h, m] = f.horaEjecucion!.split(':').map(Number)
-          const endH = Math.min(23, h + 1)
-          endTimeMap.set(f.id, `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+          endTimeMap.set(f.id, `${String(Math.min(23, h + 1)).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
         }
       })
     })
 
-    return { slots, dayGroups, minH, maxH, hoursPerDay, endTimeMap }
+    // Which hours are actually touched by sessions with horaEjecucion (per day)
+    const activePerDay = new Map<string, Set<number>>()
+    withHours.forEach(f => {
+      const startH = parseHour(f.horaEjecucion!)
+      const endT = endTimeMap.get(f.id)
+      const endH = endT ? parseHour(endT) : Math.min(23, startH + 1)
+      const set = activePerDay.get(f.fechaInicio) ?? new Set<number>()
+      for (let h = startH; h <= endH; h++) set.add(h)
+      activePerDay.set(f.fechaInicio, set)
+    })
+
+    // Build slots with gap markers between non-contiguous runs
+    const slots: Slot[] = []
+    const dayGroups: { dayStr: string; label: string; startSlot: number; count: number }[] = []
+
+    for (const dayStr of uniqueDays) {
+      const dayStart = slots.length
+      const activeHours = [...(activePerDay.get(dayStr) ?? new Set<number>())].sort((a, b) => a - b)
+
+      if (activeHours.length === 0) continue
+
+      // Split into contiguous runs
+      const runs: number[][] = []
+      let run = [activeHours[0]]
+      for (let i = 1; i < activeHours.length; i++) {
+        if (activeHours[i] === activeHours[i - 1] + 1) {
+          run.push(activeHours[i])
+        } else {
+          runs.push(run); run = [activeHours[i]]
+        }
+      }
+      runs.push(run)
+
+      for (let g = 0; g < runs.length; g++) {
+        if (g > 0) {
+          const prev = runs[g - 1]
+          slots.push({ type: 'gap', dayStr, fromH: prev[prev.length - 1] + 1, toH: runs[g][0] - 1 })
+        }
+        for (const h of runs[g]) {
+          slots.push({ type: 'hour', dayStr, hour: h })
+        }
+      }
+
+      dayGroups.push({ dayStr, label: fmt(dayStr), startSlot: dayStart, count: slots.length - dayStart })
+    }
+
+    return { slots, dayGroups, endTimeMap }
   }, [hasHourData, completas])
 
   // ── Day-based grid (fallback) ─────────────────────────────────────────────
@@ -356,8 +383,11 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
 
           {/* ── HOUR-BASED GRID ── */}
           {hasHourData && hourGrid && (() => {
-            const { slots, dayGroups, hoursPerDay, endTimeMap } = hourGrid
-            const gridCols = { gridTemplateColumns: `repeat(${slots.length}, ${HOUR_COL_PX}px)` }
+            const { slots, dayGroups, endTimeMap } = hourGrid
+            const GAP_W = 36
+            const gridCols = {
+              gridTemplateColumns: slots.map(s => s.type === 'gap' ? `${GAP_W}px` : `${HOUR_COL_PX}px`).join(' ')
+            }
 
             return (
               <>
@@ -379,18 +409,21 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                   </div>
                 </div>
 
-                {/* Header row 2: hours */}
+                {/* Header row 2: hours / gap labels */}
                 <div className="flex border-b border-cyan-800/40 bg-cyan-950/20">
                   <div className="w-44 flex-shrink-0 border-r border-cyan-800/30" />
                   <div className="grid" style={gridCols}>
-                    {slots.map((slot, i) => (
-                      <div
-                        key={i}
-                        className="text-center text-[9px] text-cyan-400/60 font-mono py-1 border-r border-cyan-800/20 last:border-r-0"
-                      >
-                        {String(slot.hour).padStart(2, '0')}h
-                      </div>
-                    ))}
+                    {slots.map((slot, i) =>
+                      slot.type === 'gap' ? (
+                        <div key={i} className="flex items-center justify-center py-1 border-r border-cyan-800/20 last:border-r-0">
+                          <span className="text-[8px] text-gray-600 tracking-widest">···</span>
+                        </div>
+                      ) : (
+                        <div key={i} className="text-center text-[9px] text-cyan-400/60 font-mono py-1 border-r border-cyan-800/20 last:border-r-0">
+                          {String(slot.hour).padStart(2, '0')}h
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -409,19 +442,18 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                       const startFracH = parseMinFrac(f.horaEjecucion)
                       const startH = Math.floor(startFracH)
                       startMinFrac = startFracH - startH
-                      startSlotIdx = slots.findIndex(s => s.dayStr === f.fechaInicio && s.hour === startH)
+                      startSlotIdx = slots.findIndex(s => s.type === 'hour' && s.dayStr === f.fechaInicio && s.hour === startH)
 
                       const endTime = endTimeMap.get(f.id)
                       if (endTime) {
                         const endFracH = parseMinFrac(endTime)
                         const endH = Math.floor(endFracH)
                         endMinFrac = endFracH - endH
-                        // If endFracH is a whole hour (e.g. 01:00 → frac=0), bar ends at previous slot
                         if (endMinFrac === 0) {
-                          endSlotIdx = slots.findIndex(s => s.dayStr === f.fechaFin && s.hour === endH - 1)
+                          endSlotIdx = slots.findIndex(s => s.type === 'hour' && s.dayStr === f.fechaFin && s.hour === endH - 1)
                           endMinFrac = 1
                         } else {
-                          endSlotIdx = slots.findIndex(s => s.dayStr === f.fechaFin && s.hour === endH)
+                          endSlotIdx = slots.findIndex(s => s.type === 'hour' && s.dayStr === f.fechaFin && s.hour === endH)
                         }
                       } else {
                         endSlotIdx = startSlotIdx
@@ -444,12 +476,21 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                         {/* Hour cells */}
                         <div className="grid" style={gridCols}>
                           {slots.map((slot, i) => {
+                            // Gap slot: narrow separator, no bar content
+                            if (slot.type === 'gap') {
+                              return (
+                                <div key={i} className="relative h-12 flex items-center justify-center border-r border-dashed border-cyan-800/30 last:border-r-0">
+                                  <span className="text-[8px] text-gray-700 tracking-widest select-none">···</span>
+                                </div>
+                              )
+                            }
+
                             const inBar = startSlotIdx >= 0 && i >= startSlotIdx && i <= endSlotIdx
                             const isFirst = i === startSlotIdx
                             const isLast = i === endSlotIdx
                             const isSingle = startSlotIdx === endSlotIdx
 
-                            // Phases without horaEjecucion: span full day range
+                            // Phases without horaEjecucion: span all hour slots of their day range
                             const inDayRange = !f.horaEjecucion && slot.dayStr >= f.fechaInicio && slot.dayStr <= f.fechaFin
 
                             const showBar = inBar || inDayRange
@@ -488,7 +529,7 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                                       boxShadow: `0 0 8px ${color.bg}60`,
                                     }}
                                   >
-                                    {(isFirst || inDayRange) && f.horaEjecucion && (
+                                    {isFirst && f.horaEjecucion && (
                                       <span className="text-[9px] text-white/90 font-mono px-1.5 whitespace-nowrap flex-shrink-0">
                                         {f.horaEjecucion}
                                       </span>
