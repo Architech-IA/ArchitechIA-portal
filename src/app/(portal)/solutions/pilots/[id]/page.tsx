@@ -34,6 +34,7 @@ interface FaseCronograma {
   resultado?: string
   fechaEjecucion?: string
   horaEjecucion?: string
+  horaFin?: string
 }
 
 const ESTADO_A_BACKLOG: Record<string, string> = {
@@ -607,13 +608,18 @@ export default function PocDetailPage() {
                             <Trash2 size={14} />
                           </button>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-2">
                           <input type="date" value={f.fechaInicio} onChange={e => updateFase(f.id, { fechaInicio: e.target.value })} disabled={saving}
+                            title="Fecha inicio"
                             className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60" />
                           <input type="date" value={f.fechaFin} onChange={e => updateFase(f.id, { fechaFin: e.target.value })} disabled={saving}
+                            title="Fecha fin"
                             className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60" />
                           <input type="time" value={f.horaEjecucion ?? ''} onChange={e => updateFase(f.id, { horaEjecucion: e.target.value })} disabled={saving}
-                            placeholder="Hora" title="Hora de ejecución real"
+                            title="Hora de inicio"
+                            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60" />
+                          <input type="time" value={f.horaFin ?? ''} onChange={e => updateFase(f.id, { horaFin: e.target.value })} disabled={saving}
+                            title="Hora de fin"
                             className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60" />
                           <select value={f.estado} onChange={e => updateFase(f.id, { estado: e.target.value })} disabled={saving}
                             className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60 appearance-none cursor-pointer">
@@ -685,3 +691,4 @@ export default function PocDetailPage() {
     </div>
   )
 }
+
