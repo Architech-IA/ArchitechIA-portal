@@ -439,17 +439,6 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                         {/* Left label */}
                         <div className="w-44 flex-shrink-0 border-r border-cyan-800/30 px-3 py-3 min-w-0">
                           <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
-                          <span
-                            className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                            style={{ background: `${color.bg}20`, color: color.text }}
-                          >
-                            {f.estado}
-                          </span>
-                          {f.horaEjecucion && (
-                            <p className="mt-0.5 text-[9px] text-cyan-400/70 font-mono truncate">
-                              ✓ {f.fechaEjecucion ? fmt(f.fechaEjecucion) : fmt(f.fechaInicio)} {f.horaEjecucion}{f.horaFin ? `–${f.horaFin}` : ''}
-                            </p>
-                          )}
                         </div>
 
                         {/* Hour cells */}
@@ -566,17 +555,6 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                       >
                         <div className="w-44 flex-shrink-0 border-r border-cyan-800/30 px-3 py-3 min-w-0">
                           <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
-                          <span
-                            className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                            style={{ background: `${color.bg}20`, color: color.text }}
-                          >
-                            {f.estado}
-                          </span>
-                          {f.fechaEjecucion && (
-                            <p className="mt-0.5 text-[9px] text-cyan-400/70 font-mono truncate">
-                              ✓ {fmt(f.fechaEjecucion)}{f.horaEjecucion ? ' ' + f.horaEjecucion : ''}
-                            </p>
-                          )}
                         </div>
                         <div className="grid flex-1" style={dayGridStyle}>
                           {days.map((_, i) => {
