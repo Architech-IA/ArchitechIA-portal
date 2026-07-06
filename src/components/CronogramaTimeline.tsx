@@ -126,10 +126,12 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     const activePerDay = new Map<string, Set<number>>()
     withHours.forEach(f => {
       const startH = parseHour(f.horaEjecucion!)
-      const endT = endTimeMap.get(f.id)
-      const endH = endT ? parseHour(endT) : Math.min(23, startH + 1)
+      const endT = endTimeMap.get(f.id) ?? `${Math.min(23, startH + 1)}:00`
+      const [endH, endM] = endT.split(':').map(Number)
+      // If end is exactly on the hour boundary (endM===0), that hour column is empty — exclude it
+      const lastH = endM > 0 ? endH : endH - 1
       const set = activePerDay.get(f.fechaInicio) ?? new Set<number>()
-      for (let h = startH; h <= endH; h++) set.add(h)
+      for (let h = startH; h <= lastH; h++) set.add(h)
       activePerDay.set(f.fechaInicio, set)
     })
 
