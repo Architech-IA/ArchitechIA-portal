@@ -519,8 +519,10 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                             return (
                               <div
                                 key={i}
-                                className="relative h-12 border-r border-cyan-800/20 last:border-r-0 flex items-center"
+                                className="relative h-12 flex items-center"
                               >
+                                {/* Borde de hora como div z-0 — el pill (z-10) queda encima */}
+                                {i < slots.length - 1 && <div className="absolute right-0 inset-y-0 w-px bg-cyan-800/20 z-0 pointer-events-none" />}
                                 {showBar && (
                                   <div
                                     className={`absolute inset-y-2.5 z-10 flex items-center overflow-hidden hover:brightness-125 transition-[filter] ${isSingle || inDayRange ? 'rounded-md' : isFirst ? 'rounded-l-md' : isLast ? 'rounded-r-md' : 'rounded-none'}`}
