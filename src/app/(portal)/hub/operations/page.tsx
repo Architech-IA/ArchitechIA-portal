@@ -896,16 +896,16 @@ function TopRamProcesses({ procs }: { procs: VpsMetrics['top_procs'] }) {
 
 // ── Top procs CPU (top 5) ─────────────────────────────────────────────────────
 function TopProcsToggle({ procs }: { procs: VpsMetrics['top_procs'] }) {
-  const sorted = [...procs].sort((a, b) => b.cpu - a.cpu).slice(0, 5);
+  const sorted = [...procs].sort((a, b) => b.cpu - a.cpu).slice(0, 10);
   return (
     <div style={{ ...G.card, display: 'flex', flexDirection: 'column' }}>
       <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top procesos (CPU)</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+      <div className="vps-docker-scroll" style={{ overflowY: 'auto', maxHeight: '220px', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px', flex: 1 }}>
         {sorted.length === 0 && (
           <p style={{ margin: 0, fontSize: '12px', color: '#334155', textAlign: 'center', padding: '16px' }}>Sin datos de procesos</p>
         )}
         {sorted.map((proc, i) => (
-          <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: i === 0 ? `${ORANGE}08` : 'rgba(255,255,255,0.02)' }}>
+          <div key={proc.pid} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: i === 0 ? `${ORANGE}08` : 'rgba(255,255,255,0.02)', flexShrink: 0 }}>
             <span style={{ fontSize: '10px', fontWeight: 800, color: '#334155', width: '14px', textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proc.name}</p>
