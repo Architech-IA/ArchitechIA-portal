@@ -13,9 +13,9 @@ export interface FaseCronograma {
   fechaFin: string
   estado: string
   backlogItemId?: string
-  resultado?: string        // resumen de lo que se hizo, decisiones, links, pendientes
-  fechaEjecucion?: string   // fecha real en que se ejecutó la sesión (YYYY-MM-DD)
-  horaEjecucion?: string    // hora real de la sesión (HH:MM)
+  resultado?: string
+  fechaEjecucion?: string
+  horaEjecucion?: string
 }
 
 const ESTADO_A_BACKLOG: Record<string, string> = {
@@ -34,6 +34,7 @@ const ESTADO_COLOR: Record<string, { bg: string; text: string }> = {
 
 const DAY_MS = 86400000
 const DAY_COL_MIN = 56
+const HOUR_COL_PX = 72
 
 function fmt(d: string) {
   if (!d) return ''
@@ -47,6 +48,12 @@ function fmtLarga(d: string) {
   const date = new Date(d + 'T00:00:00')
   if (isNaN(date.getTime())) return d
   return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+function parseHour(t: string): number { return parseInt(t.split(':')[0]) }
+function parseMinFrac(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return (h * 60 + m) / 60 // fractional hours from midnight
 }
 
 interface CronogramaTimelineProps {
@@ -78,6 +85,74 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     return sesiones.find(s => s.numero === num) ?? null
   }, [selected, sesiones])
 
+  // ── Hour-based cascade grid ──────────────────────────────────────────────
+  const hasHourData = completas.some(f => f.horaEjecucion)
+
+  const hourGrid = useMemo(() => {
+    if (!hasHourData) return null
+
+    const withHours = completas.filter(f => f.horaEjecucion)
+    const hours = withHours.map(f => parseHour(f.horaEjecucion!))
+    const minH = Math.max(0, Math.min(...hours))
+    const maxH = Math.min(23, Math.max(...hours) + 1)
+
+    const uniqueDays = [...new Set(completas.map(f => f.fechaInicio))].sort()
+
+    const slots: { dayStr: string; hour: number }[] = []
+    for (const dayStr of uniqueDays) {
+      for (let h = minH; h <= maxH; h++) {
+        slots.push({ dayStr, hour: h })
+      }
+    }
+
+    // Day groups for the 2-row header
+    const hoursPerDay = maxH - minH + 1
+    const dayGroups = uniqueDays.map((dayStr, di) => ({
+      dayStr,
+      label: fmt(dayStr),
+      startSlot: di * hoursPerDay,
+      count: hoursPerDay,
+    }))
+
+    // For each phase with horaEjecucion, compute end time:
+    // end = next phase's horaEjecucion on same day, or +1h if last
+    const phasesByDay = new Map<string, FaseCronograma[]>()
+    withHours.forEach(f => {
+      const arr = phasesByDay.get(f.fechaInicio) ?? []
+      arr.push(f)
+      phasesByDay.set(f.fechaInicio, arr)
+    })
+    phasesByDay.forEach(arr => arr.sort((a, b) => a.horaEjecucion!.localeCompare(b.horaEjecucion!)))
+
+    const endTimeMap = new Map<string, string>()
+    phasesByDay.forEach(arr => {
+      arr.forEach((f, j) => {
+        if (j + 1 < arr.length) {
+          endTimeMap.set(f.id, arr[j + 1].horaEjecucion!)
+        } else {
+          const [h, m] = f.horaEjecucion!.split(':').map(Number)
+          const endH = Math.min(23, h + 1)
+          endTimeMap.set(f.id, `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+        }
+      })
+    })
+
+    return { slots, dayGroups, minH, maxH, hoursPerDay, endTimeMap }
+  }, [hasHourData, completas])
+
+  // ── Day-based grid (fallback) ─────────────────────────────────────────────
+  const dayGrid = useMemo(() => {
+    if (hasHourData || completas.length === 0) return null
+    const starts = completas.map(f => new Date(f.fechaInicio + 'T00:00:00').getTime())
+    const ends = completas.map(f => new Date(f.fechaFin + 'T00:00:00').getTime())
+    const min = Math.min(...starts)
+    const max = Math.max(...ends)
+    const numDays = Math.round((max - min) / DAY_MS) + 1
+    const days = Array.from({ length: numDays }, (_, i) => new Date(min + i * DAY_MS))
+    return { min, max, numDays, days }
+  }, [hasHourData, completas])
+
+  // ── Backlog / helpers ─────────────────────────────────────────────────────
   async function cargarEnBacklog(f: FaseCronograma) {
     if (!onUpdate || !solucionId) return
     setCargandoBacklog(true)
@@ -128,15 +203,7 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     )
   }
 
-  const starts = completas.map(f => new Date(f.fechaInicio + 'T00:00:00').getTime())
-  const ends = completas.map(f => new Date(f.fechaFin + 'T00:00:00').getTime())
-  const min = Math.min(...starts)
-  const max = Math.max(...ends)
-  const numDays = Math.round((max - min) / DAY_MS) + 1
-  const days = Array.from({ length: numDays }, (_, i) => new Date(min + i * DAY_MS))
-  const dayGridStyle = { gridTemplateColumns: `repeat(${numDays}, minmax(${DAY_COL_MIN}px, 1fr))` }
-
-  // Resultado tab content
+  // ── Popup tab content ─────────────────────────────────────────────────────
   const resultadoContent = selected ? (
     <div className="space-y-4">
       <div>
@@ -180,7 +247,6 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     </div>
   ) : null
 
-  // Gestión tab content — rendered inside the SesionPopup as extraTab
   const gestionContent = selected ? (
     <div className="space-y-4">
       <div>
@@ -255,6 +321,7 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
     </div>
   ) : null
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-3">
       {incompletas > 0 && (
@@ -265,103 +332,278 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
 
       <div className="border border-cyan-800/40 rounded-xl overflow-x-auto">
         <div className="min-w-max">
-          {/* Header row */}
-          <div className="flex border-b border-cyan-800/50 bg-cyan-950/40">
-            <div className="w-44 flex-shrink-0 border-r border-cyan-800/40 px-3 py-2 text-[11px] text-cyan-200 font-semibold">Fase</div>
-            <div className="grid flex-1" style={dayGridStyle}>
-              {days.map((d, i) => (
-                <div key={i} className="px-1 py-2 text-[10px] text-cyan-200 font-mono font-semibold text-center border-r border-cyan-800/30 last:border-r-0">
-                  {d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Rows */}
-          <div className="divide-y divide-cyan-800/25">
-            {completas.map((f, idx) => {
-              const s = new Date(f.fechaInicio + 'T00:00:00').getTime()
-              const e = new Date(f.fechaFin + 'T00:00:00').getTime()
-              const startIdx = Math.round((s - min) / DAY_MS)
-              const spanDays = Math.round((e - s) / DAY_MS) + 1
-              const color = ESTADO_COLOR[f.estado] || ESTADO_COLOR.PENDIENTE
+          {/* ── HOUR-BASED GRID ── */}
+          {hasHourData && hourGrid && (() => {
+            const { slots, dayGroups, hoursPerDay, endTimeMap } = hourGrid
+            const gridCols = { gridTemplateColumns: `repeat(${slots.length}, ${HOUR_COL_PX}px)` }
 
-              const execIdx = f.fechaEjecucion
-                ? Math.round((new Date(f.fechaEjecucion + 'T00:00:00').getTime() - min) / DAY_MS)
-                : null
-              const execLabel = f.fechaEjecucion
-                ? `Ejecutado: ${fmt(f.fechaEjecucion)}${f.horaEjecucion ? ' ' + f.horaEjecucion : ''}`
-                : null
-              // fracción del día para posicionar el marcador horizontalmente dentro de la columna
-              const execHourPct = f.horaEjecucion
-                ? (() => { const [h, m] = f.horaEjecucion.split(':').map(Number); return ((h * 60 + m) / (24 * 60)) * 100 })()
-                : 50
-
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => { setSelectedId(f.id); setBacklogError('') }}
-                  className={`flex items-stretch w-full text-left transition-colors hover:bg-gray-800/50 cursor-pointer ${idx % 2 === 0 ? 'bg-gray-900/30' : 'bg-transparent'}`}
-                >
-                  <div className="w-44 flex-shrink-0 border-r border-cyan-800/30 px-3 py-3 min-w-0">
-                    <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
-                    <span
-                      className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                      style={{ background: `${color.bg}20`, color: color.text }}
-                    >
-                      {f.estado}
-                    </span>
-                    {f.fechaEjecucion && (
-                      <p className="mt-0.5 text-[9px] text-cyan-400/70 font-mono truncate">
-                        ✓ {fmt(f.fechaEjecucion)}{f.horaEjecucion ? ' ' + f.horaEjecucion : ''}
-                      </p>
-                    )}
+            return (
+              <>
+                {/* Header row 1: days */}
+                <div className="flex border-b border-cyan-800/50 bg-cyan-950/40">
+                  <div className="w-44 flex-shrink-0 border-r border-cyan-800/40 px-3 py-2 text-[11px] text-cyan-200 font-semibold">
+                    Fase
                   </div>
-                  <div className="grid flex-1" style={dayGridStyle}>
-                    {days.map((_, i) => {
-                      const inRange = i >= startIdx && i < startIdx + spanDays
-                      const isFirst = i === startIdx
-                      const isExec = execIdx !== null && i === execIdx
-                      return (
-                        <div key={i} className="relative h-12 border-r border-cyan-800/20 last:border-r-0 flex items-center justify-center">
-                          {inRange && (
-                            <div
-                              className="absolute inset-y-2.5 inset-x-0.5 rounded-md flex items-center justify-center hover:brightness-125 transition-[filter]"
-                              style={{ background: color.bg, boxShadow: `0 0 8px ${color.bg}60` }}
-                            >
-                              {isFirst && spanDays >= 3 && (
-                                <span className="text-[9px] text-white/80 font-mono px-1 truncate">{spanDays}d</span>
-                              )}
-                            </div>
-                          )}
-                          {isExec && (
-                            <div
-                              className="absolute inset-y-1 w-0.5 -translate-x-1/2 rounded-full z-10"
-                              style={{ left: `${execHourPct}%`, background: '#ffffff', boxShadow: '0 0 4px #fff8' }}
-                              title={execLabel ?? undefined}
-                            >
-                              <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow" />
-                              {f.horaEjecucion && (
-                                <span className="absolute top-3 left-2 text-[8px] text-white/90 font-mono whitespace-nowrap bg-gray-900/80 px-1 rounded pointer-events-none">
-                                  {f.horaEjecucion}
-                                </span>
-                              )}
-                            </div>
+                  <div className="grid" style={gridCols}>
+                    {dayGroups.map(dg => (
+                      <div
+                        key={dg.dayStr}
+                        className="text-center text-[10px] text-cyan-200 font-semibold py-1 border-r border-cyan-800/40 last:border-r-0"
+                        style={{ gridColumn: `span ${dg.count}` }}
+                      >
+                        {dg.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Header row 2: hours */}
+                <div className="flex border-b border-cyan-800/40 bg-cyan-950/20">
+                  <div className="w-44 flex-shrink-0 border-r border-cyan-800/30" />
+                  <div className="grid" style={gridCols}>
+                    {slots.map((slot, i) => (
+                      <div
+                        key={i}
+                        className="text-center text-[9px] text-cyan-400/60 font-mono py-1 border-r border-cyan-800/20 last:border-r-0"
+                      >
+                        {String(slot.hour).padStart(2, '0')}h
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rows */}
+                <div className="divide-y divide-cyan-800/25">
+                  {completas.map((f, idx) => {
+                    const color = ESTADO_COLOR[f.estado] || ESTADO_COLOR.PENDIENTE
+
+                    // Compute bar span in slots
+                    let startSlotIdx = -1
+                    let endSlotIdx = -1
+                    let startMinFrac = 0
+                    let endMinFrac = 1
+
+                    if (f.horaEjecucion) {
+                      const startFracH = parseMinFrac(f.horaEjecucion)
+                      const startH = Math.floor(startFracH)
+                      startMinFrac = startFracH - startH
+                      startSlotIdx = slots.findIndex(s => s.dayStr === f.fechaInicio && s.hour === startH)
+
+                      const endTime = endTimeMap.get(f.id)
+                      if (endTime) {
+                        const endFracH = parseMinFrac(endTime)
+                        const endH = Math.floor(endFracH)
+                        endMinFrac = endFracH - endH
+                        // If endFracH is a whole hour (e.g. 01:00 → frac=0), bar ends at previous slot
+                        if (endMinFrac === 0) {
+                          endSlotIdx = slots.findIndex(s => s.dayStr === f.fechaFin && s.hour === endH - 1)
+                          endMinFrac = 1
+                        } else {
+                          endSlotIdx = slots.findIndex(s => s.dayStr === f.fechaFin && s.hour === endH)
+                        }
+                      } else {
+                        endSlotIdx = startSlotIdx
+                        endMinFrac = Math.min(1, startMinFrac + 0.5)
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => { setSelectedId(f.id); setBacklogError('') }}
+                        className={`flex items-stretch w-full text-left transition-colors hover:bg-gray-800/50 cursor-pointer ${idx % 2 === 0 ? 'bg-gray-900/30' : 'bg-transparent'}`}
+                      >
+                        {/* Left label */}
+                        <div className="w-44 flex-shrink-0 border-r border-cyan-800/30 px-3 py-3 min-w-0">
+                          <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
+                          <span
+                            className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: `${color.bg}20`, color: color.text }}
+                          >
+                            {f.estado}
+                          </span>
+                          {f.horaEjecucion && (
+                            <p className="mt-0.5 text-[9px] text-cyan-400/70 font-mono truncate">
+                              ✓ {f.fechaEjecucion ? fmt(f.fechaEjecucion) : fmt(f.fechaInicio)} {f.horaEjecucion}
+                            </p>
                           )}
                         </div>
-                      )
-                    })}
+
+                        {/* Hour cells */}
+                        <div className="grid" style={gridCols}>
+                          {slots.map((slot, i) => {
+                            const inBar = startSlotIdx >= 0 && i >= startSlotIdx && i <= endSlotIdx
+                            const isFirst = i === startSlotIdx
+                            const isLast = i === endSlotIdx
+                            const isSingle = startSlotIdx === endSlotIdx
+
+                            // Phases without horaEjecucion: span full day range
+                            const inDayRange = !f.horaEjecucion && slot.dayStr >= f.fechaInicio && slot.dayStr <= f.fechaFin
+
+                            const showBar = inBar || inDayRange
+
+                            let leftStyle = '2px'
+                            let rightStyle = '2px'
+
+                            if (inBar) {
+                              if (isSingle) {
+                                leftStyle = `${startMinFrac * 100}%`
+                                rightStyle = `${(1 - endMinFrac) * 100}%`
+                              } else if (isFirst) {
+                                leftStyle = `${startMinFrac * 100}%`
+                                rightStyle = '0px'
+                              } else if (isLast) {
+                                leftStyle = '0px'
+                                rightStyle = `${(1 - endMinFrac) * 100}%`
+                              } else {
+                                leftStyle = '0px'
+                                rightStyle = '0px'
+                              }
+                            }
+
+                            return (
+                              <div
+                                key={i}
+                                className="relative h-12 border-r border-cyan-800/20 last:border-r-0 flex items-center"
+                              >
+                                {showBar && (
+                                  <div
+                                    className="absolute inset-y-2.5 rounded-md flex items-center overflow-hidden hover:brightness-125 transition-[filter]"
+                                    style={{
+                                      left: leftStyle,
+                                      right: rightStyle,
+                                      background: color.bg,
+                                      boxShadow: `0 0 8px ${color.bg}60`,
+                                    }}
+                                  >
+                                    {(isFirst || inDayRange) && f.horaEjecucion && (
+                                      <span className="text-[9px] text-white/90 font-mono px-1.5 whitespace-nowrap flex-shrink-0">
+                                        {f.horaEjecucion}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
+
+          {/* ── DAY-BASED GRID (fallback) ── */}
+          {!hasHourData && dayGrid && (() => {
+            const { min, days } = dayGrid
+            const numDays = days.length
+            const dayGridStyle = { gridTemplateColumns: `repeat(${numDays}, minmax(${DAY_COL_MIN}px, 1fr))` }
+
+            return (
+              <>
+                {/* Header */}
+                <div className="flex border-b border-cyan-800/50 bg-cyan-950/40">
+                  <div className="w-44 flex-shrink-0 border-r border-cyan-800/40 px-3 py-2 text-[11px] text-cyan-200 font-semibold">Fase</div>
+                  <div className="grid flex-1" style={dayGridStyle}>
+                    {days.map((d, i) => (
+                      <div key={i} className="px-1 py-2 text-[10px] text-cyan-200 font-mono font-semibold text-center border-r border-cyan-800/30 last:border-r-0">
+                        {d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                      </div>
+                    ))}
                   </div>
-                </button>
-              )
-            })}
-          </div>
+                </div>
+
+                {/* Rows */}
+                <div className="divide-y divide-cyan-800/25">
+                  {completas.map((f, idx) => {
+                    const s = new Date(f.fechaInicio + 'T00:00:00').getTime()
+                    const e = new Date(f.fechaFin + 'T00:00:00').getTime()
+                    const startIdx = Math.round((s - min) / DAY_MS)
+                    const spanDays = Math.round((e - s) / DAY_MS) + 1
+                    const color = ESTADO_COLOR[f.estado] || ESTADO_COLOR.PENDIENTE
+
+                    const execIdx = f.fechaEjecucion
+                      ? Math.round((new Date(f.fechaEjecucion + 'T00:00:00').getTime() - min) / DAY_MS)
+                      : null
+                    const execLabel = f.fechaEjecucion
+                      ? `Ejecutado: ${fmt(f.fechaEjecucion)}${f.horaEjecucion ? ' ' + f.horaEjecucion : ''}`
+                      : null
+                    const execHourPct = f.horaEjecucion
+                      ? (() => { const [h, m] = f.horaEjecucion.split(':').map(Number); return ((h * 60 + m) / (24 * 60)) * 100 })()
+                      : 50
+
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => { setSelectedId(f.id); setBacklogError('') }}
+                        className={`flex items-stretch w-full text-left transition-colors hover:bg-gray-800/50 cursor-pointer ${idx % 2 === 0 ? 'bg-gray-900/30' : 'bg-transparent'}`}
+                      >
+                        <div className="w-44 flex-shrink-0 border-r border-cyan-800/30 px-3 py-3 min-w-0">
+                          <p className="text-sm text-gray-200 truncate" title={f.fase}>{f.fase || 'Sin nombre'}</p>
+                          <span
+                            className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: `${color.bg}20`, color: color.text }}
+                          >
+                            {f.estado}
+                          </span>
+                          {f.fechaEjecucion && (
+                            <p className="mt-0.5 text-[9px] text-cyan-400/70 font-mono truncate">
+                              ✓ {fmt(f.fechaEjecucion)}{f.horaEjecucion ? ' ' + f.horaEjecucion : ''}
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid flex-1" style={dayGridStyle}>
+                          {days.map((_, i) => {
+                            const inRange = i >= startIdx && i < startIdx + spanDays
+                            const isFirst = i === startIdx
+                            const isExec = execIdx !== null && i === execIdx
+                            return (
+                              <div key={i} className="relative h-12 border-r border-cyan-800/20 last:border-r-0 flex items-center justify-center">
+                                {inRange && (
+                                  <div
+                                    className="absolute inset-y-2.5 inset-x-0.5 rounded-md flex items-center justify-center hover:brightness-125 transition-[filter]"
+                                    style={{ background: color.bg, boxShadow: `0 0 8px ${color.bg}60` }}
+                                  >
+                                    {isFirst && spanDays >= 3 && (
+                                      <span className="text-[9px] text-white/80 font-mono px-1 truncate">{spanDays}d</span>
+                                    )}
+                                  </div>
+                                )}
+                                {isExec && (
+                                  <div
+                                    className="absolute inset-y-1 w-0.5 -translate-x-1/2 rounded-full z-10"
+                                    style={{ left: `${execHourPct}%`, background: '#ffffff', boxShadow: '0 0 4px #fff8' }}
+                                    title={execLabel ?? undefined}
+                                  >
+                                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow" />
+                                    {f.horaEjecucion && (
+                                      <span className="absolute top-3 left-2 text-[8px] text-white/90 font-mono whitespace-nowrap bg-gray-900/80 px-1 rounded pointer-events-none">
+                                        {f.horaEjecucion}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
+
         </div>
       </div>
 
-      {/* Popup — uses SesionPopup when there's a matching session, simple popup otherwise.
-          Always portaled to document.body to bypass backdrop-filter containing-block. */}
+      {/* Popup */}
       {selected && typeof document !== 'undefined' && (
         matchedSesion ? (
           <SesionPopup
