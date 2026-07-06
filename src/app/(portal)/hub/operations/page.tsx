@@ -28,6 +28,7 @@ interface HistSnapshot {
   ts: string;
   cpu: number; ram: number; disk: number;
   rx: number; tx: number; swap: number;
+  disk_read?: number; disk_write?: number; conn_est?: number;
 }
 
 interface VpsMetrics {
@@ -192,11 +193,14 @@ function DualSparkline({ h1, h2, c1, c2, height = 80 }: {
 }
 
 // ── Time axis labels ─────────────────────────────────────────────────────────
-function TimeAxis({ points, intervalSec = 30 }: { points: number; intervalSec?: number }) {
-  if (points < 2) return null;
-  const totalSec = (points - 1) * intervalSec;
-  const fmt = (s: number) => s === 0 ? 'Ahora' : s < 60 ? `-${s}s` : `-${Math.round(s / 60)}m`;
-  const labels = [0, 0.25, 0.5, 0.75, 1].map(f => fmt(Math.round((1 - f) * totalSec)));
+function TimeAxis({ points, intervalSec = 30, customLabels }: { points: number; intervalSec?: number; customLabels?: string[] }) {
+  const labels = customLabels ?? (() => {
+    if (points < 2) return null;
+    const totalSec = (points - 1) * intervalSec;
+    const fmt = (s: number) => s === 0 ? 'Ahora' : s < 60 ? `-${s}s` : `-${Math.round(s / 60)}m`;
+    return [0, 0.25, 0.5, 0.75, 1].map(f => fmt(Math.round((1 - f) * totalSec)));
+  })();
+  if (!labels) return null;
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 2px 0', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '4px' }}>
       {labels.map((l, i) => (
@@ -1119,6 +1123,8 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
   const [diskIOModal,    setDiskIOModal]    = useState(false);
   const [diskCatModal,   setDiskCatModal]   = useState(false);
   const [tcpModal,       setTcpModal]       = useState(false);
+  const [diskIORange,    setDiskIORange]    = useState<'live' | '1d'>('live');
+  const [tcpRange,       setTcpRange]       = useState<'live' | '1d'>('live');
   const cpuColor  = statusColor(data.cpu.percent);
   const ramColor  = statusColor(data.ram.percent);
   const diskColor = statusColor(data.disk.percent);
@@ -1541,19 +1547,39 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
       {/* Disco I/O modal */}
       {diskIOModal && (() => {
         const RC = '#fb923c', WC = '#f472b6';
+        const isLive = diskIORange === 'live';
+        const now = Date.now();
+        const bucket1d = (key: 'disk_read' | 'disk_write'): number[] => {
+          const recent = histSnapshots.filter(s => now - new Date(s.ts).getTime() <= 86_400_000);
+          if (recent.length === 0) return [];
+          const bucketMs = 3_600_000;
+          return Array.from({ length: 24 }, (_, bi) => {
+            const start = now - 86_400_000 + bi * bucketMs;
+            const bucket = recent.filter(s => { const t = new Date(s.ts).getTime(); return t >= start && t < start + bucketMs; });
+            return bucket.length ? bucket.reduce((s, snap) => s + (snap[key] ?? 0), 0) / bucket.length : 0;
+          });
+        };
+        const h1 = isLive ? diskReadHist  : bucket1d('disk_read');
+        const h2 = isLive ? diskWriteHist : bucket1d('disk_write');
         const stats = [
-          { label: 'Lectura actual', val: `${data.disk_io?.read_mbps ?? 0} MB/s`, color: RC },
+          { label: 'Lectura actual',   val: `${data.disk_io?.read_mbps ?? 0} MB/s`,  color: RC },
           { label: 'Escritura actual', val: `${data.disk_io?.write_mbps ?? 0} MB/s`, color: WC },
-          { label: 'Pico lectura', val: `${maxVal(diskReadHist).toFixed(2)} MB/s`, color: RC },
-          { label: 'Pico escritura', val: `${maxVal(diskWriteHist).toFixed(2)} MB/s`, color: WC },
-          { label: 'Avg lectura', val: `${avg(diskReadHist).toFixed(2)} MB/s`, color: RC },
-          { label: 'Avg escritura', val: `${avg(diskWriteHist).toFixed(2)} MB/s`, color: WC },
+          { label: 'Pico lectura',     val: `${maxVal(h1).toFixed(2)} MB/s`,          color: RC },
+          { label: 'Pico escritura',   val: `${maxVal(h2).toFixed(2)} MB/s`,          color: WC },
+          { label: 'Avg lectura',      val: `${avg(h1).toFixed(2)} MB/s`,             color: RC },
+          { label: 'Avg escritura',    val: `${avg(h2).toFixed(2)} MB/s`,             color: WC },
         ];
+        const axisLabels1d = ['-24h', '-18h', '-12h', '-6h', 'Ahora'];
         return (
-          <ModalShell onClose={() => setDiskIOModal(false)} title="Disco I/O" sub="Velocidad de lectura y escritura en tiempo real" icon="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" color={RC}>
+          <ModalShell onClose={() => setDiskIOModal(false)} title="Disco I/O" sub="Velocidad de lectura y escritura" icon="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" color={RC}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginBottom: '14px' }}>
+              {(['live', '1d'] as const).map(r => (
+                <button key={r} onClick={() => setDiskIORange(r)} style={{ padding: '3px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: diskIORange === r ? ORANGE : 'rgba(255,255,255,0.06)', color: diskIORange === r ? '#fff' : '#475569', transition: 'all 0.2s' }}>{r === 'live' ? 'Live' : '1D'}</button>
+              ))}
+            </div>
             <div style={{ marginBottom: '20px' }}>
-              <DualSparkline h1={diskReadHist} h2={diskWriteHist} c1={RC} c2={WC} height={120} />
-              <TimeAxis points={Math.max(diskReadHist.length, diskWriteHist.length)} />
+              <DualSparkline h1={h1} h2={h2} c1={RC} c2={WC} height={120} />
+              <TimeAxis points={Math.max(h1.length, h2.length)} intervalSec={isLive ? 30 : 3600} customLabels={isLive ? undefined : axisLabels1d} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '3px', background: RC, borderRadius: '2px' }} />
@@ -1617,38 +1643,61 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
       })()}
 
       {/* TCP Connections modal */}
-      {tcpModal && (
-        <ModalShell onClose={() => setTcpModal(false)} title="Conexiones TCP" sub="Estado de conexiones de red en tiempo real" icon="M13 10V3L4 14h7v7l9-11h-7z" color="#34d399">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-            {[
-              { label: 'Establecidas', val: data.connections?.established ?? 0, color: '#34d399' },
-              { label: 'En escucha', val: data.connections?.listening ?? 0, color: '#60a5fa' },
-              { label: 'Total', val: data.connections?.total ?? 0, color: '#94a3b8' },
-            ].map(r => (
-              <div key={r.label} style={{ textAlign: 'center', padding: '16px 12px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ margin: 0, fontSize: '32px', fontWeight: 900, color: r.color }}>{r.val}</p>
-                <p style={{ margin: '4px 0 0', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>{r.label}</p>
+      {tcpModal && (() => {
+        const isLive = tcpRange === 'live';
+        const now = Date.now();
+        const bucket1d = (): number[] => {
+          const recent = histSnapshots.filter(s => now - new Date(s.ts).getTime() <= 86_400_000);
+          if (recent.length === 0) return [];
+          const bucketMs = 3_600_000;
+          return Array.from({ length: 24 }, (_, bi) => {
+            const start = now - 86_400_000 + bi * bucketMs;
+            const bucket = recent.filter(s => { const t = new Date(s.ts).getTime(); return t >= start && t < start + bucketMs; });
+            return bucket.length ? Math.round(bucket.reduce((s, snap) => s + (snap.conn_est ?? 0), 0) / bucket.length) : 0;
+          });
+        };
+        const hist = isLive ? connHist : bucket1d();
+        const axisLabels1d = ['-24h', '-18h', '-12h', '-6h', 'Ahora'];
+        return (
+          <ModalShell onClose={() => setTcpModal(false)} title="Conexiones TCP" sub="Estado de conexiones de red" icon="M13 10V3L4 14h7v7l9-11h-7z" color="#34d399">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', flex: 1, marginRight: '16px' }}>
+                {[
+                  { label: 'Establecidas', val: data.connections?.established ?? 0, color: '#34d399' },
+                  { label: 'En escucha',   val: data.connections?.listening ?? 0,   color: '#60a5fa' },
+                  { label: 'Total',        val: data.connections?.total ?? 0,        color: '#94a3b8' },
+                ].map(r => (
+                  <div key={r.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ margin: 0, fontSize: '26px', fontWeight: 900, color: r.color }}>{r.val}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>{r.label}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Sparkline history={connHist} color="#34d399" height={100} />
-          <TimeAxis points={connHist.length} />
-          {connHist.length > 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '14px' }}>
-              {[
-                { label: 'Pico', val: maxVal(connHist) },
-                { label: 'Promedio', val: avg(connHist).toFixed(1) },
-                { label: 'Actual', val: connHist[connHist.length - 1] ?? 0 },
-              ].map(r => (
-                <div key={r.label} style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)' }}>
-                  <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#34d399' }}>{r.val}</p>
-                  <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#475569', textTransform: 'uppercase', fontWeight: 700 }}>{r.label}</p>
-                </div>
-              ))}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {(['live', '1d'] as const).map(r => (
+                  <button key={r} onClick={() => setTcpRange(r)} style={{ padding: '3px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: tcpRange === r ? ORANGE : 'rgba(255,255,255,0.06)', color: tcpRange === r ? '#fff' : '#475569', transition: 'all 0.2s' }}>{r === 'live' ? 'Live' : '1D'}</button>
+                ))}
+              </div>
             </div>
-          )}
-        </ModalShell>
-      )}
+            <Sparkline history={hist} color="#34d399" height={100} />
+            <TimeAxis points={hist.length} intervalSec={isLive ? 30 : 3600} customLabels={isLive ? undefined : axisLabels1d} />
+            {hist.length > 1 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '14px' }}>
+                {[
+                  { label: 'Pico',     val: maxVal(hist) },
+                  { label: 'Promedio', val: avg(hist).toFixed(1) },
+                  { label: 'Actual',   val: hist[hist.length - 1] ?? 0 },
+                ].map(r => (
+                  <div key={r.label} style={{ textAlign: 'center', padding: '10px', borderRadius: '8px', background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)' }}>
+                    <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#34d399' }}>{r.val}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#475569', textTransform: 'uppercase', fontWeight: 700 }}>{r.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ModalShell>
+        );
+      })()}
 
       {/* Load Average modal */}
       {loadAvgModal && (

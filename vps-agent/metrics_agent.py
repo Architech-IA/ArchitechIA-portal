@@ -295,16 +295,22 @@ def save_snapshot() -> None:
         disk = psutil.disk_usage("/")
         swap = psutil.swap_memory()
         n1   = psutil.net_io_counters()
+        d1   = psutil.disk_io_counters()
         time.sleep(1)
         n2   = psutil.net_io_counters()
+        d2   = psutil.disk_io_counters()
+        conns = psutil.net_connections()
         snap = {
-            "ts":   datetime.now(timezone.utc).isoformat(),
-            "cpu":  round(psutil.cpu_percent(interval=None), 1),
-            "ram":  round(mem.percent, 1),
-            "disk": round(disk.percent, 1),
-            "rx":   round((n2.bytes_recv - n1.bytes_recv) / 1_048_576, 3),
-            "tx":   round((n2.bytes_sent - n1.bytes_sent) / 1_048_576, 3),
-            "swap": round(swap.percent, 1),
+            "ts":         datetime.now(timezone.utc).isoformat(),
+            "cpu":        round(psutil.cpu_percent(interval=None), 1),
+            "ram":        round(mem.percent, 1),
+            "disk":       round(disk.percent, 1),
+            "rx":         round((n2.bytes_recv - n1.bytes_recv) / 1_048_576, 3),
+            "tx":         round((n2.bytes_sent - n1.bytes_sent) / 1_048_576, 3),
+            "swap":       round(swap.percent, 1),
+            "disk_read":  round((d2.read_bytes  - d1.read_bytes)  / 1_048_576, 3) if d1 and d2 else 0,
+            "disk_write": round((d2.write_bytes - d1.write_bytes) / 1_048_576, 3) if d1 and d2 else 0,
+            "conn_est":   sum(1 for c in conns if c.status == "ESTABLISHED"),
         }
         lines: list[str] = []
         try:
