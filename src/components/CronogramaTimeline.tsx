@@ -292,6 +292,10 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
               const execLabel = f.fechaEjecucion
                 ? `Ejecutado: ${fmt(f.fechaEjecucion)}${f.horaEjecucion ? ' ' + f.horaEjecucion : ''}`
                 : null
+              // fracción del día para posicionar el marcador horizontalmente dentro de la columna
+              const execHourPct = f.horaEjecucion
+                ? (() => { const [h, m] = f.horaEjecucion.split(':').map(Number); return ((h * 60 + m) / (24 * 60)) * 100 })()
+                : 50
 
               return (
                 <button
@@ -333,8 +337,8 @@ export default function CronogramaTimeline({ fases, onUpdate, onRemove, solucion
                           )}
                           {isExec && (
                             <div
-                              className="absolute inset-y-1 w-0.5 left-1/2 -translate-x-1/2 rounded-full z-10 group"
-                              style={{ background: '#ffffff', boxShadow: '0 0 4px #fff8' }}
+                              className="absolute inset-y-1 w-0.5 -translate-x-1/2 rounded-full z-10"
+                              style={{ left: `${execHourPct}%`, background: '#ffffff', boxShadow: '0 0 4px #fff8' }}
                               title={execLabel ?? undefined}
                             >
                               <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow" />
