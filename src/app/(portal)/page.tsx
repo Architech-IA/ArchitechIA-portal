@@ -163,7 +163,6 @@ export default function Home() {
   return (
     <div className="page-wrap space-y-5 animate-fade-in">
       {/* Header FJ-style */}
-      <div style={{background:"red",color:"white",padding:"16px",borderRadius:"8px",fontWeight:"bold"}}>🔴 Prueba CI/CD — deploy automático funcionando</div>
       <div className="relative overflow-hidden -mx-5 -mt-5 px-5 pt-4 pb-4">
         <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 100% at 20% -20%, rgba(255,90,0,0.08) 0%, transparent 70%)' }} />
