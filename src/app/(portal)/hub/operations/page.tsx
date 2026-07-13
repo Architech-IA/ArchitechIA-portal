@@ -1855,7 +1855,48 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+const VPS_LIST = [
+  { key: 'vps1' as const, label: 'KVM 2', ip: '177.7.46.87',  location: 'Hostinger - Principal',  specs: '8 vCPU - 16 GB RAM - 100 GB NVMe', color: ORANGE },
+  { key: 'vps2' as const, label: 'KVM 1', ip: '2.25.201.131', location: 'Hostinger - Secundaria', specs: '4 vCPU - 8 GB RAM - 100 GB NVMe',  color: '#60a5fa' },
+];
+
+function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
+  return (
+    <div style={{ padding: '40px 32px' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>VPS Monitor</h1>
+        <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Selecciona un servidor para ver su dashboard en tiempo real</p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', maxWidth: '720px' }}>
+        {VPS_LIST.map(vps => (
+          <button key={vps.key} onClick={() => onSelect(vps.key)}
+            style={{ textAlign: 'left', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = vps.color + '40'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, ' + vps.color + ', ' + vps.color + '80)', borderRadius: '16px 16px 0 0' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: vps.color + '15', border: '1px solid ' + vps.color + '30', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={vps.color} strokeWidth={1.5}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </div>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} />
+            </div>
+            <p style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 800, color: '#f1f5f9' }}>{vps.label}</p>
+            <p style={{ margin: '0 0 2px', fontSize: '12px', color: vps.color, fontFamily: 'monospace', fontWeight: 600 }}>{vps.ip}</p>
+            <p style={{ margin: '0 0 16px', fontSize: '11px', color: '#475569' }}>{vps.location}</p>
+            <p style={{ margin: 0, fontSize: '11px', color: '#334155', padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>{vps.specs}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '16px', color: vps.color, fontSize: '12px', fontWeight: 600 }}>
+              Ver dashboard
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function OperationsPage() {
+  const [selectedVps, setSelectedVps] = useState<'vps1' | 'vps2' | null>(null);
   const [activeVps,  setActiveVps] = useState<'vps1' | 'vps2'>('vps1');
   const [data,       setData]      = useState<VpsMetrics | null>(null);
   const [error,      setError]     = useState<string | null>(null);
@@ -1938,15 +1979,12 @@ export default function OperationsPage() {
     return () => clearInterval(id);
   }, [error]);
 
-  const handleSelectVps = (v: 'vps1' | 'vps2') => {
-    if (v === activeVps) return;
-    setData(null); setError(null); setNotConf(false); setLastFetch(null); setNextIn(30);
-    cpuHist.current = []; ramHist.current = []; rxHist.current = []; txHist.current = [];
-    diskHist.current = []; swapHist.current = []; diskReadHist.current = []; diskWriteHist.current = []; connHist.current = [];
-    setHistSnapshots([]);
-    setActiveVps(v);
-  };
-  const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats, activeVps, onSelectVps: handleSelectVps };
+  const resetData = () => { setData(null); setError(null); setNotConf(false); setLastFetch(null); setNextIn(30); cpuHist.current = []; ramHist.current = []; rxHist.current = []; txHist.current = []; diskHist.current = []; swapHist.current = []; diskReadHist.current = []; diskWriteHist.current = []; connHist.current = []; setHistSnapshots([]); };
+  const handleSelectVps = (v: 'vps1' | 'vps2') => { if (v === activeVps) return; resetData(); setActiveVps(v); setSelectedVps(v); };
+  const handleBackToSelector = () => { resetData(); setSelectedVps(null); };
+  const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats, activeVps, onSelectVps: handleSelectVps, onBack: handleBackToSelector };
+
+  if (selectedVps === null) return <VpsSelector onSelect={v => { setSelectedVps(v); setActiveVps(v); }} />;
 
   if (notConf) return (
     <div style={{ padding: '10px 32px' }}>
@@ -1999,9 +2037,9 @@ export default function OperationsPage() {
 }
 
 // ── Page header ───────────────────────────────────────────────────────────────
-function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh, activeVps, onSelectVps }: {
+function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh, activeVps, onSelectVps, onBack }: {
   loading: boolean; lastFetch: Date | null; nextIn: number; latencyMs: number | null; onRefresh: () => void;
-  activeVps: 'vps1' | 'vps2'; onSelectVps: (v: 'vps1' | 'vps2') => void;
+  activeVps: 'vps1' | 'vps2'; onSelectVps: (v: 'vps1' | 'vps2') => void; onBack: () => void;
 }) {
   const freshness = lastFetch ? Math.max(0, 30 - nextIn) : null;
   const VPS_TABS: { key: 'vps1' | 'vps2'; label: string; sub: string }[] = [
@@ -2011,6 +2049,7 @@ function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh, activeVp
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', color: '#475569', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6"/></svg>Servidores</button>
         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>VPS Monitor</h1>
         <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '3px' }}>
