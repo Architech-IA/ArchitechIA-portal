@@ -15,6 +15,7 @@ import IntegrationHubRuntime from '@/components/apps/integration-hub/Integration
 import ProjectManagerRuntime from '@/components/apps/project-manager/ProjectManagerRuntime';
 import SecopAIRuntime from '@/components/apps/secop-ai-analyzer/SecopAIRuntime';
 import AppRuntimePlaceholder from '@/components/apps/shared/AppRuntimePlaceholder';
+import SmartlexDocAIRuntime from '@/components/apps/smartlex-docai/SmartlexDocAIRuntime';
 import type { AppInstance } from '@/lib/app-types';
 
 export default function AppRuntimePage() {
@@ -68,6 +69,7 @@ export default function AppRuntimePage() {
         {app.appType.slug === 'integration-hub' && <IntegrationHubRuntime app={app} />}
         {app.appType.slug === 'project-manager' && <ProjectManagerRuntime app={app} />}
         {app.appType.slug === 'secop-ai-analyzer' && <SecopAIRuntime app={app} />}
+        {app.appType.slug === 'smartlex-docai' && <SmartlexDocAIRuntime app={app} />}
         {![
           'crm',
           'landing-page',
@@ -80,6 +82,7 @@ export default function AppRuntimePage() {
           'integration-hub',
           'project-manager',
           'secop-ai-analyzer',
+          'smartlex-docai',
         ].includes(app.appType.slug) && <AppRuntimePlaceholder app={app} />}
       </div>
     </div>

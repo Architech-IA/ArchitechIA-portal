@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 
-const VPS_URL   = process.env.VPS_METRICS_URL   || ''
-const VPS_TOKEN = process.env.VPS_METRICS_TOKEN || ''
+const VPS_URL   = process.env.VPS2_METRICS_URL   || ''
+const VPS_TOKEN = process.env.VPS2_METRICS_TOKEN || ''
 
 export async function GET() {
   if (!VPS_URL) {
-    return NextResponse.json({ error: 'VPS_METRICS_URL no configurada' }, { status: 503 })
+    return NextResponse.json({ error: 'VPS2_METRICS_URL no configurada' }, { status: 503 })
   }
   try {
     const res = await fetch(`${VPS_URL}/metrics`, {

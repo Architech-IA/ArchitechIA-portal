@@ -159,19 +159,34 @@ function AppCard({ app }: { app: AppInstance }) {
         (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,0.4)';
       }}
     >
-      {/* Icono + badge */}
+      {/* Icono + badges */}
       <div className="flex items-start justify-between mb-3">
         <div
           className={`h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br ${app.appType.color} text-white shadow-md flex-shrink-0`}
         >
           <Icon className="h-5 w-5" />
         </div>
-        <span
-          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ml-2"
-          style={{ color: cs.color, background: cs.bg, border: `1px solid ${cs.border}` }}
-        >
-          {category?.label ?? app.appType.category}
-        </span>
+        <div className="flex flex-col items-end gap-1 ml-2">
+          <span
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{ color: cs.color, background: cs.bg, border: `1px solid ${cs.border}` }}
+          >
+            {category?.label ?? app.appType.category}
+          </span>
+          {Array.isArray(app.config?.extraCategories) && (app.config.extraCategories as string[]).map((ec) => {
+            const ecMeta = APP_CATEGORIES[ec];
+            const ecs = getStyle(ecMeta?.color ?? 'text-gray-400');
+            return (
+              <span
+                key={ec}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ color: ecs.color, background: ecs.bg, border: `1px solid ${ecs.border}` }}
+              >
+                {ecMeta?.label ?? ec}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {/* Titulo */}
@@ -186,7 +201,7 @@ function AppCard({ app }: { app: AppInstance }) {
 
       {/* Abrir */}
       <button
-        onClick={() => router.push(`/apps/${app.slug}`)}
+        onClick={() => { const ext = app.config?.externalUrl as string | undefined; if (ext) { window.open(ext, '_blank'); } else { router.push(`/apps/${app.slug}`); } }}
         className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-white transition-colors"
         style={{ background: '#ea580c' }}
         onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = '#c2410c'}

@@ -77,11 +77,12 @@ export const APP_STATUS_LABELS: Record<AppInstance['status'], { label: string; d
 };
 
 export const APP_CATEGORIES: Record<string, { label: string; color: string }> = {
-  comercial:   { label: 'Comercial',    color: 'text-blue-400' },
-  marketing:   { label: 'Marketing',    color: 'text-pink-400' },
-  data:        { label: 'Data',         color: 'text-emerald-400' },
-  operacion:   { label: 'Operación',    color: 'text-orange-400' },
-  ia:          { label: 'IA / ML',      color: 'text-violet-400' },
-  seguridad:   { label: 'Seguridad',    color: 'text-green-400' },
-  integracion: { label: 'Integración',  color: 'text-yellow-400' },
+  comercial:          { label: 'Comercial',          color: 'text-blue-400'    },
+  marketing:          { label: 'Marketing',           color: 'text-pink-400'    },
+  data:               { label: 'Data',                color: 'text-emerald-400' },
+  operacion:          { label: 'Operación',           color: 'text-orange-400'  },
+  ia:                 { label: 'IA / ML',             color: 'text-violet-400'  },
+  seguridad:          { label: 'Seguridad',           color: 'text-green-400'   },
+  integracion:        { label: 'Integración',         color: 'text-yellow-400'  },
+  gestor_documental:  { label: 'Gestor Documental',   color: 'text-cyan-400'    },
 };

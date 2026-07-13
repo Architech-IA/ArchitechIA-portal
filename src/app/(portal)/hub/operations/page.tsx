@@ -1856,6 +1856,7 @@ function Dashboard({ data, cpuHist, ramHist, rxHist, txHist, diskHist, swapHist,
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function OperationsPage() {
+  const [activeVps,  setActiveVps] = useState<'vps1' | 'vps2'>('vps1');
   const [data,       setData]      = useState<VpsMetrics | null>(null);
   const [error,      setError]     = useState<string | null>(null);
   const [loading,    setLoading]   = useState(true);
@@ -1885,7 +1886,7 @@ export default function OperationsPage() {
     setLoading(true);
     const start = performance.now();
     try {
-      const res  = await fetch('/api/vps/stats', { cache: 'no-store' });
+      const res  = await fetch(activeVps === 'vps1' ? '/api/vps/stats' : '/api/vps2/stats', { cache: 'no-store' });
       setLatencyMs(Math.round(performance.now() - start));
       const json = await res.json();
       if (json.error?.includes('VPS_METRICS_URL')) { setNotConf(true); setLoading(false); return; }
@@ -1913,10 +1914,10 @@ export default function OperationsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeVps]);
 
   useEffect(() => {
-    fetch('/api/vps/history', { cache: 'no-store' })
+    fetch(activeVps === 'vps1' ? '/api/vps/history' : '/api/vps2/history', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.snapshots)) setHistSnapshots(d.snapshots); })
       .catch(() => {});
@@ -1937,7 +1938,15 @@ export default function OperationsPage() {
     return () => clearInterval(id);
   }, [error]);
 
-  const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats };
+  const handleSelectVps = (v: 'vps1' | 'vps2') => {
+    if (v === activeVps) return;
+    setData(null); setError(null); setNotConf(false); setLastFetch(null); setNextIn(30);
+    cpuHist.current = []; ramHist.current = []; rxHist.current = []; txHist.current = [];
+    diskHist.current = []; swapHist.current = []; diskReadHist.current = []; diskWriteHist.current = []; connHist.current = [];
+    setHistSnapshots([]);
+    setActiveVps(v);
+  };
+  const headerProps = { loading, lastFetch, nextIn, latencyMs, onRefresh: fetchStats, activeVps, onSelectVps: handleSelectVps };
 
   if (notConf) return (
     <div style={{ padding: '10px 32px' }}>
@@ -1990,16 +1999,28 @@ export default function OperationsPage() {
 }
 
 // ── Page header ───────────────────────────────────────────────────────────────
-function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh }: {
+function PageHeader({ loading, lastFetch, nextIn, latencyMs, onRefresh, activeVps, onSelectVps }: {
   loading: boolean; lastFetch: Date | null; nextIn: number; latencyMs: number | null; onRefresh: () => void;
+  activeVps: 'vps1' | 'vps2'; onSelectVps: (v: 'vps1' | 'vps2') => void;
 }) {
   const freshness = lastFetch ? Math.max(0, 30 - nextIn) : null;
+  const VPS_TABS: { key: 'vps1' | 'vps2'; label: string; sub: string }[] = [
+    { key: 'vps1', label: 'KVM 2', sub: '177.7.46.87' },
+    { key: 'vps2', label: 'KVM 1', sub: '2.25.201.131' },
+  ];
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>VPS Monitor</h1>
-        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: 'rgba(249,115,22,0.12)', color: ORANGE, border: '1px solid rgba(249,115,22,0.2)' }}>Hostinger KVM 2</span>
+        <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '3px' }}>
+          {VPS_TABS.map(t => (
+            <button key={t.key} onClick={() => onSelectVps(t.key)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '5px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', background: activeVps === t.key ? 'rgba(249,115,22,0.15)' : 'transparent', transition: 'background 0.15s' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: activeVps === t.key ? ORANGE : '#64748b', letterSpacing: '0.02em' }}>{t.label}</span>
+              <span style={{ fontSize: '9px', color: activeVps === t.key ? 'rgba(249,115,22,0.7)' : '#334155', fontFamily: 'monospace' }}>{t.sub}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {lastFetch && (
