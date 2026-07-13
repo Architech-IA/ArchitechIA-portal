@@ -2014,13 +2014,13 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
       .catch(() => setReposError('Error al cargar repositorios'))
       .finally(() => setReposLoading(false));
 
-    fetch('/api/vps/stats', { cache: 'no-store' })
+    fetch('/api/vps/docker')
       .then(r => r.json())
       .then(d => { if (d.error) setDockerError1(d.error); else setDocker1(d.docker ?? []); })
       .catch(() => setDockerError1('Sin conexión'))
       .finally(() => setDockerLoading1(false));
 
-    fetch('/api/vps2/stats', { cache: 'no-store' })
+    fetch('/api/vps2/docker')
       .then(r => r.json())
       .then(d => { if (d.error) setDockerError2(d.error); else setDocker2(d.docker ?? []); })
       .catch(() => setDockerError2('Sin conexión'))
