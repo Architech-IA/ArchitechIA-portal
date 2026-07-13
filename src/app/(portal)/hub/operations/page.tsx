@@ -1863,6 +1863,7 @@ const VPS_LIST = [
 type DockerContainer = {
   id: string; name: string; image: string; status: string; ports: string;
 };
+type Skill = { name: string; version: string };
 
 const DB_IMAGES    = ['postgres', 'mysql', 'mongo', 'redis', 'mariadb', 'pgvector', 'clickhouse', 'sqlite', 'mssql', 'oracle'];
 const WEBHOOK_NAMES = ['evolution', 'webhook', 'n8n', 'zapier', 'make', 'chatwoot'];
@@ -1917,13 +1918,24 @@ function CategoryBlock({ icon, label, color, items }: { icon: React.ReactNode; l
   );
 }
 
-function ServerServicePanel({ vpsLabel, containers, loading, error }: { vpsLabel: string; containers: DockerContainer[]; loading: boolean; error: string | null }) {
+function ServerServicePanel({ vpsLabel, containers, skills, loading, error }: { vpsLabel: string; containers: DockerContainer[]; skills: Skill[]; loading: boolean; error: string | null }) {
   const cats = categorize(containers);
   return (
     <div style={{ marginBottom: '28px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{vpsLabel}</span>
-        <span style={{ fontSize: '10px', color: loading ? '#f59e0b' : error ? '#f87171' : '#334155' }}>{loading ? 'cargando...' : error ? 'Error: '+error : containers.length+' contenedores'}</span>
+      <div style={{ marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{vpsLabel}</span>
+          <span style={{ fontSize: '10px', color: loading ? '#f59e0b' : error ? '#f87171' : '#334155' }}>{loading ? 'cargando...' : error ? 'Error: '+error : containers.length+' contenedores'}</span>
+        </div>
+        {skills.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {skills.map(s => {
+              const colors: Record<string,string> = { Python:'#3b82f6', 'Node.js':'#84cc16', npm:'#c084fc', Docker:'#38bdf8', nginx:'#34d399', Git:'#fb923c', pip:'#94a3b8', PostgreSQL:'#818cf8', Redis:'#f87171', Java:'#fbbf24', Go:'#22d3ee', Rust:'#f97316' };
+              const col = colors[s.name] ?? '#64748b';
+              return <span key={s.name} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '20px', background: col+'15', color: col, border: '1px solid '+col+'30', letterSpacing: '0.03em' }}>{s.name} {s.version}</span>;
+            })}
+          </div>
+        )}
       </div>
       {loading && <div style={{ height: '60px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }} />}
       {error && <p style={{ margin: 0, fontSize: '11px', color: '#f87171' }}>{error}</p>}
@@ -2010,6 +2022,8 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
   const [reposError, setReposError] = useState<string | null>(null);
   const [docker1, setDocker1] = useState<DockerContainer[]>([]);
   const [docker2, setDocker2] = useState<DockerContainer[]>([]);
+  const [skills1, setSkills1] = useState<Skill[]>([]);
+  const [skills2, setSkills2] = useState<Skill[]>([]);
   const [dockerLoading1, setDockerLoading1] = useState(true);
   const [dockerLoading2, setDockerLoading2] = useState(true);
   const [dockerError1, setDockerError1] = useState<string | null>(null);
@@ -2024,13 +2038,13 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
 
     fetch('/api/vps/docker')
       .then(r => r.json())
-      .then(d => { if (d.error) setDockerError1(d.error); else setDocker1(d.docker ?? []); })
+      .then(d => { if (d.error) setDockerError1(d.error); else { setDocker1(d.docker ?? []); setSkills1(d.skills ?? []); } })
       .catch(() => setDockerError1('Sin conexión'))
       .finally(() => setDockerLoading1(false));
 
     fetch('/api/vps2/docker')
       .then(r => r.json())
-      .then(d => { if (d.error) setDockerError2(d.error); else setDocker2(d.docker ?? []); })
+      .then(d => { if (d.error) setDockerError2(d.error); else { setDocker2(d.docker ?? []); setSkills2(d.skills ?? []); } })
       .catch(() => setDockerError2('Sin conexión'))
       .finally(() => setDockerLoading2(false));
   }, []);
@@ -2077,8 +2091,8 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5}><path d="M22 13a10 10 0 0 1-10 9 10 10 0 0 1-10-9 10 10 0 0 1 10-9 10 10 0 0 1 10 9z"/><path d="M4 13h16M13 2v11M8 2v8M18 2v8"/></svg>
           <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Servicios por Servidor</span>
         </div>
-        <ServerServicePanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} loading={dockerLoading1} error={dockerError1} />
-        <ServerServicePanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} loading={dockerLoading2} error={dockerError2} />
+        <ServerServicePanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} skills={skills1} loading={dockerLoading1} error={dockerError1} />
+        <ServerServicePanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} skills={skills2} loading={dockerLoading2} error={dockerError2} />
       </div>
 
       {/* GitHub Section */}
