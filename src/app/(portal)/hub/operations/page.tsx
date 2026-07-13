@@ -1865,6 +1865,7 @@ type DockerContainer = {
 };
 type Skill = { name: string; version: string };
 type AgentSkill = { project: string; name: string; title: string };
+type AgentDef = { project: string; area: string; name: string; file: string; desc: string };
 
 const DB_IMAGES    = ['postgres', 'mysql', 'mongo', 'redis', 'mariadb', 'pgvector', 'clickhouse', 'sqlite', 'mssql', 'oracle'];
 const WEBHOOK_NAMES = ['evolution', 'webhook', 'n8n', 'zapier', 'make', 'chatwoot'];
@@ -1919,6 +1920,53 @@ function CategoryBlock({ icon, label, color, items }: { icon: React.ReactNode; l
   );
 }
 
+const AREA_COLORS: Record<string, string> = {
+  data: '#60a5fa', analytics: '#a78bfa', reports: '#34d399',
+  business: '#fb923c', content: '#f59e0b', core: '#64748b',
+};
+
+function AgentsPanel({ agents }: { agents: AgentDef[] }) {
+  if (agents.length === 0) return null;
+  const EXCLUDE_FILES = new Set(['metrics_agent.py', 'base_agent.py']);
+  const filtered = agents.filter(a => !EXCLUDE_FILES.has(a.file));
+  if (filtered.length === 0) return null;
+  const byProject: Record<string, AgentDef[]> = {};
+  for (const a of filtered) {
+    if (!byProject[a.project]) byProject[a.project] = [];
+    byProject[a.project].push(a);
+  }
+  return (
+    <div style={{ marginBottom: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth={1.5}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="8" r="2" fill="#60a5fa"/><circle cx="5" cy="8" r="2" fill="#60a5fa"/></svg>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agentes IA</span>
+        <span style={{ fontSize: '10px', color: '#334155' }}>({filtered.length})</span>
+      </div>
+      {Object.entries(byProject).map(([proj, agts]) => (
+        <div key={proj} style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#475569', letterSpacing: '0.05em', marginBottom: '7px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2}><path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"/></svg>
+            {proj}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '16px' }}>
+            {agts.map(a => {
+              const col = AREA_COLORS[a.area] ?? '#64748b';
+              return (
+                <div key={a.file} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, background: col, boxShadow: '0 0 5px '+col+'80', display: 'inline-block' }} />
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#cbd5e1', minWidth: '130px' }}>{a.name}</span>
+                  <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: col+'15', color: col, border: '1px solid '+col+'25' }}>{a.area}</span>
+                  {a.desc && a.desc !== a.name && <span style={{ fontSize: '10px', color: '#334155', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.desc}>{a.desc}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SKILL_COLORS_MAP: Record<string, string> = {
   'clasificar-documento': '#60a5fa', 'responder-pregunta': '#a78bfa',
   'generar-acta': '#34d399', 'sintetizar-notion': '#fb923c',
@@ -1961,7 +2009,7 @@ function AgentSkillsPanel({ agentSkills }: { agentSkills: AgentSkill[] }) {
   );
 }
 
-function ServerServicePanel({ vpsLabel, containers, skills, agentSkills, loading, error }: { vpsLabel: string; containers: DockerContainer[]; skills: Skill[]; agentSkills: AgentSkill[]; loading: boolean; error: string | null }) {
+function ServerServicePanel({ vpsLabel, containers, skills, agentSkills, agents, loading, error }: { vpsLabel: string; containers: DockerContainer[]; skills: Skill[]; agentSkills: AgentSkill[]; agents: AgentDef[]; loading: boolean; error: string | null }) {
   const cats = categorize(containers);
   return (
     <div style={{ marginBottom: '28px' }}>
@@ -1990,6 +2038,7 @@ function ServerServicePanel({ vpsLabel, containers, skills, agentSkills, loading
           <CategoryBlock icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>} label="Apps & Frontends" color="#94a3b8" items={cats.apps} />
           <CategoryBlock icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={2}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>} label="Admin & Herramientas" color="#34d399" items={cats.admin} />
           {containers.length === 0 && <p style={{ margin: 0, fontSize: '11px', color: '#334155' }}>Sin contenedores</p>}
+          <AgentsPanel agents={agents} />
           <AgentSkillsPanel agentSkills={agentSkills} />
         </div>
       )}
@@ -2070,6 +2119,8 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
   const [skills2, setSkills2] = useState<Skill[]>([]);
   const [agentSkills1, setAgentSkills1] = useState<AgentSkill[]>([]);
   const [agentSkills2, setAgentSkills2] = useState<AgentSkill[]>([]);
+  const [agents1, setAgents1] = useState<AgentDef[]>([]);
+  const [agents2, setAgents2] = useState<AgentDef[]>([]);
   const [dockerLoading1, setDockerLoading1] = useState(true);
   const [dockerLoading2, setDockerLoading2] = useState(true);
   const [dockerError1, setDockerError1] = useState<string | null>(null);
@@ -2084,13 +2135,13 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
 
     fetch('/api/vps/docker')
       .then(r => r.json())
-      .then(d => { if (d.error) setDockerError1(d.error); else { setDocker1(d.docker ?? []); setSkills1(d.skills ?? []); setAgentSkills1(d.agent_skills ?? []); } })
+      .then(d => { if (d.error) setDockerError1(d.error); else { setDocker1(d.docker ?? []); setSkills1(d.skills ?? []); setAgentSkills1(d.agent_skills ?? []); setAgents1(d.agents ?? []); } })
       .catch(() => setDockerError1('Sin conexión'))
       .finally(() => setDockerLoading1(false));
 
     fetch('/api/vps2/docker')
       .then(r => r.json())
-      .then(d => { if (d.error) setDockerError2(d.error); else { setDocker2(d.docker ?? []); setSkills2(d.skills ?? []); setAgentSkills2(d.agent_skills ?? []); } })
+      .then(d => { if (d.error) setDockerError2(d.error); else { setDocker2(d.docker ?? []); setSkills2(d.skills ?? []); setAgentSkills2(d.agent_skills ?? []); setAgents2(d.agents ?? []); } })
       .catch(() => setDockerError2('Sin conexión'))
       .finally(() => setDockerLoading2(false));
   }, []);
@@ -2137,8 +2188,8 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5}><path d="M22 13a10 10 0 0 1-10 9 10 10 0 0 1-10-9 10 10 0 0 1 10-9 10 10 0 0 1 10 9z"/><path d="M4 13h16M13 2v11M8 2v8M18 2v8"/></svg>
           <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Servicios por Servidor</span>
         </div>
-        <ServerServicePanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} skills={skills1} agentSkills={agentSkills1} loading={dockerLoading1} error={dockerError1} />
-        <ServerServicePanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} skills={skills2} agentSkills={agentSkills2} loading={dockerLoading2} error={dockerError2} />
+        <ServerServicePanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} skills={skills1} agentSkills={agentSkills1} agents={agents1} loading={dockerLoading1} error={dockerError1} />
+        <ServerServicePanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} skills={skills2} agentSkills={agentSkills2} agents={agents2} loading={dockerLoading2} error={dockerError2} />
       </div>
 
       {/* GitHub Section */}
