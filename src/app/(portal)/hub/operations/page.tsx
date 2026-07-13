@@ -1864,31 +1864,69 @@ type DockerContainer = {
   id: string; name: string; image: string; status: string; ports: string;
 };
 
-function DockerPanel({ vpsLabel, containers, loading, error }: { vpsLabel: string; containers: DockerContainer[]; loading: boolean; error: string | null }) {
+const DB_IMAGES = ['postgres', 'mysql', 'mongo', 'redis', 'mariadb', 'pgvector', 'clickhouse', 'sqlite', 'mssql', 'oracle'];
+const WEBHOOK_NAMES = ['evolution', 'webhook', 'n8n', 'zapier', 'make', 'chatwoot'];
+
+function categorize(containers: DockerContainer[]) {
+  const db: DockerContainer[] = [];
+  const webhooks: DockerContainer[] = [];
+  const apis: DockerContainer[] = [];
+  for (const ct of containers) {
+    const img = ct.image.toLowerCase();
+    const nm  = ct.name.toLowerCase();
+    if (DB_IMAGES.some(k => img.includes(k) || nm.includes(k))) db.push(ct);
+    else if (WEBHOOK_NAMES.some(k => img.includes(k) || nm.includes(k))) webhooks.push(ct);
+    else apis.push(ct);
+  }
+  return { db, webhooks, apis };
+}
+
+function ContainerRow({ ct }: { ct: DockerContainer }) {
+  const up   = ct.status.startsWith('Up');
+  const port = ct.ports ? ct.ports.split(',')[0].trim() : '';
   return (
-    <div style={{ marginBottom: "24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-        <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", letterSpacing: "0.06em" }}>{vpsLabel}</span>
-        {!loading && !error && <span style={{ fontSize: "10px", color: "#334155" }}>({containers.length})</span>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, background: up ? '#34d399' : '#f87171', boxShadow: up ? '0 0 5px #34d39980' : 'none' }} />
+      <span style={{ fontSize: '12px', fontWeight: 700, color: '#cbd5e1', minWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ct.name}</span>
+      <span style={{ fontSize: '10px', color: '#334155', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ct.image}</span>
+      {port && <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{port}</span>}
+      <span style={{ fontSize: '10px', color: up ? '#34d399' : '#f87171', whiteSpace: 'nowrap', marginLeft: 'auto' }}>{ct.status}</span>
+    </div>
+  );
+}
+
+function CategoryBlock({ icon, label, color, items }: { icon: React.ReactNode; label: string; color: string; items: DockerContainer[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+        {icon}
+        <span style={{ fontSize: '10px', fontWeight: 700, color, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ fontSize: '10px', color: '#334155' }}>({items.length})</span>
       </div>
-      {loading && <div style={{ height: "40px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }} />}
-      {error && <p style={{ margin: 0, fontSize: "11px", color: "#f87171" }}>{error}</p>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '8px', borderLeft: '2px solid ' + color + '30' }}>
+        {items.map(ct => <ContainerRow key={ct.id} ct={ct} />)}
+      </div>
+    </div>
+  );
+}
+
+function ServerServicePanel({ vpsLabel, containers, loading, error }: { vpsLabel: string; containers: DockerContainer[]; loading: boolean; error: string | null }) {
+  const cats = categorize(containers);
+  return (
+    <div style={{ marginBottom: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{vpsLabel}</span>
+        {!loading && !error && <span style={{ fontSize: '10px', color: '#334155' }}>{containers.length} contenedores</span>}
+      </div>
+      {loading && <div style={{ height: '60px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }} />}
+      {error && <p style={{ margin: 0, fontSize: '11px', color: '#f87171' }}>{error}</p>}
       {!loading && !error && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {containers.map(ct => {
-            const up = ct.status.startsWith("Up");
-            const port = ct.ports ? ct.ports.split(",")[0].trim() : "";
-            return (
-              <div key={ct.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ width: "6px", height: "6px", borderRadius: "50%", flexShrink: 0, background: up ? "#34d399" : "#f87171", boxShadow: up ? "0 0 5px #34d39980" : "none" }} />
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "#cbd5e1", minWidth: "180px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ct.name}</span>
-                <span style={{ fontSize: "10px", color: "#334155", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ct.image}</span>
-                {port && <span style={{ fontSize: "10px", color: "#475569", fontFamily: "monospace", whiteSpace: "nowrap" }}>{port}</span>}
-                <span style={{ fontSize: "10px", color: up ? "#34d399" : "#f87171", whiteSpace: "nowrap", marginLeft: "auto" }}>{ct.status}</span>
-              </div>
-            );
-          })}
-          {containers.length === 0 && <p style={{ margin: 0, fontSize: "11px", color: "#334155" }}>Sin contenedores</p>}
+        <div>
+          <CategoryBlock icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth={2}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>} label="APIs & Servicios" color="#60a5fa" items={cats.apis} />
+          <CategoryBlock icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth={2}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>} label="Bases de Datos" color="#a78bfa" items={cats.db} />
+          <CategoryBlock icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fb923c" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>} label="Webhooks" color="#fb923c" items={cats.webhooks} />
+          {containers.length === 0 && <p style={{ margin: 0, fontSize: '11px', color: '#334155' }}>Sin contenedores</p>}
         </div>
       )}
     </div>
@@ -2029,10 +2067,10 @@ function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
       <div style={{ marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5}><path d="M22 13a10 10 0 0 1-10 9 10 10 0 0 1-10-9 10 10 0 0 1 10-9 10 10 0 0 1 10 9z"/><path d="M4 13h16M13 2v11M8 2v8M18 2v8"/></svg>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Docker — Contenedores Activos</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Servicios por Servidor</span>
         </div>
-        <DockerPanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} loading={dockerLoading1} error={dockerError1} />
-        <DockerPanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} loading={dockerLoading2} error={dockerError2} />
+        <ServerServicePanel vpsLabel="KVM 2 · 177.7.46.87" containers={docker1} loading={dockerLoading1} error={dockerError1} />
+        <ServerServicePanel vpsLabel="KVM 1 · 2.25.201.131" containers={docker2} loading={dockerLoading2} error={dockerError2} />
       </div>
 
       {/* GitHub Section */}
