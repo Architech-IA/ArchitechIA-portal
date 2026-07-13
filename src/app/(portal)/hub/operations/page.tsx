@@ -1860,38 +1860,141 @@ const VPS_LIST = [
   { key: 'vps2' as const, label: 'KVM 1', ip: '2.25.201.131', location: 'Hostinger - Secundaria', specs: '4 vCPU - 8 GB RAM - 100 GB NVMe',  color: '#60a5fa' },
 ];
 
-function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
+type GhRepo = {
+  id: number; name: string; full_name: string; description: string | null;
+  private: boolean; language: string | null; url: string; updated_at: string;
+  stars: number; open_issues: number;
+  last_commit: { sha: string; message: string; author: string; date: string } | null;
+  last_workflow: { name: string; status: string; conclusion: string | null; updated_at: string; url: string } | null;
+};
+
+function wfColor(conclusion: string | null, status: string): string {
+  if (status === 'in_progress' || status === 'queued') return '#f59e0b';
+  if (conclusion === 'success') return '#34d399';
+  if (conclusion === 'failure') return '#f87171';
+  return '#475569';
+}
+function wfLabel(conclusion: string | null, status: string): string {
+  if (status === 'in_progress') return 'En curso';
+  if (status === 'queued') return 'En cola';
+  if (conclusion === 'success') return 'OK';
+  if (conclusion === 'failure') return 'Fallo';
+  return 'Sin CI';
+}
+function langColor(lang: string | null): string {
+  const map: Record<string, string> = { TypeScript: '#3178c6', JavaScript: '#f7df1e', Python: '#3b82f6', Go: '#00add8', Rust: '#ce422b', CSS: '#563d7c' };
+  return lang ? (map[lang] ?? '#475569') : '#334155';
+}
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return m + 'm';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h';
+  return Math.floor(h / 24) + 'd';
+}
+
+function RepoCard({ r }: { r: GhRepo }) {
+  const [hov, setHov] = useState(false);
+  const wf = r.last_workflow;
+  const col = wfColor(wf?.conclusion ?? null, wf?.status ?? '');
   return (
-    <div style={{ padding: '40px 32px' }}>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>VPS Monitor</h1>
-        <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Selecciona un servidor para ver su dashboard en tiempo real</p>
+    <a href={r.url} target="_blank" rel="noreferrer"
+      style={{ display: 'block', textDecoration: 'none', background: hov ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid ' + (hov ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'), borderRadius: '12px', padding: '16px', transition: 'all 0.18s', transform: hov ? 'translateY(-1px)' : 'translateY(0)' }}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          {r.private && <span style={{ flexShrink: 0, fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>PRIV</span>}
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+        </div>
+        {wf && (
+          <span style={{ flexShrink: 0, fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: col + '18', color: col, border: '1px solid ' + col + '30' }}>
+            {wfLabel(wf.conclusion, wf.status)}
+          </span>
+        )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', maxWidth: '720px' }}>
-        {VPS_LIST.map(vps => (
-          <button key={vps.key} onClick={() => onSelect(vps.key)}
-            style={{ textAlign: 'left', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = vps.color + '40'; e.currentTarget.style.boxShadow = '0 0 24px ' + vps.color + '18'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: vps.color + '15', border: '1px solid ' + vps.color + '30', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={vps.color} strokeWidth={1.5}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      {r.description && <p style={{ margin: '0 0 10px', fontSize: '11px', color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{r.description}</p>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        {r.language && <span style={{ fontSize: '10px', fontWeight: 600, color: langColor(r.language) }}>● {r.language}</span>}
+        {r.last_commit && <span style={{ fontSize: '10px', color: '#334155', maxWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.last_commit.message}>{r.last_commit.sha} · {r.last_commit.message}</span>}
+        <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#334155' }}>{timeAgo(r.updated_at)}</span>
+      </div>
+    </a>
+  );
+}
+
+function VpsSelector({ onSelect }: { onSelect: (v: 'vps1' | 'vps2') => void }) {
+  const [repos, setRepos] = useState<GhRepo[]>([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [reposError, setReposError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/github/repos')
+      .then(r => r.json())
+      .then(d => { if (d.error) setReposError(d.error); else setRepos(d.repos ?? []); })
+      .catch(() => setReposError('Error al cargar repositorios'))
+      .finally(() => setReposLoading(false));
+  }, []);
+
+  return (
+    <div style={{ padding: '40px 32px', maxWidth: '1200px' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Operations</h1>
+        <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Infraestructura y repositorios del proyecto</p>
+      </div>
+
+      {/* VPS Section */}
+      <div style={{ marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={1.5}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Servidores VPS</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', maxWidth: '620px' }}>
+          {VPS_LIST.map(vps => (
+            <button key={vps.key} onClick={() => onSelect(vps.key)}
+              style={{ textAlign: 'left', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = vps.color + '40'; e.currentTarget.style.boxShadow = '0 0 24px ' + vps.color + '18'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: vps.color + '15', border: '1px solid ' + vps.color + '30', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={vps.color} strokeWidth={1.5}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '20px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} />
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#34d399', letterSpacing: '0.04em' }}>Online</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 8px', borderRadius: '20px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399', boxShadow: '0 0 6px #34d399' }} />
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#34d399', letterSpacing: '0.04em' }}>Online</span>
+              <p style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 800, color: '#f1f5f9' }}>{vps.label}</p>
+              <p style={{ margin: '0 0 2px', fontSize: '12px', color: vps.color, fontFamily: 'monospace', fontWeight: 600 }}>{vps.ip}</p>
+              <p style={{ margin: '0 0 16px', fontSize: '11px', color: '#475569' }}>{vps.location}</p>
+              <p style={{ margin: 0, fontSize: '11px', color: '#334155', padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>{vps.specs}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '16px', color: vps.color, fontSize: '12px', fontWeight: 600 }}>
+                Ver dashboard
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6"/></svg>
               </div>
-            </div>
-            <p style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 800, color: '#f1f5f9' }}>{vps.label}</p>
-            <p style={{ margin: '0 0 2px', fontSize: '12px', color: vps.color, fontFamily: 'monospace', fontWeight: 600 }}>{vps.ip}</p>
-            <p style={{ margin: '0 0 16px', fontSize: '11px', color: '#475569' }}>{vps.location}</p>
-            <p style={{ margin: 0, fontSize: '11px', color: '#334155', padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>{vps.specs}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '16px', color: vps.color, fontSize: '12px', fontWeight: 600 }}>
-              Ver dashboard
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6"/></svg>
-            </div>
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* GitHub Section */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#94a3b8"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Repositorios GitHub</span>
+          {!reposLoading && repos.length > 0 && <span style={{ fontSize: '10px', color: '#334155', fontWeight: 600 }}>({repos.length})</span>}
+        </div>
+        {reposLoading && (
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {[1,2,3,4].map(i => <div key={i} style={{ width: '280px', height: '90px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', animation: 'pulse 1.5s infinite' }} />)}
+          </div>
+        )}
+        {reposError && <p style={{ fontSize: '12px', color: '#f87171' }}>{reposError}</p>}
+        {!reposLoading && !reposError && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '10px' }}>
+            {repos.map(r => <RepoCard key={r.id} r={r} />)}
+          </div>
+        )}
       </div>
     </div>
   );
