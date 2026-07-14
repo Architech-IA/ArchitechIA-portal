@@ -447,7 +447,7 @@ function BalanceTab() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {vista === 'balance' ? [
+        {(vista === 'balance' ? [
           { label: 'Total Activos', value: totals.ACTIVO, color: '#34d399' },
           { label: 'Total Pasivos', value: totals.PASIVO, color: '#f87171' },
           { label: 'Patrimonio', value: totals.PATRIMONIO, color: '#a78bfa' },
@@ -457,14 +457,14 @@ function BalanceTab() {
           { label: 'Gastos', value: totals.GASTO, color: '#fbbf24' },
           { label: utilidad >= 0 ? 'Utilidad' : 'Pérdida', value: Math.abs(utilidad), color: utilidad >= 0 ? '#34d399' : '#f87171' },
           { label: 'Margen', value: totals.INGRESO > 0 ? (utilidad / totals.INGRESO) * 100 : 0, color: utilidad >= 0 ? '#34d399' : '#f87171', isPercent: true },
-        ].map((s) => (
+        ]).map((s) => (
           <div key={s.label} className="p-4 rounded-xl border border-white/6 bg-white/2">
             <p className="text-lg font-bold" style={{ color: s.color }}>
               {'isPercent' in s && s.isPercent ? `${(s.value as number).toFixed(1)}%` : fmt(s.value as number)}
             </p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
           </div>
-        )) : null}
+        ))}
       </div>
 
       {/* Detail tables */}
