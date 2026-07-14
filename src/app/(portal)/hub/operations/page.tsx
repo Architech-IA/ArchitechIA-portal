@@ -2183,7 +2183,7 @@ type AgentWithServer = AgentDef & { server: string; serverColor: string };
 
 function AgentModal({ agent, onClose }: { agent: AgentWithServer; onClose: () => void }) {
   const col = AREA_COLORS[agent.area] ?? '#64748b';
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -2237,7 +2237,7 @@ function OverviewAgentsGrid({ agents1, agents2 }: { agents1: AgentDef[]; agents2
     ...agents1.filter(a => !EXCLUDE.has(a.file)).map(a => ({ ...a, server: 'KVM2', serverColor: ORANGE })),
     ...agents2.filter(a => !EXCLUDE.has(a.file)).map(a => ({ ...a, server: 'KVM1', serverColor: '#60a5fa' })),
   ];
-  const [selected, setSelected] = React.useState<AgentWithServer | null>(null);
+  const [selected, setSelected] = useState<AgentWithServer | null>(null);
   if (all.length === 0) return null;
   return (
     <div>
