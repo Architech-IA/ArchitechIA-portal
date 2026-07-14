@@ -2179,7 +2179,96 @@ function ServerMiniCard({ vps, metrics, metricsLoading, docker, onSelect }: {
 }
 
 // ── Overview agents grid ──────────────────────────────────────────────────────
+type AgentWithServer = AgentDef & { server: string; serverColor: string };
+
+function AgentModal({ agent, onClose }: { agent: AgentWithServer; onClose: () => void }) {
+  const col = AREA_COLORS[agent.area] ?? '#64748b';
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: '440px', background: '#0f1629', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '28px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '24px' }}>
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: col + '18', border: '1px solid ' + col + '30', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: col, boxShadow: '0 0 8px ' + col }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#f1f5f9' }}>{agent.name}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', color: '#475569' }}>{agent.project}</span>
+              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#334155', display: 'inline-block' }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '4px', background: agent.serverColor + '18', color: agent.serverColor, border: '1px solid ' + agent.serverColor + '30' }}>{agent.server}</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', cursor: 'pointer', color: '#64748b', fontSize: '14px', lineHeight: 1, padding: '6px 8px', flexShrink: 0 }}>&#x2715;</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {([
+            { label: 'Area', value: agent.area },
+            { label: 'Archivo', value: agent.file },
+            { label: 'Descripcion', value: agent.desc || 'Sin descripcion' },
+          ] as { label: string; value: string }[]).map(row => (
+            <div key={row.label} style={{ display: 'flex', gap: '12px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', width: '80px', flexShrink: 0, paddingTop: '1px' }}>{row.label}</span>
+              <span style={{ fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px', background: '#34d39918', color: '#34d399', border: '1px solid #34d39930' }}>&#x25cf; Activo</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverviewAgentsGrid({ agents1, agents2 }: { agents1: AgentDef[]; agents2: AgentDef[] }) {
+  const EXCLUDE = new Set(['metrics_agent.py', 'base_agent.py']);
+  const all: AgentWithServer[] = [
+    ...agents1.filter(a => !EXCLUDE.has(a.file)).map(a => ({ ...a, server: 'KVM2', serverColor: ORANGE })),
+    ...agents2.filter(a => !EXCLUDE.has(a.file)).map(a => ({ ...a, server: 'KVM1', serverColor: '#60a5fa' })),
+  ];
+  const [selected, setSelected] = React.useState<AgentWithServer | null>(null);
+  if (all.length === 0) return null;
+  return (
+    <div>
+      {selected && <AgentModal agent={selected} onClose={() => setSelected(null)} />}
+      <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Agentes IA <span style={{ color: '#334155', fontWeight: 500 }}>&middot; {all.length} activos</span>
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
+        {all.map(a => {
+          const col = AREA_COLORS[a.area] ?? '#64748b';
+          return (
+            <div
+              key={a.server + a.file}
+              onClick={() => setSelected(a)}
+              style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '9px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.05)'; }}
+            >
+              <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: col, boxShadow: '0 0 5px ' + col + '80', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</p>
+                <p style={{ margin: 0, fontSize: '9px', color: '#475569' }}>{a.project}</p>
+              </div>
+              <span style={{ flexShrink: 0, fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: a.serverColor + '18', color: a.serverColor, border: '1px solid ' + a.serverColor + '30' }}>{a.server}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}: { agents1: AgentDef[]; agents2: AgentDef[] }) {
   const EXCLUDE = new Set(['metrics_agent.py', 'base_agent.py']);
   const all = [
     ...agents1.filter(a => !EXCLUDE.has(a.file)).map(a => ({ ...a, server: 'KVM2', serverColor: ORANGE })),
