@@ -631,14 +631,27 @@ export default function MeetingsPage() {
 
       {/* Modal crear / editar */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ background: 'rgba(10,10,28,0.97)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white">{editMeeting ? 'Editar Evento' : 'Nuevo Evento'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 px-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,rgba(12,12,30,0.99) 0%,rgba(10,10,24,0.99) 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="h-0.5 w-full" style={{ background: ({'INTERNAL_DAILY':'linear-gradient(90deg,#3b82f6,transparent)','INTERNAL_WORKSHOP':'linear-gradient(90deg,#06b6d4,transparent)','COMMERCIAL':'linear-gradient(90deg,#f97316,transparent)','ADVISORY':'linear-gradient(90deg,#a855f7,transparent)','PROVIDER':'linear-gradient(90deg,#10b981,transparent)'})[form.type] || 'linear-gradient(90deg,#f97316,transparent)' }} />
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <div>
+                <h2 className="text-base font-bold text-white">{editMeeting ? 'Editar Evento' : 'Nuevo Evento'}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{TYPE_LABELS[form.type] || form.type}</p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0)' }} onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background='rgba(255,255,255,0.08)'} onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background='rgba(255,255,255,0)'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -981,6 +994,7 @@ export default function MeetingsPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
