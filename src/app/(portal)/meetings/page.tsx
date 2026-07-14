@@ -207,6 +207,55 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange }: {
 }
 
 
+// Generic custom Select
+function Select({ value, onChange, options, placeholder }: {
+  value: string; onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const label = options.find(o => o.value === value)?.label || placeholder || '';
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm text-left transition-all"
+        style={{ background: 'rgba(255,255,255,0.06)', border: open ? '1px solid rgba(251,146,60,0.5)' : '1px solid rgba(255,255,255,0.1)', color: value ? '#fff' : 'rgba(156,163,175,1)', boxShadow: open ? '0 0 0 3px rgba(251,146,60,0.08)' : 'none' }}
+      >
+        <span>{label}</span>
+        <svg className="w-4 h-4 flex-shrink-0 text-gray-500 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 left-0 right-0 rounded-xl overflow-hidden" style={{ background: 'rgba(10,10,26,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)', boxShadow: '0 16px 40px rgba(0,0,0,0.7)' }}>
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className="w-full px-3 py-2.5 text-sm text-left transition-colors flex items-center justify-between"
+              style={{ background: opt.value === value ? 'rgba(249,115,22,0.12)' : 'transparent', color: opt.value === value ? '#f97316' : 'rgba(255,255,255,0.85)', fontWeight: opt.value === value ? '600' : '400' }}
+              onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}
+              onMouseLeave={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              {opt.label}
+              {opt.value === value && <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function MeetingsPage() {
   const { data: session } = useSession();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -817,17 +866,17 @@ export default function MeetingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Tipo</label>
-                  <select value={form.type} onChange={e => {
-                    const t = e.target.value;
-                    setForm({...form, type: t, link: t === 'INTERNAL_DAILY' ? 'https://meet.google.com/usz-ysto-pcq' : (form.type === 'INTERNAL_DAILY' ? '' : form.link)});
-                  }}
-                    className="w-full px-3 py-2 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <option value="INTERNAL_DAILY">Reunión Interna - Daily</option>
-                    <option value="INTERNAL_WORKSHOP">Reunión Interna - Workshop</option>
-                    <option value="COMMERCIAL">Comercial</option>
-                    <option value="ADVISORY">Asesoría</option>
-                    <option value="PROVIDER">Proveedores</option>
-                  </select>
+                  <Select
+                    value={form.type}
+                    onChange={t => setForm({...form, type: t, link: t === 'INTERNAL_DAILY' ? 'https://meet.google.com/usz-ysto-pcq' : (form.type === 'INTERNAL_DAILY' ? '' : form.link)})}
+                    options={[
+                      { value: 'INTERNAL_DAILY', label: 'Reunión Interna - Daily' },
+                      { value: 'INTERNAL_WORKSHOP', label: 'Reunión Interna - Workshop' },
+                      { value: 'COMMERCIAL', label: 'Comercial' },
+                      { value: 'ADVISORY', label: 'Asesoría' },
+                      { value: 'PROVIDER', label: 'Proveedores' },
+                    ]}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4">
@@ -952,13 +1001,17 @@ export default function MeetingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Ubicación</label>
-                  <select value={form.location} onChange={e => setForm({...form, location: e.target.value})}
-                    className="w-full px-3 py-2 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <option value="">Seleccionar...</option>
-                    <option value="Presencial">Presencial</option>
-                    <option value="Virtual">Virtual</option>
-                    <option value="Otro">Otro</option>
-                  </select>
+                  <Select
+                    value={form.location}
+                    onChange={v => setForm({...form, location: v})}
+                    placeholder="Seleccionar..."
+                    options={[
+                      { value: '', label: 'Seleccionar...' },
+                      { value: 'Presencial', label: 'Presencial' },
+                      { value: 'Virtual', label: 'Virtual' },
+                      { value: 'Otro', label: 'Otro' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Dirección (URL)</label>
@@ -1116,12 +1169,15 @@ export default function MeetingsPage() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Estado</label>
-                <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
-                  className="w-full px-3 py-2 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <option value="SCHEDULED">Programada</option>
-                  <option value="COMPLETED">Completada</option>
-                  <option value="CANCELLED">Cancelada</option>
-                </select>
+                <Select
+                  value={form.status}
+                  onChange={v => setForm({...form, status: v})}
+                  options={[
+                    { value: 'SCHEDULED', label: 'Programada' },
+                    { value: 'COMPLETED', label: 'Completada' },
+                    { value: 'CANCELLED', label: 'Cancelada' },
+                  ]}
+                />
               </div>
               {formError && (
                 <div className="px-3 py-2 bg-red-900/30 border border-red-700/50 rounded-lg text-red-400 text-sm">{formError}</div>
