@@ -880,12 +880,11 @@ export default function MeetingsPage() {
                   />
                 </div>
               </div>
-              {/* Fecha + Fin — dos columnas */}
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
-                <div className="grid grid-cols-2 divide-x" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                  {/* Columna Inicio */}
-                  <div className="p-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inicio</p>
+              {/* Fecha inicio */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Fecha</label>
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1">
                     <DatePicker
                       required
                       value={form.date ? form.date.slice(0, 10) : ''}
@@ -894,54 +893,74 @@ export default function MeetingsPage() {
                         setForm({...form, date: v ? `${v}T${time}` : ''});
                       }}
                     />
-                    <div className="mt-2">
-                      <TimePicker
-                        showLabel={false}
-                        hour={form.date ? form.date.slice(11, 13) : '09'}
-                        minute={form.date ? form.date.slice(14, 16) : '00'}
-                        onHourChange={h => {
-                          const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                          const min = form.date ? form.date.slice(14, 16) : '00';
-                          setForm({...form, date: `${date}T${h}:${min}`});
-                        }}
-                        onMinuteChange={m => {
-                          const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                          const hour = form.date ? form.date.slice(11, 13) : '09';
-                          setForm({...form, date: `${date}T${hour}:${m}`});
-                        }}
-                      />
-                    </div>
-                    {form.date && (
-                      <p className="text-xs mt-2" style={{ color: 'rgba(251,146,60,0.55)' }}>
-                        {new Date(form.date + ':00-05:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </p>
-                    )}
                   </div>
+                  <TimePicker
+                    showLabel={false}
+                    hour={form.date ? form.date.slice(11, 13) : '09'}
+                    minute={form.date ? form.date.slice(14, 16) : '00'}
+                    onHourChange={h => {
+                      const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                      const min = form.date ? form.date.slice(14, 16) : '00';
+                      setForm({...form, date: `${date}T${h}:${min}`});
+                    }}
+                    onMinuteChange={m => {
+                      const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                      const hour = form.date ? form.date.slice(11, 13) : '09';
+                      setForm({...form, date: `${date}T${hour}:${m}`});
+                    }}
+                  />
+                </div>
+                {form.date && (
+                  <p className="text-xs mt-1.5" style={{ color: 'rgba(251,146,60,0.55)' }}>
+                    {new Date(form.date + ':00-05:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                )}
+              </div>
 
-                  {/* Columna Fin */}
-                  <div className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Fin</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (form.endDate) {
-                            setForm({...form, endDate: ''});
-                          } else if (form.date) {
-                            const startDate = form.date.slice(0, 10);
-                            const startHour = parseInt(form.date.slice(11, 13));
-                            const startMin = form.date.slice(14, 16);
-                            const endHour = startHour + 1;
-                            setForm({...form, endDate: `${startDate}T${String(endHour).padStart(2, '0')}:${startMin}`});
-                          }
-                        }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${form.endDate ? 'bg-orange-600' : 'bg-gray-700'}`}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.endDate ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
-                    </div>
-                    {form.endDate ? (
-                      <>
+              {/* Duración / Fin */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Duración</label>
+                <Select
+                  value={(() => {
+                    if (!form.endDate || !form.date) return '';
+                    const startMins = parseInt(form.date.slice(11,13)) * 60 + parseInt(form.date.slice(14,16));
+                    const endMins = parseInt(form.endDate.slice(11,13)) * 60 + parseInt(form.endDate.slice(14,16));
+                    const diff = endMins - startMins;
+                    return ['30','60','90','120'].includes(String(diff)) ? String(diff) : 'custom';
+                  })()}
+                  onChange={v => {
+                    if (v === '') { setForm({...form, endDate: ''}); return; }
+                    if (v === 'custom') {
+                      if (!form.endDate && form.date) {
+                        const h = parseInt(form.date.slice(11,13)) + 1;
+                        setForm({...form, endDate: `${form.date.slice(0,10)}T${String(h).padStart(2,'0')}:${form.date.slice(14,16)}`});
+                      }
+                      return;
+                    }
+                    if (!form.date) return;
+                    const startH = parseInt(form.date.slice(11,13));
+                    const startM = parseInt(form.date.slice(14,16));
+                    const total = startH * 60 + startM + parseInt(v);
+                    setForm({...form, endDate: `${form.date.slice(0,10)}T${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`});
+                  }}
+                  placeholder="Sin hora de fin"
+                  options={[
+                    { value: '', label: 'Sin hora de fin' },
+                    { value: '30', label: '30 minutos' },
+                    { value: '60', label: '1 hora' },
+                    { value: '90', label: '1 hora 30 min' },
+                    { value: '120', label: '2 horas' },
+                    { value: 'custom', label: 'Personalizado...' },
+                  ]}
+                />
+                {form.endDate && (() => {
+                  const startMins = parseInt(form.date.slice(11,13)) * 60 + parseInt(form.date.slice(14,16));
+                  const endMins = parseInt(form.endDate.slice(11,13)) * 60 + parseInt(form.endDate.slice(14,16));
+                  const diff = endMins - startMins;
+                  const isCustom = !['30','60','90','120'].includes(String(diff));
+                  return isCustom ? (
+                    <div className="flex gap-3 items-center mt-2">
+                      <div className="flex-1">
                         <DatePicker
                           value={form.endDate.slice(0, 10)}
                           onChange={v => {
@@ -949,44 +968,29 @@ export default function MeetingsPage() {
                             setForm({...form, endDate: v ? `${v}T${time}` : ''});
                           }}
                         />
-                        <div className="mt-2">
-                          <TimePicker
-                            showLabel={false}
-                            hour={form.endDate.slice(11, 13) || '10'}
-                            minute={form.endDate.slice(14, 16) || '00'}
-                            onHourChange={h => {
-                              const date = form.endDate.slice(0, 10);
-                              const min = form.endDate.slice(14, 16) || '00';
-                              setForm({...form, endDate: `${date}T${h}:${min}`});
-                            }}
-                            onMinuteChange={m => {
-                              const date = form.endDate.slice(0, 10);
-                              const hour = form.endDate.slice(11, 13) || '10';
-                              setForm({...form, endDate: `${date}T${hour}:${m}`});
-                            }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {[{ label: '30 min', mins: 30 }, { label: '1 h', mins: 60 }, { label: '1.5 h', mins: 90 }, { label: '2 h', mins: 120 }].map(p => (
-                          <button key={p.label} type="button"
-                            onClick={() => {
-                              if (!form.date) return;
-                              const startHour = parseInt(form.date.slice(11, 13));
-                              const startMin = parseInt(form.date.slice(14, 16));
-                              const totalMin = startHour * 60 + startMin + p.mins;
-                              setForm({...form, endDate: `${form.date.slice(0,10)}T${String(Math.floor(totalMin/60)%24).padStart(2,'0')}:${String(totalMin%60).padStart(2,'0')}`});
-                            }}
-                            className="px-2.5 py-1.5 text-xs text-gray-400 rounded-lg hover:text-orange-400 transition-colors"
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                          >{p.label}</button>
-                        ))}
-                        <p className="w-full text-xs text-gray-600 mt-1">Sin hora de fin</p>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <TimePicker
+                        showLabel={false}
+                        hour={form.endDate.slice(11, 13) || '10'}
+                        minute={form.endDate.slice(14, 16) || '00'}
+                        onHourChange={h => {
+                          const date = form.endDate.slice(0, 10);
+                          const min = form.endDate.slice(14, 16) || '00';
+                          setForm({...form, endDate: `${date}T${h}:${min}`});
+                        }}
+                        onMinuteChange={m => {
+                          const date = form.endDate.slice(0, 10);
+                          const hour = form.endDate.slice(11, 13) || '10';
+                          setForm({...form, endDate: `${date}T${hour}:${m}`});
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs mt-1.5" style={{ color: 'rgba(251,146,60,0.55)' }}>
+                      Hasta las {form.endDate.slice(11,16)} hrs
+                    </p>
+                  );
+                })()}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
