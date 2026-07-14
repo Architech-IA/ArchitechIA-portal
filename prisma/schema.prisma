@@ -604,3 +604,110 @@ model AppInstance {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+
+model Activo {
+  id               String    @id @default(cuid())
+  nombre           String
+  tipo             String
+  categoria        String?
+  estado           String    @default("ACTIVO")
+  valor            Float     @default(0)
+  moneda           String    @default("USD")
+  fechaAdquisicion DateTime?
+  fechaVencimiento DateTime?
+  proveedorNombre  String?
+  responsable      String?
+  ubicacion        String?
+  serial           String?
+  notas            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Proveedor {
+  id        String        @id @default(cuid())
+  nombre    String
+  tipo      String
+  contacto  String?
+  email     String?
+  telefono  String?
+  pais      String?
+  website   String?
+  estado    String        @default("ACTIVO")
+  notas     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  ordenes   OrdenCompra[]
+}
+
+model OrdenCompra {
+  id               String    @id @default(cuid())
+  numero           String    @unique
+  concepto         String
+  descripcion      String?
+  monto            Float
+  moneda           String    @default("USD")
+  estado           String    @default("PENDIENTE")
+  proveedorId      String
+  proveedor        Proveedor @relation(fields: [proveedorId], references: [id])
+  fechaEmision     DateTime  @default(now())
+  fechaVencimiento DateTime?
+  fechaPago        DateTime?
+  categoria        String?
+  aprobadoPor      String?
+  notas            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model EmpleadoRRHH {
+  id           String              @id @default(cuid())
+  nombre       String
+  email        String              @unique
+  cargo        String
+  departamento String
+  tipo         String              @default("FULL_TIME")
+  estado       String              @default("ACTIVO")
+  salarioBase  Float               @default(0)
+  moneda       String              @default("USD")
+  fechaIngreso DateTime
+  fechaBaja    DateTime?
+  pais         String?
+  userId       String?
+  notas        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  nominas      RegistroNomina[]
+  vacaciones   SolicitudVacacion[]
+}
+
+model RegistroNomina {
+  id          String       @id @default(cuid())
+  empleadoId  String
+  empleado    EmpleadoRRHH @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  periodo     String
+  salarioBase Float
+  bonos       Float        @default(0)
+  deducciones Float        @default(0)
+  total       Float
+  moneda      String       @default("USD")
+  estado      String       @default("PENDIENTE")
+  fechaPago   DateTime?
+  notas       String?
+  createdAt   DateTime     @default(now())
+}
+
+model SolicitudVacacion {
+  id          String       @id @default(cuid())
+  empleadoId  String
+  empleado    EmpleadoRRHH @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  desde       DateTime
+  hasta       DateTime
+  dias        Int
+  tipo        String       @default("VACACION")
+  estado      String       @default("PENDIENTE")
+  aprobadoPor String?
+  notas       String?
+  createdAt   DateTime     @default(now())
+}
