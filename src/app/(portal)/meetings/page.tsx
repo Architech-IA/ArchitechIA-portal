@@ -883,7 +883,7 @@ export default function MeetingsPage() {
               {/* Fecha + Duración en una sola fila */}
               <div>
                 <div className="flex gap-3 items-start">
-                  <div className="flex-1 min-w-0">
+                  <div className="w-40 flex-shrink-0">
                     <label className="block text-sm text-gray-400 mb-2">Fecha</label>
                     <DatePicker
                       required
