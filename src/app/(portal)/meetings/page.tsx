@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { toDatetimeLocalInput, getDateStrUTC5, getTodayStrUTC5, getTimeStrUTC5, getDateFullUTC5, getDayUTC5, getWeekdayDateUTC5 } from '@/lib/timezone';
 
@@ -156,8 +156,16 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange }: {
   const DropDown = ({ open, setOpen, value, options, onChange }: {
     open: boolean; setOpen: (v: boolean) => void;
     value: string; options: string[]; onChange: (v: string) => void;
-  }) => (
-    <div className="relative" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false); }}>
+  }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!open) return;
+      const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+      document.addEventListener('mousedown', handler);
+      return () => document.removeEventListener('mousedown', handler);
+    }, [open, setOpen]);
+    return (
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => { setOpen(!open); }}
@@ -185,7 +193,8 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange }: {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="flex items-center gap-1.5">
