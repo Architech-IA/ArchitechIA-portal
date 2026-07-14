@@ -880,11 +880,11 @@ export default function MeetingsPage() {
                   />
                 </div>
               </div>
-              {/* Fecha inicio */}
+              {/* Fecha + Duración en una sola fila */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Fecha</label>
-                <div className="flex gap-3 items-center">
-                  <div className="flex-1">
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-sm text-gray-400 mb-2">Fecha</label>
                     <DatePicker
                       required
                       value={form.date ? form.date.slice(0, 10) : ''}
@@ -894,33 +894,26 @@ export default function MeetingsPage() {
                       }}
                     />
                   </div>
-                  <TimePicker
-                    showLabel={false}
-                    hour={form.date ? form.date.slice(11, 13) : '09'}
-                    minute={form.date ? form.date.slice(14, 16) : '00'}
-                    onHourChange={h => {
-                      const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                      const min = form.date ? form.date.slice(14, 16) : '00';
-                      setForm({...form, date: `${date}T${h}:${min}`});
-                    }}
-                    onMinuteChange={m => {
-                      const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                      const hour = form.date ? form.date.slice(11, 13) : '09';
-                      setForm({...form, date: `${date}T${hour}:${m}`});
-                    }}
-                  />
-                </div>
-                {form.date && (
-                  <p className="text-xs mt-1.5" style={{ color: 'rgba(251,146,60,0.55)' }}>
-                    {new Date(form.date + ':00-05:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                )}
-              </div>
-
-              {/* Duración / Fin */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Duración</label>
-                <Select
+                  <div className="flex-shrink-0 pt-7">
+                    <TimePicker
+                      showLabel={false}
+                      hour={form.date ? form.date.slice(11, 13) : '09'}
+                      minute={form.date ? form.date.slice(14, 16) : '00'}
+                      onHourChange={h => {
+                        const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                        const min = form.date ? form.date.slice(14, 16) : '00';
+                        setForm({...form, date: `${date}T${h}:${min}`});
+                      }}
+                      onMinuteChange={m => {
+                        const date = form.date ? form.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                        const hour = form.date ? form.date.slice(11, 13) : '09';
+                        setForm({...form, date: `${date}T${hour}:${m}`});
+                      }}
+                    />
+                  </div>
+                  <div className="w-36 flex-shrink-0">
+                    <label className="block text-sm text-gray-400 mb-2">Duración</label>
+                    <Select
                   value={(() => {
                     if (!form.endDate || !form.date) return '';
                     const startMins = parseInt(form.date.slice(11,13)) * 60 + parseInt(form.date.slice(14,16));
@@ -953,6 +946,14 @@ export default function MeetingsPage() {
                     { value: 'custom', label: 'Personalizado...' },
                   ]}
                 />
+                  </div>
+                </div>
+                {form.date && (
+                  <p className="text-xs mt-1.5" style={{ color: 'rgba(251,146,60,0.55)' }}>
+                    {new Date(form.date + ':00-05:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {form.endDate && ` — hasta las ${form.endDate.slice(11,16)}`}
+                  </p>
+                )}
                 {form.endDate && (() => {
                   const startMins = parseInt(form.date.slice(11,13)) * 60 + parseInt(form.date.slice(14,16));
                   const endMins = parseInt(form.endDate.slice(11,13)) * 60 + parseInt(form.endDate.slice(14,16));
@@ -985,11 +986,7 @@ export default function MeetingsPage() {
                         }}
                       />
                     </div>
-                  ) : (
-                    <p className="text-xs mt-1.5" style={{ color: 'rgba(251,146,60,0.55)' }}>
-                      Hasta las {form.endDate.slice(11,16)} hrs
-                    </p>
-                  );
+                  ) : null;
                 })()}
               </div>
               <div className="grid grid-cols-2 gap-4">
